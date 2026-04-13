@@ -1,5 +1,5 @@
 def main():
-    print("Hello from gambling-blocker!")
+    print("Hello from backend!")
 
 
 if __name__ == "__main__":

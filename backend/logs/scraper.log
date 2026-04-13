@@ -1,0 +1,196 @@
+[2026-04-13 20:51:17] INFO     | Resume mode: 1 URL sudah di-scrape, 0 tersisa
+[2026-04-13 20:51:17] WARNING  | Semua URL sudah di-scrape atau target list kosong.
+[2026-04-13 21:04:17] INFO     | Memulai scraping 1 URL dengan 3 worker...
+[2026-04-13 21:04:17] INFO     | Scraping [label=0] → https://www.kitabisa.com
+[2026-04-13 21:04:19] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=369c |
+[2026-04-13 21:04:21] INFO     | Progress: 1/1 URL berhasil diproses
+[2026-04-13 21:04:21] INFO     | CSV disimpan → model/dataset/raw_dataset.csv (1 baris ditambahkan)
+[2026-04-13 21:04:21] INFO     | JSONL disimpan → model/dataset/raw_dataset.jsonl (1 baris ditambahkan)
+[2026-04-13 21:04:21] INFO     | Batch sekarang: 1 record berhasil
+[2026-04-13 21:04:21] INFO     | Total dalam dataset sekarang: 1 record
+[2026-04-13 21:06:03] INFO     | Memulai scraping 1 URL dengan 3 worker...
+[2026-04-13 21:06:03] INFO     | Scraping [label=0] → https://www.kitabisa.com
+[2026-04-13 21:06:04] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=369c |
+[2026-04-13 21:06:06] INFO     | Progress: 1/1 URL berhasil diproses
+[2026-04-13 21:06:06] INFO     | CSV disimpan → model/dataset/raw_dataset.csv (1 baris ditambahkan)
+[2026-04-13 21:06:06] INFO     | JSONL disimpan → model/dataset/raw_dataset.jsonl (1 baris ditambahkan)
+[2026-04-13 21:06:06] INFO     | Batch sekarang: 1 record berhasil
+[2026-04-13 21:06:06] INFO     | Total dalam dataset sekarang: 1 record
+[2026-04-13 21:06:16] INFO     | Memulai scraping 2 URL dengan 3 worker...
+[2026-04-13 21:06:16] INFO     | Scraping [label=0] → https://www.kitabisa.com
+[2026-04-13 21:06:16] INFO     | Scraping [label=0] → https://www.youtube.com
+[2026-04-13 21:06:16] WARNING  | ⚠ Terblokir / captcha, dilewati: https://www.youtube.com/
+[2026-04-13 21:06:17] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=369c |
+[2026-04-13 21:06:19] INFO     | Progress: 2/2 URL berhasil diproses
+[2026-04-13 21:06:19] WARNING  | 1 URL gagal / dilewati:
+[2026-04-13 21:06:19] WARNING  |   ✗ https://www.youtube.com
+[2026-04-13 21:06:19] INFO     | CSV disimpan → model/dataset/raw_dataset.csv (1 baris ditambahkan)
+[2026-04-13 21:06:19] INFO     | JSONL disimpan → model/dataset/raw_dataset.jsonl (1 baris ditambahkan)
+[2026-04-13 21:06:19] INFO     | Batch sekarang: 1 record berhasil
+[2026-04-13 21:06:19] INFO     | Total dalam dataset sekarang: 1 record
+[2026-04-13 21:06:45] INFO     | Memulai scraping 2 URL dengan 3 worker...
+[2026-04-13 21:06:45] INFO     | Scraping [label=0] → https://www.kitabisa.com
+[2026-04-13 21:06:45] INFO     | Scraping [label=0] → https://www.github.com
+[2026-04-13 21:06:45] WARNING  | HTTP 403: https://www.github.com
+[2026-04-13 21:06:46] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=369c |
+[2026-04-13 21:06:48] INFO     | Progress: 2/2 URL berhasil diproses
+[2026-04-13 21:06:48] WARNING  | 1 URL gagal / dilewati:
+[2026-04-13 21:06:48] WARNING  |   ✗ https://www.github.com
+[2026-04-13 21:06:48] INFO     | CSV disimpan → model/dataset/raw_dataset.csv (1 baris ditambahkan)
+[2026-04-13 21:06:48] INFO     | JSONL disimpan → model/dataset/raw_dataset.jsonl (1 baris ditambahkan)
+[2026-04-13 21:06:48] INFO     | Batch sekarang: 1 record berhasil
+[2026-04-13 21:06:48] INFO     | Total dalam dataset sekarang: 1 record
+[2026-04-13 21:07:13] INFO     | Memulai scraping 2 URL dengan 3 worker...
+[2026-04-13 21:07:13] INFO     | Scraping [label=0] → https://www.kitabisa.com
+[2026-04-13 21:07:13] INFO     | Scraping [label=0] → https://www.tokopedia.com
+[2026-04-13 21:07:13] WARNING  | ⚠ Terblokir / captcha, dilewati: https://www.tokopedia.com/
+[2026-04-13 21:07:13] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=369c | 
+[2026-04-13 21:07:15] INFO     | Progress: 2/2 URL berhasil diproses
+[2026-04-13 21:07:15] WARNING  | 1 URL gagal / dilewati:
+[2026-04-13 21:07:15] WARNING  |   ✗ https://www.tokopedia.com
+[2026-04-13 21:07:35] INFO     | Memulai scraping 2 URL dengan 3 worker...
+[2026-04-13 21:07:35] INFO     | Scraping [label=0] → https://www.kitabisa.com
+[2026-04-13 21:07:35] INFO     | Scraping [label=0] → https://www.tokopedia.com
+[2026-04-13 21:07:36] WARNING  | ⚠ Terblokir / captcha, dilewati: https://www.tokopedia.com/
+[2026-04-13 21:07:37] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=369c | 
+[2026-04-13 21:07:39] INFO     | Progress: 2/2 URL berhasil diproses
+[2026-04-13 21:07:39] WARNING  | 1 URL gagal / dilewati:
+[2026-04-13 21:07:39] WARNING  |   ✗ https://www.tokopedia.com
+[2026-04-13 21:07:39] INFO     | CSV disimpan → model/dataset/raw_dataset.csv (1 baris ditambahkan)
+[2026-04-13 21:07:39] INFO     | JSONL disimpan → model/dataset/raw_dataset.jsonl (1 baris ditambahkan)
+[2026-04-13 21:07:39] INFO     | Batch sekarang: 1 record berhasil
+[2026-04-13 21:07:39] INFO     | Total dalam dataset sekarang: 1 record
+[2026-04-13 21:07:53] INFO     | Memulai scraping 2 URL dengan 3 worker...
+[2026-04-13 21:07:53] INFO     | Scraping [label=0] → https://www.kitabisa.com
+[2026-04-13 21:07:53] INFO     | Scraping [label=0] → https://www.tokopedia.com
+[2026-04-13 21:07:54] INFO     | ✓ OK | title='Situs Jual Beli Online Terlengkap, Mudah & Aman | ' | body=298c | 
+[2026-04-13 21:07:54] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=369c | 
+[2026-04-13 21:07:56] INFO     | Progress: 2/2 URL berhasil diproses
+[2026-04-13 21:07:56] INFO     | CSV disimpan → model/dataset/raw_dataset.csv (2 baris ditambahkan)
+[2026-04-13 21:07:56] INFO     | JSONL disimpan → model/dataset/raw_dataset.jsonl (2 baris ditambahkan)
+[2026-04-13 21:07:56] INFO     | Batch sekarang: 2 record berhasil
+[2026-04-13 21:07:56] INFO     | Total dalam dataset sekarang: 2 record
+[2026-04-13 21:08:05] INFO     | Memulai scraping 2 URL dengan 3 worker...
+[2026-04-13 21:08:05] INFO     | Scraping [label=0] → https://www.kitabisa.com
+[2026-04-13 21:08:05] INFO     | Scraping [label=0] → https://www.tokopedia.com
+[2026-04-13 21:08:05] INFO     | ✓ OK | title='Situs Jual Beli Online Terlengkap, Mudah & Aman | ' | body=298c | 
+[2026-04-13 21:08:05] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=369c | 
+[2026-04-13 21:08:07] INFO     | Progress: 2/2 URL berhasil diproses
+[2026-04-13 21:08:07] INFO     | CSV disimpan → model/dataset/raw_dataset.csv (2 baris ditambahkan)
+[2026-04-13 21:08:07] INFO     | JSONL disimpan → model/dataset/raw_dataset.jsonl (2 baris ditambahkan)
+[2026-04-13 21:08:07] INFO     | Batch sekarang: 2 record berhasil
+[2026-04-13 21:08:07] INFO     | Total dalam dataset sekarang: 2 record
+[2026-04-13 21:15:45] INFO     | Memulai scraping 2 URL dengan 3 worker...
+[2026-04-13 21:15:45] INFO     | Scraping [label=0] → https://www.kitabisa.com
+[2026-04-13 21:15:45] INFO     | Scraping [label=0] → https://www.tokopedia.com
+[2026-04-13 21:15:45] INFO     | ✓ OK | title='Situs Jual Beli Online Terlengkap, Mudah & Aman | ' | body=298c | 
+[2026-04-13 21:15:46] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=369c | 
+[2026-04-13 21:15:48] INFO     | Progress: 2/2 URL berhasil diproses
+[2026-04-13 21:15:48] INFO     | CSV disimpan → model/dataset/raw_dataset.csv (2 baris ditambahkan)
+[2026-04-13 21:15:48] INFO     | JSONL disimpan → model/dataset/raw_dataset.jsonl (2 baris ditambahkan)
+[2026-04-13 21:15:48] INFO     | Batch sekarang: 2 record berhasil
+[2026-04-13 21:15:48] INFO     | Total dalam dataset sekarang: 2 record
+[2026-04-13 21:16:46] INFO     | Memulai scraping 2 URL dengan 3 worker...
+[2026-04-13 21:16:46] INFO     | Scraping [label=0] → https://www.kitabisa.com
+[2026-04-13 21:16:46] INFO     | Scraping [label=0] → https://www.tokopedia.com
+[2026-04-13 21:16:46] INFO     | ✓ OK | title='Situs Jual Beli Online Terlengkap, Mudah & Aman | ' | body=298c | 
+[2026-04-13 21:16:47] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=369c | 
+[2026-04-13 21:16:49] INFO     | Progress: 2/2 URL berhasil diproses
+[2026-04-13 21:16:49] INFO     | CSV disimpan → model/dataset/raw_dataset.csv (2 baris ditambahkan)
+[2026-04-13 21:16:49] INFO     | JSONL disimpan → model/dataset/raw_dataset.jsonl (2 baris ditambahkan)
+[2026-04-13 21:16:49] INFO     | Batch sekarang: 2 record berhasil
+[2026-04-13 21:16:49] INFO     | Total dalam dataset sekarang: 2 record
+[2026-04-13 21:21:48] INFO     | Memulai scraping 2 URL dengan 3 worker...
+[2026-04-13 21:21:48] INFO     | Scraping [label=0] → https://www.kitabisa.com
+[2026-04-13 21:21:48] INFO     | Scraping [label=0] → https://www.tokopedia.com
+[2026-04-13 21:21:49] INFO     | ✓ OK | title='Situs Jual Beli Online Terlengkap, Mudah & Aman | ' | body=298c | 
+[2026-04-13 21:21:50] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=369c | 
+[2026-04-13 21:21:52] INFO     | Progress: 2/2 URL berhasil diproses
+[2026-04-13 21:21:52] INFO     | CSV disimpan → model/dataset/raw_dataset.csv (2 baris ditambahkan)
+[2026-04-13 21:21:52] INFO     | JSONL disimpan → model/dataset/raw_dataset.jsonl (2 baris ditambahkan)
+[2026-04-13 21:21:52] INFO     | Batch sekarang: 2 record berhasil
+[2026-04-13 21:21:52] INFO     | Total dalam dataset sekarang: 2 record
+[2026-04-13 21:21:58] INFO     | Memulai scraping 2 URL dengan 3 worker...
+[2026-04-13 21:21:58] INFO     | Scraping [label=0] → https://www.kitabisa.com
+[2026-04-13 21:21:58] INFO     | Scraping [label=0] → https://www.tokopedia.com
+[2026-04-13 21:21:58] INFO     | ✓ OK | title='Situs Jual Beli Online Terlengkap, Mudah & Aman | ' | body=298c | 
+[2026-04-13 21:21:59] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=369c | 
+[2026-04-13 21:22:01] INFO     | Progress: 2/2 URL berhasil diproses
+[2026-04-13 21:22:01] INFO     | CSV disimpan → model/dataset/raw_dataset.csv (2 baris ditambahkan)
+[2026-04-13 21:22:01] INFO     | JSONL disimpan → model/dataset/raw_dataset.jsonl (2 baris ditambahkan)
+[2026-04-13 21:22:01] INFO     | Batch sekarang: 2 record berhasil
+[2026-04-13 21:22:01] INFO     | Total dalam dataset sekarang: 2 record
+[2026-04-13 21:22:13] INFO     | Memulai scraping 2 URL dengan 3 worker...
+[2026-04-13 21:22:13] INFO     | Scraping [label=0] → https://www.kitabisa.com
+[2026-04-13 21:22:13] INFO     | Scraping [label=0] → https://www.tokopedia.com
+[2026-04-13 21:22:14] INFO     | ✓ OK | title='Situs Jual Beli Online Terlengkap, Mudah & Aman | ' | body=298c | 
+[2026-04-13 21:22:15] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=369c | 
+[2026-04-13 21:22:17] INFO     | Progress: 2/2 URL berhasil diproses
+[2026-04-13 21:22:17] INFO     | CSV disimpan → model/dataset/raw_dataset.csv (2 baris ditambahkan)
+[2026-04-13 21:22:17] INFO     | JSONL disimpan → model/dataset/raw_dataset.jsonl (2 baris ditambahkan)
+[2026-04-13 21:22:17] INFO     | Batch sekarang: 2 record berhasil
+[2026-04-13 21:22:17] INFO     | Total dalam dataset sekarang: 2 record
+[2026-04-13 21:26:02] INFO     | Memulai scraping 2 URL dengan 3 worker...
+[2026-04-13 21:26:02] INFO     | Scraping [label=0] → https://www.kitabisa.com
+[2026-04-13 21:26:02] INFO     | Scraping [label=0] → https://www.tokopedia.com
+[2026-04-13 21:26:02] INFO     | ✓ OK | title='Situs Jual Beli Online Terlengkap, Mudah & Aman | ' | body=298c | 
+[2026-04-13 21:26:03] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=369c | 
+[2026-04-13 21:26:05] INFO     | Progress: 2/2 URL berhasil diproses
+[2026-04-13 21:26:05] INFO     | CSV disimpan → /home/rizkyfauziilmi/Documents/Code/Kuliah/gambling-blocker/backend/model/dataset/raw_dataset.csv (2 baris ditambahkan)
+[2026-04-13 21:26:05] INFO     | JSONL disimpan → /home/rizkyfauziilmi/Documents/Code/Kuliah/gambling-blocker/backend/model/dataset/raw_dataset.jsonl (2 baris ditambahkan)
+[2026-04-13 21:26:05] INFO     | Batch sekarang: 2 record berhasil
+[2026-04-13 21:26:05] INFO     | Total dalam dataset sekarang: 2 record
+[2026-04-13 21:26:21] INFO     | Memulai scraping 2 URL dengan 3 worker...
+[2026-04-13 21:26:21] INFO     | Scraping [label=0] → https://www.kitabisa.com
+[2026-04-13 21:26:21] INFO     | Scraping [label=0] → https://www.tokopedia.com
+[2026-04-13 21:26:21] INFO     | ✓ OK | title='Situs Jual Beli Online Terlengkap, Mudah & Aman | ' | body=298c | 
+[2026-04-13 21:26:22] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=369c | 
+[2026-04-13 21:26:24] INFO     | Progress: 2/2 URL berhasil diproses
+[2026-04-13 21:26:24] INFO     | CSV disimpan → /home/rizkyfauziilmi/Documents/Code/Kuliah/gambling-blocker/backend/model/dataset/raw_dataset.csv (2 baris ditambahkan)
+[2026-04-13 21:26:24] INFO     | JSONL disimpan → /home/rizkyfauziilmi/Documents/Code/Kuliah/gambling-blocker/backend/model/dataset/raw_dataset.jsonl (2 baris ditambahkan)
+[2026-04-13 21:26:24] INFO     | Batch sekarang: 2 record berhasil
+[2026-04-13 21:26:24] INFO     | Total dalam dataset sekarang: 2 record
+[2026-04-13 21:28:33] INFO     | Memulai scraping 2 URL dengan 3 worker...
+[2026-04-13 21:28:33] INFO     | Scraping [label=0] → https://kitabisa.com
+[2026-04-13 21:28:33] INFO     | Scraping [label=0] → https://tokopedia.com
+[2026-04-13 21:28:33] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=369c | 
+[2026-04-13 21:28:33] INFO     | ✓ OK | title='Situs Jual Beli Online Terlengkap, Mudah & Aman | ' | body=298c | 
+[2026-04-13 21:28:35] INFO     | Progress: 2/2 URL berhasil diproses
+[2026-04-13 21:28:35] INFO     | CSV disimpan → /home/rizkyfauziilmi/Documents/Code/Kuliah/gambling-blocker/backend/model/dataset/raw_dataset.csv (2 baris ditambahkan)
+[2026-04-13 21:28:35] INFO     | JSONL disimpan → /home/rizkyfauziilmi/Documents/Code/Kuliah/gambling-blocker/backend/model/dataset/raw_dataset.jsonl (2 baris ditambahkan)
+[2026-04-13 21:28:35] INFO     | Batch sekarang: 2 record berhasil
+[2026-04-13 21:28:35] INFO     | Total dalam dataset sekarang: 2 record
+[2026-04-13 21:28:43] WARNING  | Semua URL sudah di-scrape atau target list kosong.
+[2026-04-13 21:28:57] WARNING  | Semua URL sudah di-scrape atau target list kosong.
+[2026-04-13 21:37:30] INFO     | Memulai scraping 2 URL dengan 3 worker...
+[2026-04-13 21:37:30] INFO     | Scraping [label=0] → https://kitabisa.com
+[2026-04-13 21:37:30] INFO     | Scraping [label=0] → https://tokopedia.com
+[2026-04-13 21:37:31] WARNING  | Body terlalu pendek (227 < 500), kemungkinan JS-rendered atau blocked: https://tokopedia.com
+[2026-04-13 21:37:31] WARNING  | Body terlalu pendek (280 < 500), kemungkinan JS-rendered atau blocked: https://kitabisa.com
+[2026-04-13 21:37:33] INFO     | Progress: 2/2 URL berhasil diproses
+[2026-04-13 21:37:33] WARNING  | 2 URL gagal / dilewati:
+[2026-04-13 21:37:33] WARNING  |   ✗ https://tokopedia.com
+[2026-04-13 21:37:33] WARNING  |   ✗ https://kitabisa.com
+[2026-04-13 21:37:33] ERROR    | Tidak ada data yang berhasil diambil di batch ini.
+[2026-04-13 21:40:17] INFO     | Memulai scraping 2 URL dengan 3 worker...
+[2026-04-13 21:40:17] INFO     | Scraping [label=0] → https://kitabisa.com
+[2026-04-13 21:40:17] INFO     | Scraping [label=0] → https://tokopedia.com
+[2026-04-13 21:40:18] INFO     | ✓ OK | title='Situs Jual Beli Online Terlengkap, Mudah & Aman | ' | body=227c | 
+[2026-04-13 21:40:18] INFO     | ✓ OK | title='Kitabisa - Donasi, Zakat, Wakaf, dan Saling Jaga s' | body=280c | 
+[2026-04-13 21:40:20] INFO     | Progress: 2/2 URL berhasil diproses
+[2026-04-13 21:40:20] INFO     | CSV disimpan → /home/rizkyfauziilmi/Documents/Code/Kuliah/gambling-blocker/backend/model/dataset/raw_dataset.csv (2 baris ditambahkan)
+[2026-04-13 21:40:20] INFO     | JSONL disimpan → /home/rizkyfauziilmi/Documents/Code/Kuliah/gambling-blocker/backend/model/dataset/raw_dataset.jsonl (2 baris ditambahkan)
+[2026-04-13 21:40:20] INFO     | Batch sekarang: 2 record berhasil
+[2026-04-13 21:40:20] INFO     | Total dalam dataset sekarang: 2 record
+[2026-04-13 21:58:55] INFO     | Tidak ada URL yang perlu di-scrape.
+[2026-04-13 21:59:43] INFO     | Memulai scraping 1 URL dengan 3 worker...
+[2026-04-13 21:59:43] INFO     | Scraping [label=0] → https://youtube.com
+[2026-04-13 21:59:55] INFO     | ✓ OK | title='YouTube' | body=143c | 
+[2026-04-13 21:59:57] INFO     | Progress: 1/1 URL berhasil diproses
+[2026-04-13 21:59:57] INFO     | CSV disimpan → /home/rizkyfauziilmi/Documents/Code/Kuliah/gambling-blocker/backend/model/dataset/raw_dataset.csv (1 baris ditambahkan)
+[2026-04-13 21:59:57] INFO     | JSONL disimpan → /home/rizkyfauziilmi/Documents/Code/Kuliah/gambling-blocker/backend/model/dataset/raw_dataset.jsonl (1 baris ditambahkan)
+[2026-04-13 21:59:57] INFO     | Batch sekarang: 1 record berhasil
+[2026-04-13 21:59:57] INFO     | Total dalam dataset sekarang: 3 record
+[2026-04-13 22:01:42] INFO     | Tidak ada URL yang perlu di-scrape.
+[2026-04-13 22:07:08] INFO     | Tidak ada URL yang perlu di-scrape.
+[2026-04-13 22:09:53] INFO     | Tidak ada URL yang perlu di-scrape.
