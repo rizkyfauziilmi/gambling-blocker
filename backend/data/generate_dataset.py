@@ -46,9 +46,9 @@ for url in NON_GAMBLING_SITES:
     add_row(url, "non-gambling")
 
 # write CSV
-with open("datasets/websites.csv", "w", newline="", encoding="utf-8") as f:
+with open("datasets/domain.csv", "w", newline="", encoding="utf-8") as f:
     writer = csv.writer(f)
     writer.writerow(["id", "domain", "url", "label"])
     writer.writerows(rows)
 
-print("CSV file 'websites.csv' created successfully.")
+print("CSV file 'domain.csv' created successfully.")
