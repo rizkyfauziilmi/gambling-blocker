@@ -162,6 +162,16 @@ def normalize_url(url: str) -> str:
     return url.lower()
 
 
+def is_root_domain(url: str) -> bool:
+    """
+    True jika URL adalah root domain — path kosong atau hanya '/'.
+    Contoh: https://www.fiercepharma.com  → True
+            https://www.fiercepharma.com/article/x → False
+    """
+    path = urlparse(url).path
+    return path in ("", "/")
+
+
 def is_valid_url(url: str, base_domain: str) -> bool:
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
@@ -341,6 +351,16 @@ def crawl_domain(
             if html is None:
                 continue
 
+            # ── Ekstrak link terlebih dahulu (selalu, termasuk root domain) ──
+            new_links = extract_links(html, current_url, base_domain)
+            for link in new_links:
+                if link not in visited:
+                    queue.append(link)
+
+            # ── Root domain: gunakan sebagai titik awal saja, jangan simpan ──
+            if is_root_domain(current_url):
+                continue
+
             records.append(
                 {
                     "Webpage_id": webpage_id,
@@ -375,11 +395,6 @@ def crawl_domain(
                         "💾": "saved",
                     }
                 )
-
-            new_links = extract_links(html, current_url, base_domain)
-            for link in new_links:
-                if link not in visited:
-                    queue.append(link)
 
     status = f"{Fore.GREEN}✓" if records else f"{Fore.YELLOW}–"
     print(
