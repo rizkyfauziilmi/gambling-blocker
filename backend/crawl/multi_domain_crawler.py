@@ -16,7 +16,10 @@ init(autoreset=True)
 #  CONFIGURATION
 # ══════════════════════════════════════════════════════════════════════════════
 
-DOMAINS_TO_CRAWL = [("https://www.fiercepharma.com", "non-gambling")]
+DOMAINS_TO_CRAWL = [
+    ("https://www.fiercepharma.com", "non-gambling"),
+    ("https://www.polygon.com", "non-gambling"),
+]
 
 SETTINGS = {
     "max_pages_per_domain": 200,  # batas halaman per domain (None = unlimited)
@@ -209,6 +212,23 @@ def extract_links(html: str, base_url: str, base_domain: str) -> list[str]:
 # Status yang layak di-retry
 RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 
+# Content-Type yang mengindikasikan XML — skip karena bukan halaman HTML
+XML_CONTENT_TYPES = {
+    "application/xml",
+    "text/xml",
+    "application/rss+xml",
+    "application/atom+xml",
+}
+
+
+def is_xml_content_type(content_type: str) -> bool:
+    """
+    True jika Content-Type response adalah XML/RSS/Atom.
+    Menggunakan prefix-match agar parameter seperti '; charset=utf-8' diabaikan.
+    """
+    ct = content_type.lower().split(";")[0].strip()
+    return ct in XML_CONTENT_TYPES
+
 
 def fetch(url: str, retries: int = SETTINGS["max_retries"]) -> str | None:
     for attempt in range(retries + 1):
@@ -221,6 +241,14 @@ def fetch(url: str, retries: int = SETTINGS["max_retries"]) -> str | None:
             )
 
             if resp.status_code == 200:
+                # ── Skip XML (sitemap, RSS, Atom) — bukan konten halaman ──
+                content_type = resp.headers.get("Content-Type", "")
+                if is_xml_content_type(content_type):
+                    print(
+                        f"  {Fore.YELLOW}[SKIP XML] {url}  ({content_type.split(';')[0].strip()})"
+                    )
+                    return None
+
                 return resp.text
 
             elif resp.status_code in RETRYABLE_STATUS:
