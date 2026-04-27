@@ -235,7 +235,7 @@ SKIP_EXTENSIONS = {
 }
 
 SKIP_PATTERNS = re.compile(
-    r"(mailto:|javascript:|tel:|#|/login|/logout|/signin|/signup|/register"
+    r"(mailto:|javascript:|tel:|#|/login|/logout|/signup|/register|"
     r"/cdn-cgi/|/wp-json/|/feed/|\.rss$|/sitemap)"
 )
 
@@ -438,11 +438,11 @@ def crawl_domain(
         mininterval=0.1,
     ) as pbar:
         while queue:
-            new_pages = len(records)
-            if remaining_quota is not None and new_pages >= remaining_quota:
+            # ── Quota check ───────────────────────────────────────────────────
+            if remaining_quota is not None and len(records) >= remaining_quota:
                 log(
                     f"\n  {Fore.YELLOW}[W{worker_index}] "
-                    f"Kuota sisa {remaining_quota} halaman tercapai."
+                    f"Kuota {remaining_quota} halaman tercapai."
                 )
                 break
 
@@ -452,19 +452,43 @@ def crawl_domain(
                 continue
             visited.add(current_url)
 
-            html = fetch(current_url)
-            time.sleep(SETTINGS["delay_seconds"])
+            is_root = is_root_domain(current_url)
 
-            if html is None:
-                continue
+            # ── Keputusan fetch atau skip ─────────────────────────────────────
+            #
+            # urls_in_pipeline = URL yang sudah tersimpan + yang masih antri.
+            # Ini adalah estimasi berapa URL yang bisa kita rekam tanpa fetch lagi.
+            #
+            # FETCH jika:
+            #   a) ini root domain → selalu fetch untuk seed link awal
+            #   b) quota unlimited  → selalu fetch
+            #   c) pipeline belum cukup → perlu lebih banyak kandidat URL
+            #
+            # SKIP FETCH jika:
+            #   pipeline sudah >= quota → queue cukup, tidak perlu eksplorasi lagi.
+            #   URL ini tetap direkam karena sudah ditemukan dari halaman valid.
+            #
+            urls_in_pipeline = len(records) + len(queue)
+            needs_fetch = is_root or (
+                remaining_quota is None or urls_in_pipeline < remaining_quota
+            )
 
-            new_links = extract_links(html, current_url, base_domain)
-            for link in new_links:
-                if link not in visited:
-                    queue.append(link)
+            if needs_fetch:
+                html = fetch(current_url)
+                time.sleep(SETTINGS["delay_seconds"])
 
-            # Root domain: gunakan sebagai titik awal saja, jangan simpan
-            if is_root_domain(current_url):
+                if html is None:
+                    # Fetch gagal (404, timeout, dll) → skip, jangan rekam URL ini
+                    continue
+
+                for link in extract_links(html, current_url, base_domain):
+                    if link not in visited:
+                        queue.append(link)
+            # else: pipeline sudah cukup — percaya URL ini valid (ditemukan dari
+            #       halaman yang berhasil di-fetch sebelumnya), langsung rekam.
+
+            # Root domain: titik seed saja, tidak direkam
+            if is_root:
                 continue
 
             webpage_id = counter.next()
@@ -478,11 +502,13 @@ def crawl_domain(
                 }
             )
 
+            mode = "fetch" if needs_fetch else "drain"
             pbar.update(1)
             pbar.set_postfix(
                 queue=len(queue),
                 new=len(records),
                 total=already_count + len(records),
+                mode=mode,
             )
 
             # ── Checkpoint periodik ───────────────────────────────────────────
@@ -496,6 +522,7 @@ def crawl_domain(
                     queue=len(queue),
                     new=len(records),
                     total=already_count + len(records),
+                    mode=mode,
                     saved="✓",
                 )
 
