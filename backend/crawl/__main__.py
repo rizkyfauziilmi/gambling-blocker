@@ -459,6 +459,16 @@ def crawl_domain(
                 mode=mode,
             )
 
+    # Filter: Jika halaman baru yang ditemukan terlalu sedikit, abaikan domain ini
+    min_pages_required = 2
+
+    if len(records) < min_pages_required:
+        log(
+            f"\n  {Fore.RED}[SKIP] {base_domain} diabaikan karena hanya ditemukan "
+            f"{len(records)} halaman internal (kurang dari {min_pages_required})."
+        )
+        return []  # Mengembalikan list kosong sehingga tidak masuk ke dataset utama
+
     status = f"{Fore.GREEN}✓" if records else f"{Fore.YELLOW}–"
     log(
         f"\n  {status} [Worker {worker_index}] Selesai: "
