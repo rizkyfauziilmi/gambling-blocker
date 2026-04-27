@@ -25,7 +25,6 @@ SETTINGS = {
     "request_timeout": 15,
     "max_retries": 2,
     "respect_robots_txt": False,
-    "checkpoint_every": 10,
     "max_workers": 5,
     "output_csv": "dataset_crawl.csv",
     "output_json": "dataset_crawl.json",
@@ -48,9 +47,6 @@ HEADERS = {
 # Dipakai untuk mengelompokkan blok multi-baris agar tidak tersisip thread lain.
 # Untuk single-line log, tqdm.write() sudah thread-safe sendiri tanpa lock ini.
 _print_lock = threading.Lock()
-
-# Dipakai eksklusif untuk operasi tulis CSV.
-_csv_lock = threading.Lock()
 
 
 def log(msg: str = "") -> None:
@@ -145,7 +141,7 @@ def validate_domains(domains: list[tuple[str, str]]) -> None:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  CHECKPOINT  (baca / tulis dataset)
+#  DATASET  (baca / resume)
 # ══════════════════════════════════════════════════════════════════════════════
 
 
@@ -170,27 +166,6 @@ def load_existing_dataset(csv_path: str) -> pd.DataFrame:
         log(f"  {Fore.YELLOW}[!] {dupes} baris duplikat dihapus dari dataset lama.")
 
     return df
-
-
-def checkpoint_csv(
-    existing_df: pd.DataFrame,
-    new_records: list[dict],
-    csv_path: str,
-) -> None:
-    """
-    Tulis snapshot sementara ke CSV secara thread-safe.
-
-    Menggunakan `_csv_lock` global — hanya satu worker yang boleh menulis
-    dalam satu waktu untuk mencegah korupsi file.
-    """
-    if not new_records:
-        return
-
-    with _csv_lock:
-        snapshot = pd.concat(
-            [existing_df, pd.DataFrame(new_records)], ignore_index=True
-        )
-        snapshot.to_csv(csv_path, index=False)
 
 
 def get_visited_urls_per_domain(df: pd.DataFrame) -> dict[str, set[str]]:
@@ -377,7 +352,6 @@ def crawl_domain(
     category: str,
     already_visited: set[str],
     counter: AtomicCounter,
-    existing_df: pd.DataFrame,
     worker_index: int,
 ) -> list[dict]:
     """
@@ -389,7 +363,6 @@ def crawl_domain(
     parsed_start = urlparse(start_url)
     base_domain = parsed_start.netloc
     max_pages = SETTINGS["max_pages_per_domain"]
-    checkpoint_every = SETTINGS.get("checkpoint_every", 10)
 
     already_count = len(already_visited)
     remaining_quota = (max_pages - already_count) if max_pages else None
@@ -407,7 +380,6 @@ def crawl_domain(
         f"{Fore.CYAN}  Domain   : {base_domain}",
         f"  Sudah di-crawl  : {already_count} halaman (dari dataset lama)",
         quota_line,
-        f"  Checkpoint setiap: {checkpoint_every} halaman baru",
         f"{Fore.CYAN}{'═' * 60}",
     )
 
@@ -421,7 +393,6 @@ def crawl_domain(
     visited: set[str] = set(already_visited)
     queue = deque([normalize_url(start_url)])
     records: list[dict] = []
-    last_checkpoint = 0
 
     # ── Satu progress bar per worker; position memastikan baris terpisah ──────
     # miniters=0 + mininterval=0 : update bar setiap kali pbar.update() dipanggil
@@ -511,21 +482,6 @@ def crawl_domain(
                 mode=mode,
             )
 
-            # ── Checkpoint periodik ───────────────────────────────────────────
-            if (
-                checkpoint_every
-                and (len(records) - last_checkpoint) >= checkpoint_every
-            ):
-                checkpoint_csv(existing_df, records, SETTINGS["output_csv"])
-                last_checkpoint = len(records)
-                pbar.set_postfix(
-                    queue=len(queue),
-                    new=len(records),
-                    total=already_count + len(records),
-                    mode=mode,
-                    saved="✓",
-                )
-
     status = f"{Fore.GREEN}✓" if records else f"{Fore.YELLOW}–"
     log(
         f"\n  {status} [Worker {worker_index}] Selesai: "
@@ -572,7 +528,6 @@ def run(domains: list[tuple[str, str]], existing_df: pd.DataFrame) -> pd.DataFra
                 category=category,
                 already_visited=already_visited,
                 counter=counter,
-                existing_df=existing_df,
                 worker_index=idx,
             )
             future_to_meta[future] = (url, idx)
