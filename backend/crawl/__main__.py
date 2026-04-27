@@ -22,7 +22,7 @@ init(autoreset=True)
 SETTINGS = {
     "max_pages_per_domain": 200,
     "delay_seconds": 1.0,
-    "request_timeout": 15,
+    "request_timeout": 10,
     "respect_robots_txt": False,
     "max_workers": 5,
     "output_csv": "dataset_crawl.csv",
@@ -205,8 +205,7 @@ SKIP_EXTENSIONS = {
 }
 
 SKIP_PATTERNS = re.compile(
-    r"(mailto:|javascript:|tel:|#|/login|/logout|/signin|/signup|/register|"
-    r"/cdn-cgi/|/wp-json/|/feed/|\.rss$|/sitemap)"
+    r"(mailto:|javascript:|tel:|#|/logout|/cdn-cgi/|/wp-json/|/feed/|\.rss$|/sitemap|\.xml$)"
 )
 
 
