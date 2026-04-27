@@ -19,7 +19,6 @@ init(autoreset=True)
 #  CONFIGURATION
 # ══════════════════════════════════════════════════════════════════════════════
 
-# SETTINGS — tambahkan satu key baru
 SETTINGS = {
     "max_pages_per_domain": 200,
     "delay_seconds": 1.0,
@@ -43,26 +42,52 @@ HEADERS = {
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  THREAD-SAFE PRIMITIVES
+#  THREAD-SAFE LOGGING
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Satu lock untuk semua operasi print — mencegah output terminal bercampur
+# Dipakai untuk mengelompokkan blok multi-baris agar tidak tersisip thread lain.
+# Untuk single-line log, tqdm.write() sudah thread-safe sendiri tanpa lock ini.
 _print_lock = threading.Lock()
 
-# Satu lock untuk semua operasi tulis CSV — mencegah korupsi file
+# Dipakai eksklusif untuk operasi tulis CSV.
 _csv_lock = threading.Lock()
 
 
-def safe_print(*args, **kwargs) -> None:
+def log(msg: str = "") -> None:
     """
-    Wrapper print yang thread-safe. Semua log dari worker mana pun
-    harus melalui fungsi ini agar output terminal tetap bersih.
+    Single-line log yang aman di tengah tqdm progress bars.
+
+    tqdm.write() membekukan semua progress bar sementara, menulis satu baris,
+    lalu mengembalikan cursor — sehingga bar tidak rusak/terpotong.
+    Sudah thread-safe secara internal; tidak perlu lock untuk satu baris.
     """
+    tqdm.write(msg)
+
+
+def log_block(*lines: str) -> None:
+    """
+    Multi-line log yang ditulis secara atomik.
+
+    Semua baris dikumpulkan terlebih dahulu menjadi satu string,
+    lalu dikirim ke tqdm.write() dalam satu panggilan dengan _print_lock.
+    Ini mencegah thread lain menyisipkan output di antara baris-baris header domain.
+
+    Contoh penggunaan:
+        log_block(
+            f"{'═' * 60}",
+            f"  [Worker {idx}] Crawling : {url}",
+            f"  Domain   : {domain}",
+            f"{'═' * 60}",
+        )
+    """
+    combined = "\n".join(lines)
     with _print_lock:
-        print(*args, **kwargs)
+        tqdm.write(combined)
 
 
-# ──────────────────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+#  THREAD-SAFE PRIMITIVES
+# ══════════════════════════════════════════════════════════════════════════════
 
 
 class AtomicCounter:
@@ -71,11 +96,6 @@ class AtomicCounter:
 
     Setiap panggilan ke `next()` menjamin nilai yang unik dan berurutan
     meskipun dipanggil secara bersamaan oleh banyak thread.
-
-    Contoh penggunaan:
-        counter = AtomicCounter(start=1)
-        webpage_id = counter.next()  # → 1
-        webpage_id = counter.next()  # → 2  (dari thread lain, aman)
     """
 
     def __init__(self, start: int = 1) -> None:
@@ -136,9 +156,7 @@ def load_existing_dataset(csv_path: str) -> pd.DataFrame:
     """
     path = Path(csv_path)
     if not path.exists():
-        safe_print(
-            f"\n{Fore.YELLOW}[~] Tidak ada dataset lama ditemukan. Mulai dari awal."
-        )
+        log(f"\n{Fore.YELLOW}[~] Tidak ada dataset lama ditemukan. Mulai dari awal.")
         return pd.DataFrame(
             columns=["Webpage_id", "Domain", "Url", "Tag", "Crawled_at"]
         )
@@ -149,9 +167,7 @@ def load_existing_dataset(csv_path: str) -> pd.DataFrame:
     df = df.drop_duplicates(subset=["Url"], keep="first")
     dupes = before - len(df)
     if dupes:
-        safe_print(
-            f"  {Fore.YELLOW}[!] {dupes} baris duplikat dihapus dari dataset lama."
-        )
+        log(f"  {Fore.YELLOW}[!] {dupes} baris duplikat dihapus dari dataset lama.")
 
     return df
 
@@ -165,11 +181,7 @@ def checkpoint_csv(
     Tulis snapshot sementara ke CSV secara thread-safe.
 
     Menggunakan `_csv_lock` global — hanya satu worker yang boleh menulis
-    dalam satu waktu untuk mencegah korupsi file. Worker lain yang memanggil
-    fungsi ini secara bersamaan akan mengantre hingga lock dilepas.
-
-    Dipanggil secara periodik selama crawl agar progress tidak hilang
-    jika proses terhenti di tengah.
+    dalam satu waktu untuk mencegah korupsi file.
     """
     if not new_records:
         return
@@ -184,7 +196,6 @@ def checkpoint_csv(
 def get_visited_urls_per_domain(df: pd.DataFrame) -> dict[str, set[str]]:
     """
     Bangun mapping netloc → set(url) dari dataset yang sudah ada.
-    Dipakai untuk pre-populate `visited` di BFS sehingga URL lama dilewati.
     """
     if df.empty:
         return {}
@@ -224,7 +235,7 @@ SKIP_EXTENSIONS = {
 }
 
 SKIP_PATTERNS = re.compile(
-    r"(mailto:|javascript:|tel:|#|/login|/logout|/signup|/register|"
+    r"(mailto:|javascript:|tel:|#|/login|/logout|/signin|/signup|/register"
     r"/cdn-cgi/|/wp-json/|/feed/|\.rss$|/sitemap)"
 )
 
@@ -291,8 +302,8 @@ def is_xml_content_type(content_type: str) -> bool:
 
 def fetch(url: str, retries: int = SETTINGS["max_retries"]) -> str | None:
     """
-    Fetch satu URL dengan retry logic. Tidak ada perubahan dari versi sekuensial —
-    fungsi ini sudah thread-safe karena tidak menyentuh state global.
+    Fetch satu URL dengan retry logic.
+    Semua log dialihkan ke log() agar tidak merusak tqdm bars.
     """
     for attempt in range(retries + 1):
         try:
@@ -306,7 +317,7 @@ def fetch(url: str, retries: int = SETTINGS["max_retries"]) -> str | None:
             if resp.status_code == 200:
                 content_type = resp.headers.get("Content-Type", "")
                 if is_xml_content_type(content_type):
-                    safe_print(
+                    log(
                         f"  {Fore.YELLOW}[SKIP XML] {url}  "
                         f"({content_type.split(';')[0].strip()})"
                     )
@@ -315,47 +326,41 @@ def fetch(url: str, retries: int = SETTINGS["max_retries"]) -> str | None:
 
             elif resp.status_code in RETRYABLE_STATUS:
                 wait = int(resp.headers.get("Retry-After", 2**attempt))
-                safe_print(
+                log(
                     f"  {Fore.YELLOW}[{resp.status_code}] Retry {attempt + 1}/{retries} "
                     f"dalam {wait}s: {url}"
                 )
                 if attempt < retries:
                     time.sleep(wait)
                 else:
-                    safe_print(
-                        f"  {Fore.RED}[SKIP] Menyerah setelah {retries} retry: {url}"
-                    )
+                    log(f"  {Fore.RED}[SKIP] Menyerah setelah {retries} retry: {url}")
                     return None
 
             elif resp.status_code == 403:
-                safe_print(f"  {Fore.YELLOW}[403] Forbidden (tidak di-retry): {url}")
+                log(f"  {Fore.YELLOW}[403] Forbidden (tidak di-retry): {url}")
                 return None
 
             elif resp.status_code == 404:
                 return None
 
             else:
-                safe_print(
-                    f"  {Fore.YELLOW}[{resp.status_code}] Tidak ditangani: {url}"
-                )
+                log(f"  {Fore.YELLOW}[{resp.status_code}] Tidak ditangani: {url}")
                 return None
 
         except requests.Timeout:
-            safe_print(
-                f"  {Fore.YELLOW}[TIMEOUT] attempt {attempt + 1}/{retries + 1}: {url}"
-            )
+            log(f"  {Fore.YELLOW}[TIMEOUT] attempt {attempt + 1}/{retries + 1}: {url}")
             if attempt < retries:
                 time.sleep(2**attempt)
             else:
-                safe_print(f"  {Fore.RED}[SKIP] Timeout habis: {url}")
+                log(f"  {Fore.RED}[SKIP] Timeout habis: {url}")
 
         except requests.ConnectionError:
-            safe_print(f"  {Fore.RED}[CONN ERR] {url}")
+            log(f"  {Fore.RED}[CONN ERR] {url}")
             if attempt < retries:
                 time.sleep(2**attempt)
 
         except requests.RequestException as e:
-            safe_print(f"  {Fore.RED}[ERR] {url}: {e}")
+            log(f"  {Fore.RED}[ERR] {url}: {e}")
             if attempt < retries:
                 time.sleep(2**attempt)
 
@@ -363,7 +368,7 @@ def fetch(url: str, retries: int = SETTINGS["max_retries"]) -> str | None:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  BFS DOMAIN CRAWLER  (idempotent, dijalankan dalam satu thread)
+#  BFS DOMAIN CRAWLER
 # ══════════════════════════════════════════════════════════════════════════════
 
 
@@ -371,21 +376,15 @@ def crawl_domain(
     start_url: str,
     category: str,
     already_visited: set[str],
-    counter: AtomicCounter,  # ← shared AtomicCounter (thread-safe)
+    counter: AtomicCounter,
     existing_df: pd.DataFrame,
-    worker_index: int,  # ← posisi baris progress bar di terminal
+    worker_index: int,
 ) -> list[dict]:
     """
-    BFS crawler untuk satu domain. Dijalankan sebagai satu thread oleh
-    ThreadPoolExecutor. Setiap domain mendapatkan thread terpisah sehingga
-    crawling berjalan paralel.
+    BFS crawler untuk satu domain. Dijalankan sebagai satu thread.
 
-    Parameter baru vs versi sekuensial:
-    - `counter`      : AtomicCounter bersama — menggantikan `id_start` lokal.
-                       Setiap record mengambil ID unik lewat `counter.next()`.
-    - `worker_index` : indeks urut domain (0, 1, 2, ...) yang dipakai sebagai
-                       `position` pada tqdm agar progress bar tiap domain
-                       ditampilkan pada baris terpisah yang tidak tumpang tindih.
+    Semua output log dialihkan ke log() / log_block() agar tidak
+    menabrak progress bar tqdm dari thread lain.
     """
     parsed_start = urlparse(start_url)
     base_domain = parsed_start.netloc
@@ -395,48 +394,55 @@ def crawl_domain(
     already_count = len(already_visited)
     remaining_quota = (max_pages - already_count) if max_pages else None
 
-    # ── Header info domain (safe_print agar tidak campur dengan thread lain) ──
-    safe_print(f"\n{Fore.CYAN}{'═' * 60}")
-    safe_print(f"  [Worker {worker_index}] Crawling : {Fore.WHITE}{start_url}")
-    safe_print(f"  Domain   : {base_domain}")
-    safe_print(f"  Sudah di-crawl  : {already_count} halaman (dari dataset lama)")
-    if remaining_quota is not None:
-        safe_print(f"  Sisa kuota      : {remaining_quota} halaman")
-    else:
-        safe_print("  Sisa kuota      : unlimited")
-    if checkpoint_every:
-        safe_print(f"  Checkpoint setiap: {checkpoint_every} halaman baru")
-    safe_print(f"{Fore.CYAN}{'═' * 60}")
+    # ── Header domain: ditulis atomik agar tidak tersisip thread lain ────────
+    quota_line = (
+        f"  Sisa kuota      : {remaining_quota} halaman"
+        if remaining_quota is not None
+        else "  Sisa kuota      : unlimited"
+    )
+    log_block(
+        "",
+        f"{Fore.CYAN}{'═' * 60}",
+        f"  [Worker {worker_index}] Crawling : {Fore.WHITE}{start_url}",
+        f"{Fore.CYAN}  Domain   : {base_domain}",
+        f"  Sudah di-crawl  : {already_count} halaman (dari dataset lama)",
+        quota_line,
+        f"  Checkpoint setiap: {checkpoint_every} halaman baru",
+        f"{Fore.CYAN}{'═' * 60}",
+    )
 
     if remaining_quota is not None and remaining_quota <= 0:
-        safe_print(
-            f"  {Fore.YELLOW}[!] Kuota {max_pages} halaman sudah habis untuk domain ini. Lewati."
+        log(
+            f"  {Fore.YELLOW}[!] Kuota {max_pages} halaman sudah habis "
+            f"untuk domain ini. Lewati."
         )
         return []
 
-    # Pre-populate visited → BFS tidak akan menyentuh URL lama
     visited: set[str] = set(already_visited)
     queue = deque([normalize_url(start_url)])
     records: list[dict] = []
     last_checkpoint = 0
 
-    # ── tqdm dengan `position=worker_index` ──────────────────────────────────
-    # Setiap worker mendapatkan baris progress bar sendiri berdasarkan indeks.
-    # `leave=True` mempertahankan baris setelah crawl domain selesai.
-    # `dynamic_ncols=True` menyesuaikan lebar terminal secara otomatis.
+    # ── Satu progress bar per worker; position memastikan baris terpisah ──────
+    # miniters=0 + mininterval=0 : update bar setiap kali pbar.update() dipanggil
+    # tanpa menunggu interval, sehingga angka selalu akurat.
+    # dynamic_ncols menyesuaikan lebar jika terminal di-resize.
     with tqdm(
-        desc=f"  [W{worker_index}] {base_domain}",
-        unit=" pages",
+        desc=f"  [W{worker_index}] {base_domain:<30}",
+        unit=" hal",
         colour="cyan",
         position=worker_index,
         leave=True,
         dynamic_ncols=True,
+        miniters=0,
+        mininterval=0.1,
     ) as pbar:
         while queue:
             new_pages = len(records)
             if remaining_quota is not None and new_pages >= remaining_quota:
-                safe_print(
-                    f"\n  {Fore.YELLOW}[W{worker_index}] Kuota sisa {remaining_quota} halaman tercapai."
+                log(
+                    f"\n  {Fore.YELLOW}[W{worker_index}] "
+                    f"Kuota sisa {remaining_quota} halaman tercapai."
                 )
                 break
 
@@ -452,7 +458,6 @@ def crawl_domain(
             if html is None:
                 continue
 
-            # Ekstrak link (selalu, termasuk root domain)
             new_links = extract_links(html, current_url, base_domain)
             for link in new_links:
                 if link not in visited:
@@ -462,9 +467,7 @@ def crawl_domain(
             if is_root_domain(current_url):
                 continue
 
-            # ── Ambil ID unik dari AtomicCounter bersama ─────────────────
             webpage_id = counter.next()
-
             records.append(
                 {
                     "Webpage_id": webpage_id,
@@ -474,16 +477,15 @@ def crawl_domain(
                     "Crawled_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 }
             )
+
             pbar.update(1)
             pbar.set_postfix(
-                {
-                    "queue": len(queue),
-                    "new": len(records),
-                    "total": already_count + len(records),
-                }
+                queue=len(queue),
+                new=len(records),
+                total=already_count + len(records),
             )
 
-            # ── Periodic checkpoint (thread-safe via _csv_lock di dalam) ──
+            # ── Checkpoint periodik ───────────────────────────────────────────
             if (
                 checkpoint_every
                 and (len(records) - last_checkpoint) >= checkpoint_every
@@ -491,16 +493,14 @@ def crawl_domain(
                 checkpoint_csv(existing_df, records, SETTINGS["output_csv"])
                 last_checkpoint = len(records)
                 pbar.set_postfix(
-                    {
-                        "queue": len(queue),
-                        "new": len(records),
-                        "total": already_count + len(records),
-                        "💾": "saved",
-                    }
+                    queue=len(queue),
+                    new=len(records),
+                    total=already_count + len(records),
+                    saved="✓",
                 )
 
     status = f"{Fore.GREEN}✓" if records else f"{Fore.YELLOW}–"
-    safe_print(
+    log(
         f"\n  {status} [Worker {worker_index}] Selesai: "
         f"{len(records)} halaman baru dari {base_domain}"
     )
@@ -515,19 +515,10 @@ def crawl_domain(
 def run(domains: list[tuple[str, str]], existing_df: pd.DataFrame) -> pd.DataFrame:
     """
     Submit setiap domain sebagai task ke ThreadPoolExecutor.
-    Satu thread per domain berjalan paralel secara penuh.
-
-    Perubahan utama dari versi sekuensial:
-    - `AtomicCounter` dibuat sekali di sini dan di-pass ke semua worker.
-      Worker tidak lagi menerima `id_start` statis — mereka memanggil
-      `counter.next()` untuk setiap halaman sehingga ID selalu unik global.
-    - `as_completed()` mengumpulkan hasil dari thread yang selesai lebih
-      dulu, bukan berdasarkan urutan submit.
-    - Logika idempotency (visited_map) tetap identik dengan versi sekuensial.
+    Satu thread per domain berjalan paralel.
     """
     visited_map = get_visited_urls_per_domain(existing_df)
 
-    # AtomicCounter dimulai dari max existing ID + 1 (atau 1 jika dataset kosong)
     id_start = int(existing_df["Webpage_id"].max()) + 1 if not existing_df.empty else 1
     counter = AtomicCounter(start=id_start)
 
@@ -536,12 +527,11 @@ def run(domains: list[tuple[str, str]], existing_df: pd.DataFrame) -> pd.DataFra
     configured = SETTINGS.get("max_workers")
     max_workers = min(configured, len(domains)) if configured else len(domains)
 
-    safe_print(
+    log(
         f"\n{Fore.CYAN}  Meluncurkan {max_workers} worker thread(s) "
         f"(dari {len(domains)} domain)…{Fore.RESET}"
     )
 
-    # Peta future → (url, worker_index) untuk logging hasil
     future_to_meta: dict = {}
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -560,21 +550,20 @@ def run(domains: list[tuple[str, str]], existing_df: pd.DataFrame) -> pd.DataFra
             )
             future_to_meta[future] = (url, idx)
 
-        # Kumpulkan hasil sesuai urutan selesai (bukan urutan submit)
         for future in as_completed(future_to_meta):
             url, idx = future_to_meta[future]
             try:
                 new_records = future.result()
                 all_new_records.extend(new_records)
             except Exception as exc:
-                safe_print(f"\n{Fore.RED}  [Worker {idx}] Exception untuk {url}: {exc}")
+                log(f"\n{Fore.RED}  [Worker {idx}] Exception untuk {url}: {exc}")
 
     if all_new_records:
         new_df = pd.DataFrame(all_new_records)
         combined_df = pd.concat([existing_df, new_df], ignore_index=True)
     else:
         combined_df = existing_df.copy()
-        safe_print(f"\n{Fore.YELLOW}[~] Tidak ada halaman baru yang di-crawl.")
+        log(f"\n{Fore.YELLOW}[~] Tidak ada halaman baru yang di-crawl.")
 
     return combined_df
 
@@ -586,33 +575,37 @@ def run(domains: list[tuple[str, str]], existing_df: pd.DataFrame) -> pd.DataFra
 
 def export(df: pd.DataFrame) -> None:
     if df.empty:
-        safe_print(f"\n{Fore.RED}[!] Dataset kosong, tidak ada yang diekspor.")
+        log(f"\n{Fore.RED}[!] Dataset kosong, tidak ada yang diekspor.")
         return
 
-    # Urutkan berdasarkan Webpage_id agar output rapi meski ID diambil out-of-order
     df = df.sort_values("Webpage_id").reset_index(drop=True)
 
     df.to_csv(SETTINGS["output_csv"], index=False)
-    safe_print(f"\n{Fore.GREEN}✓ CSV  → {SETTINGS['output_csv']}  ({len(df)} baris)")
+    log(f"\n{Fore.GREEN}✓ CSV  → {SETTINGS['output_csv']}  ({len(df)} baris)")
 
     df.to_json(SETTINGS["output_json"], orient="records", indent=2)
-    safe_print(f"{Fore.GREEN}✓ JSON → {SETTINGS['output_json']}")
+    log(f"{Fore.GREEN}✓ JSON → {SETTINGS['output_json']}")
 
     preview_cols = ["Webpage_id", "Domain", "Url", "Tag"]
-    safe_print(f"\n{'─' * 60}")
-    safe_print("  Preview dataset (5 baris terakhir):")
-    safe_print(f"{'─' * 60}")
-    safe_print(df[preview_cols].tail(5).to_string(index=True))
-
-    safe_print(f"\n{'─' * 60}")
-    safe_print("  Statistik:")
-    safe_print(f"  Total halaman crawled : {len(df)}")
-    safe_print(f"  Jumlah domain         : {df['Domain'].nunique()}")
-    safe_print("  Distribusi tag:")
-    for tag, count in df["Tag"].value_counts().items():
-        bar = "█" * (count * 20 // len(df))
-        safe_print(f"    {tag:<15} {count:>4}  {bar}")
-    safe_print(f"{'─' * 60}\n")
+    sep = "─" * 60
+    log_block(
+        "",
+        sep,
+        "  Preview dataset (5 baris terakhir):",
+        sep,
+        df[preview_cols].tail(5).to_string(index=True),
+        "",
+        sep,
+        "  Statistik:",
+        f"  Total halaman crawled : {len(df)}",
+        f"  Jumlah domain         : {df['Domain'].nunique()}",
+        "  Distribusi tag:",
+        *[
+            f"    {tag:<15} {count:>4}  {'█' * (count * 20 // len(df))}"
+            for tag, count in df["Tag"].value_counts().items()
+        ],
+        sep,
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -620,20 +613,19 @@ def export(df: pd.DataFrame) -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    safe_print(f"\n{Fore.CYAN}{'═' * 60}")
-    safe_print("  Multi-Domain Web Crawler & Dataset Builder  [Multithreaded]")
-    safe_print(f"  Domains : {len(DOMAINS_TO_CRAWL)}")
-    safe_print(f"  Workers : {len(DOMAINS_TO_CRAWL)}  (1 thread per domain)")
-    safe_print(f"{'═' * 60}")
+    log_block(
+        "",
+        f"{Fore.CYAN}{'═' * 60}",
+        "  Multi-Domain Web Crawler & Dataset Builder  [Multithreaded]",
+        f"  Domains : {len(DOMAINS_TO_CRAWL)}",
+        f"  Workers : {SETTINGS['max_workers']}  (max per batch)",
+        f"{Fore.CYAN}{'═' * 60}",
+    )
 
-    # 1. Validasi — lempar error jika ada domain duplikat
     validate_domains(DOMAINS_TO_CRAWL)
 
-    # 2. Muat dataset lama (jika ada)
     existing_df = load_existing_dataset(SETTINGS["output_csv"])
 
-    # 3. Crawl paralel (hanya URL yang belum dikunjungi)
     df = run(DOMAINS_TO_CRAWL, existing_df)
 
-    # 4. Ekspor dataset lengkap (lama + baru)
     export(df)
