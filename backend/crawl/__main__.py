@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse, urljoin, urldefrag
+from urllib.parse import urlparse, urljoin
 from collections import deque
 import pandas as pd
 import time
@@ -23,7 +23,6 @@ SETTINGS = {
     "max_pages_per_domain": 200,
     "delay_seconds": 1.0,
     "request_timeout": 15,
-    "max_retries": 2,
     "respect_robots_txt": False,
     "max_workers": 5,
     "output_csv": "dataset_crawl.csv",
@@ -44,10 +43,6 @@ HEADERS = {
 #  THREAD-SAFE LOGGING
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Dipakai untuk mengelompokkan blok multi-baris agar tidak tersisip thread lain.
-# Untuk single-line log, tqdm.write() sudah thread-safe sendiri tanpa lock ini.
-_print_lock = threading.Lock()
-
 
 def log(msg: str = "") -> None:
     """
@@ -57,7 +52,7 @@ def log(msg: str = "") -> None:
     lalu mengembalikan cursor — sehingga bar tidak rusak/terpotong.
     Sudah thread-safe secara internal; tidak perlu lock untuk satu baris.
     """
-    tqdm.write(msg)
+    # tqdm.write(msg)
 
 
 def log_block(*lines: str) -> None:
@@ -76,9 +71,9 @@ def log_block(*lines: str) -> None:
             f"{'═' * 60}",
         )
     """
-    combined = "\n".join(lines)
-    with _print_lock:
-        tqdm.write(combined)
+    # combined = "\n".join(lines)
+    # with _print_lock:
+    #     tqdm.write(combined)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -210,15 +205,24 @@ SKIP_EXTENSIONS = {
 }
 
 SKIP_PATTERNS = re.compile(
-    r"(mailto:|javascript:|tel:|#|/login|/logout|/signup|/register|"
+    r"(mailto:|javascript:|tel:|#|/login|/logout|/signin|/signup|/register|"
     r"/cdn-cgi/|/wp-json/|/feed/|\.rss$|/sitemap)"
 )
 
 
 def normalize_url(url: str) -> str:
-    url, _ = urldefrag(url)
-    url = url.rstrip("/")
-    return url.lower()
+    """
+    Menghapus fragment (#), query parameters (?), dan trailing slash (/)
+    serta mengubahnya menjadi lowercase agar URL benar-benar unik berdasarkan path.
+    """
+    parsed = urlparse(url)
+
+    # Susun ulang URL murni: Scheme + Domain (netloc) + Path saja
+    # Ini akan otomatis membuang params, query (?), dan fragment (#)
+    clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+
+    clean_url = clean_url.rstrip("/")
+    return clean_url.lower()
 
 
 def is_root_domain(url: str) -> bool:
@@ -257,10 +261,8 @@ def extract_links(html: str, base_url: str, base_domain: str) -> list[str]:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  HTTP FETCHER (with retry)
+#  HTTP FETCHER
 # ══════════════════════════════════════════════════════════════════════════════
-
-RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 
 XML_CONTENT_TYPES = {
     "application/xml",
@@ -275,71 +277,43 @@ def is_xml_content_type(content_type: str) -> bool:
     return ct in XML_CONTENT_TYPES
 
 
-def fetch(url: str, retries: int = SETTINGS["max_retries"]) -> str | None:
+def fetch(url: str) -> str | None:
     """
-    Fetch satu URL dengan retry logic.
-    Semua log dialihkan ke log() agar tidak merusak tqdm bars.
+    Fetch satu URL.
     """
-    for attempt in range(retries + 1):
-        try:
-            resp = requests.get(
-                url,
-                headers=HEADERS,
-                timeout=SETTINGS["request_timeout"],
-                allow_redirects=True,
-            )
+    try:
+        resp = requests.get(
+            url,
+            headers=HEADERS,
+            timeout=SETTINGS["request_timeout"],
+            allow_redirects=True,
+        )
 
-            if resp.status_code == 200:
-                content_type = resp.headers.get("Content-Type", "")
-                if is_xml_content_type(content_type):
-                    log(
-                        f"  {Fore.YELLOW}[SKIP XML] {url}  "
-                        f"({content_type.split(';')[0].strip()})"
-                    )
-                    return None
-                return resp.text
-
-            elif resp.status_code in RETRYABLE_STATUS:
-                wait = int(resp.headers.get("Retry-After", 2**attempt))
+        if resp.status_code == 200:
+            content_type = resp.headers.get("Content-Type", "")
+            if is_xml_content_type(content_type):
                 log(
-                    f"  {Fore.YELLOW}[{resp.status_code}] Retry {attempt + 1}/{retries} "
-                    f"dalam {wait}s: {url}"
+                    f"  {Fore.YELLOW}[SKIP XML] {url}  "
+                    f"({content_type.split(';')[0].strip()})"
                 )
-                if attempt < retries:
-                    time.sleep(wait)
-                else:
-                    log(f"  {Fore.RED}[SKIP] Menyerah setelah {retries} retry: {url}")
-                    return None
-
-            elif resp.status_code == 403:
-                log(f"  {Fore.YELLOW}[403] Forbidden (tidak di-retry): {url}")
                 return None
+            return resp.text
 
-            elif resp.status_code == 404:
-                return None
+        else:
+            log(f"  {Fore.YELLOW}[{resp.status_code}] Tidak ditangani: {url}")
+            return None
 
-            else:
-                log(f"  {Fore.YELLOW}[{resp.status_code}] Tidak ditangani: {url}")
-                return None
+    except requests.Timeout:
+        log(f"  {Fore.YELLOW}[TIMEOUT]: {url}")
+        return None
 
-        except requests.Timeout:
-            log(f"  {Fore.YELLOW}[TIMEOUT] attempt {attempt + 1}/{retries + 1}: {url}")
-            if attempt < retries:
-                time.sleep(2**attempt)
-            else:
-                log(f"  {Fore.RED}[SKIP] Timeout habis: {url}")
+    except requests.ConnectionError:
+        log(f"  {Fore.RED}[CONN ERR] {url}")
+        return None
 
-        except requests.ConnectionError:
-            log(f"  {Fore.RED}[CONN ERR] {url}")
-            if attempt < retries:
-                time.sleep(2**attempt)
-
-        except requests.RequestException as e:
-            log(f"  {Fore.RED}[ERR] {url}: {e}")
-            if attempt < retries:
-                time.sleep(2**attempt)
-
-    return None
+    except requests.RequestException as e:
+        log(f"  {Fore.RED}[ERR] {url}: {e}")
+        return None
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -368,20 +342,20 @@ def crawl_domain(
     remaining_quota = (max_pages - already_count) if max_pages else None
 
     # ── Header domain: ditulis atomik agar tidak tersisip thread lain ────────
-    quota_line = (
-        f"  Sisa kuota      : {remaining_quota} halaman"
-        if remaining_quota is not None
-        else "  Sisa kuota      : unlimited"
-    )
-    log_block(
-        "",
-        f"{Fore.CYAN}{'═' * 60}",
-        f"  [Worker {worker_index}] Crawling : {Fore.WHITE}{start_url}",
-        f"{Fore.CYAN}  Domain   : {base_domain}",
-        f"  Sudah di-crawl  : {already_count} halaman (dari dataset lama)",
-        quota_line,
-        f"{Fore.CYAN}{'═' * 60}",
-    )
+    # quota_line = (
+    #     f"  Sisa kuota      : {remaining_quota} halaman"
+    #     if remaining_quota is not None
+    #     else "  Sisa kuota      : unlimited"
+    # )
+    # log_block(
+    #     "",
+    #     f"{Fore.CYAN}{'═' * 60}",
+    #     f"  [Worker {worker_index}] Crawling : {Fore.WHITE}{start_url}",
+    #     f"{Fore.CYAN}  Domain   : {base_domain}",
+    #     f"  Sudah di-crawl  : {already_count} halaman (dari dataset lama)",
+    #     quota_line,
+    #     f"{Fore.CYAN}{'═' * 60}",
+    # )
 
     if remaining_quota is not None and remaining_quota <= 0:
         log(
@@ -402,7 +376,7 @@ def crawl_domain(
     # dynamic_ncols menyesuaikan lebar jika terminal di-resize.
     with tqdm(
         desc=f"  [W{worker_index}] {base_domain:<30}",
-        unit=" hal",
+        unit=" pages",
         colour="cyan",
         position=worker_index,
         leave=True,

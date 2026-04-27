@@ -162,7 +162,7 @@ DOMAINS_TO_CRAWL = [
     # ("https://coinmarketcap.com", "non-gambling"),
     # ("https://duitku.com", "non-gambling"),
     # ("https://bareksa.com", "non-gambling"),
-    # ("https://bri.co.id/brimo", "non-gambling"),
+    # ("https://bri.co.id", "non-gambling"),
     # ("https://bankbsi.co.id", "non-gambling"),
     # ("https://wise.com", "non-gambling"),
     # ("https://klarna.com", "non-gambling"),
