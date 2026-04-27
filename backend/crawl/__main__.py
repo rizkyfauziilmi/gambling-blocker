@@ -11,6 +11,7 @@ from tqdm import tqdm
 from colorama import Fore, init
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from .links import DOMAINS_TO_CRAWL
 
 init(autoreset=True)
 
@@ -18,18 +19,15 @@ init(autoreset=True)
 #  CONFIGURATION
 # ══════════════════════════════════════════════════════════════════════════════
 
-DOMAINS_TO_CRAWL = [
-    ("https://www.fiercepharma.com", "non-gambling"),
-    ("https://www.polygon.com", "non-gambling"),
-]
-
+# SETTINGS — tambahkan satu key baru
 SETTINGS = {
-    "max_pages_per_domain": 200,  # batas halaman per domain (None = unlimited)
-    "delay_seconds": 1.0,  # jeda antar request
-    "request_timeout": 15,  # timeout per request (detik)
-    "max_retries": 2,  # retry jika request gagal
-    "respect_robots_txt": False,  # True = skip URL yang dilarang robots.txt
-    "checkpoint_every": 10,  # simpan CSV setiap N halaman baru (0 = nonaktif)
+    "max_pages_per_domain": 200,
+    "delay_seconds": 1.0,
+    "request_timeout": 15,
+    "max_retries": 2,
+    "respect_robots_txt": False,
+    "checkpoint_every": 10,
+    "max_workers": 5,
     "output_csv": "dataset_crawl.csv",
     "output_json": "dataset_crawl.json",
 }
@@ -534,10 +532,13 @@ def run(domains: list[tuple[str, str]], existing_df: pd.DataFrame) -> pd.DataFra
     counter = AtomicCounter(start=id_start)
 
     all_new_records: list[dict] = []
-    max_workers = len(domains)  # satu worker per domain
+
+    configured = SETTINGS.get("max_workers")
+    max_workers = min(configured, len(domains)) if configured else len(domains)
 
     safe_print(
-        f"\n{Fore.CYAN}  Meluncurkan {max_workers} worker thread(s)…{Fore.RESET}"
+        f"\n{Fore.CYAN}  Meluncurkan {max_workers} worker thread(s) "
+        f"(dari {len(domains)} domain)…{Fore.RESET}"
     )
 
     # Peta future → (url, worker_index) untuk logging hasil
