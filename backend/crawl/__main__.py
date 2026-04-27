@@ -391,7 +391,9 @@ def crawl_domain(
         return []
 
     visited: set[str] = set(already_visited)
-    queue = deque([normalize_url(start_url)])
+    start = normalize_url(start_url)
+    queue: deque[str] = deque([start])
+    queued: set[str] = {start}  # URL yang sudah pernah masuk queue (visited ∪ queue)
     records: list[dict] = []
 
     # ── Satu progress bar per worker; position memastikan baris terpisah ──────
@@ -453,8 +455,9 @@ def crawl_domain(
                     continue
 
                 for link in extract_links(html, current_url, base_domain):
-                    if link not in visited:
+                    if link not in queued:
                         queue.append(link)
+                        queued.add(link)
             # else: pipeline sudah cukup — percaya URL ini valid (ditemukan dari
             #       halaman yang berhasil di-fetch sebelumnya), langsung rekam.
 
