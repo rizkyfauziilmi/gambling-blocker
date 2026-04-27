@@ -460,7 +460,7 @@ def crawl_domain(
             )
 
     # Filter: Jika halaman baru yang ditemukan terlalu sedikit, abaikan domain ini
-    min_pages_required = 2
+    min_pages_required = 1
 
     if len(records) < min_pages_required:
         log(
