@@ -346,9 +346,56 @@ SKIP_PATTERNS = re.compile(
     r"(mailto:|javascript:|tel:|#|/logout|/cdn-cgi/|/wp-json/|/feed/|\.rss$|/sitemap|\.xml$)"
 )
 
+_MAX_URL_LENGTH = 300
+
+
+def has_undefined_segment(url: str) -> bool:
+    try:
+        return any(s.lower() == "undefined" for s in urlparse(url).path.split("/") if s)
+    except Exception:
+        return False
+
+
+def has_path_repetition(url: str) -> bool:
+    """
+    True jika path mengandung pengulangan apapun:
+
+    Pola 1 — segment tunggal berturut-turut:
+        /irr/irr/...           → segs[i] == segs[i-1]
+
+    Pola 2 — bigram (pasangan segment) muncul lagi:
+        /https/x.com/https/x.com  → bigram ("https","x.com") ke-2 kali
+
+    Cara kerja:
+        - Scan setiap posisi i.
+        - Cek segs[i] == segs[i-1]         → consecutive repeat.
+        - Masukkan bigram (segs[i-1],segs[i]) ke seen_bigrams.
+        - Jika bigram sudah ada di set → repeat pattern.
+        - Salah satu True → return True.
+
+    Tidak ada threshold ambigu — satu kemunculan ulang pun ditolak.
+    """
+    try:
+        segs = [s.lower() for s in urlparse(url).path.split("/") if s]
+        seen_bigrams: set[tuple] = set()
+
+        for i in range(1, len(segs)):
+            # Pola 1
+            if segs[i] == segs[i - 1]:
+                return True
+
+            # Pola 2
+            bigram = (segs[i - 1], segs[i])
+            if bigram in seen_bigrams:
+                return True
+            seen_bigrams.add(bigram)
+
+        return False
+    except Exception:
+        return False
+
 
 def normalize_url(url: str) -> str:
-    """Hapus fragment, query, trailing slash; lowercase."""
     parsed = urlparse(url)
     return f"{parsed.scheme}://{parsed.netloc}{parsed.path}".rstrip("/").lower()
 
@@ -372,6 +419,15 @@ def is_valid_url(url: str, base_domain: str) -> bool:
         return False
     if SKIP_PATTERNS.search(url):
         return False
+    if len(url) > _MAX_URL_LENGTH:
+        log(f"[SKIP too-long] {url[:80]}...")
+        return False
+    if has_undefined_segment(url):
+        log(f"[SKIP undefined] {url[:80]}...")
+        return False
+    if has_path_repetition(url):
+        log(f"[SKIP repetition] {url[:80]}...")
+        return False
     return True
 
 
@@ -379,7 +435,7 @@ def extract_links(html: str, base_url: str, base_domain: str) -> list[str]:
     soup = BeautifulSoup(html, "html.parser")
     links: list[str] = []
     for a in soup.find_all("a", href=True):
-        full_url = normalize_url(urljoin(base_url, a["href"].strip()))
+        full_url = normalize_url(urljoin(base_url, str(a["href"]).strip()))
         if is_valid_url(full_url, base_domain):
             links.append(full_url)
     return links
@@ -615,7 +671,9 @@ def run(domains: list[tuple[str, str]], existing_df: pd.DataFrame) -> None:
     visited_map = get_visited_urls_per_domain(existing_df)
     completed_domains = load_checkpoint()  # Layer 2: baca domain yang sudah done
 
-    id_start = int(existing_df["Webpage_id"].max()) + 1 if not existing_df.empty else 1
+    id_start = (
+        int(existing_df["Webpage_id"].max().item()) + 1 if not existing_df.empty else 1
+    )
     counter = AtomicCounter(start=id_start)
 
     configured: int = SETTINGS.get("max_workers", 5)

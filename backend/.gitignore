@@ -219,7 +219,10 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# dataset
-dataset_crawl.csv
-dataset_crawl.json
-checkpoint.json
+# Ignore semua CSV dan JSON
+*.csv
+*.json
+
+# Tapi tetap track yang ada di folder dataset
+!dataset/**/*.csv
+!dataset/**/*.json
