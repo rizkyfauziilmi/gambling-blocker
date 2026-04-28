@@ -222,3 +222,4 @@ __marimo__/
 # dataset
 dataset_crawl.csv
 dataset_crawl.json
+checkpoint.json
