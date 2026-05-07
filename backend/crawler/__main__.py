@@ -1,5 +1,5 @@
 from colorama import init
-from links import DOMAINS_TO_CRAWL
+from crawler.links import DOMAINS_TO_CRAWL
 
 from crawler.crawler import run_crawler
 from crawler.logger import crawler_log_block

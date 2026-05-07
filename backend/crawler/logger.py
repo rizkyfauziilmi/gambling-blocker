@@ -1,3 +1,4 @@
+import os
 import logging
 import re
 import sys
@@ -13,6 +14,8 @@ def get_logger(
     Jika log_file diberikan, log masuk ke file.
     Jika log_file None, log cetak ke terminal (stdout).
     """
+
+    os.makedirs("logs", exist_ok=True)
     logger = logging.getLogger(name)
 
     if not logger.handlers:
