@@ -6,8 +6,8 @@ CRAWLER_SETTINGS = {
     "request_timeout": 10,
     "respect_robots_txt": False,
     "max_workers": 20,
-    "output_csv": "crawl/bin/dataset_crawl.csv",
-    "output_json": "crawl/bin/dataset_crawl.json",
+    "output_csv": "crawler/bin/dataset_crawl.csv",
+    "output_json": "crawler/bin/dataset_crawl.json",
     "log_file": "logs/crawler.log",
     "checkpoint_file": "logs/checkpoint.json",
     "domain_timeout": 300,  # detik sebelum domain dianggap macet

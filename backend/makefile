@@ -6,7 +6,7 @@ jupyter: ## Run Jupyter Lab
 	uv run --with jupyter jupyter lab
 
 crawl: ## Run crawler to generate dataset
-	uv run python -m crawl
+	uv run python -m crawler
 
 help: ## Show help
 	@echo "Usage:"
