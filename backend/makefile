@@ -8,6 +8,9 @@ jupyter: ## Run Jupyter Lab
 crawl: ## Run crawler to generate dataset
 	uv run python -m crawler
 
+screenshot: ## Run screenshot crawler
+	uv run python -m crawler.screenshot_crawler
+
 help: ## Show help
 	@echo "Usage:"
 	@echo "  make <target>"
