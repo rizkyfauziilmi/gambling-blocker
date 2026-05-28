@@ -1,7 +1,7 @@
 import path from "path"
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
-import type { Connect, Plugin } from "vite"
+import type { Connect, Plugin, ProxyOptions } from "vite"
 import { defineConfig } from "vite"
 
 function basicAuthPlugin(): Plugin {
@@ -29,6 +29,18 @@ function basicAuthPlugin(): Plugin {
   }
 }
 
+function authProxy(): ProxyOptions {
+  return {
+    configure: (proxy) => {
+      proxy.on("proxyReq", (proxyReq, req) => {
+        if (req.headers.authorization) {
+          proxyReq.setHeader("Authorization", req.headers.authorization)
+        }
+      })
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [react(), tailwindcss(), basicAuthPlugin()],
   resolve: {
@@ -38,11 +50,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/reports": "http://127.0.0.1:8000",
+      "/reports": { target: "http://127.0.0.1:8000", ...authProxy() },
+      "/blacklist": { target: "http://127.0.0.1:8000", ...authProxy() },
+      "/whitelist": { target: "http://127.0.0.1:8000", ...authProxy() },
       "/report": "http://127.0.0.1:8000",
       "/classify": "http://127.0.0.1:8000",
-      "/blacklist": "http://127.0.0.1:8000",
-      "/whitelist": "http://127.0.0.1:8000",
     },
   },
 })
