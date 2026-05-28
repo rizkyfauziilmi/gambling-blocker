@@ -1,5 +1,16 @@
 import { useState } from "react"
 import { Ban, ShieldCheck, Trash2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -16,39 +27,35 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import type { Report } from "@/hooks/useReports"
+import type { GroupedReport } from "@/hooks/useReports"
 
 interface ReportsTableProps {
-  reports: Report[] | undefined
+  groups: GroupedReport[] | undefined
   onWhitelist: (hostname: string) => void
   onBlacklist: (hostname: string) => void
-  onDelete: (id: number) => void
   onDeleteByHostname: (hostname: string) => void
   isMutating?: boolean
 }
 
 export function ReportsTable({
-  reports,
+  groups,
   onWhitelist,
   onBlacklist,
-  onDelete,
   onDeleteByHostname,
   isMutating,
 }: ReportsTableProps) {
   const [search, setSearch] = useState("")
 
-  const filtered = reports
-    ? reports.filter(
-        (r) =>
-          r.hostname.toLowerCase().includes(search.toLowerCase()) ||
-          r.url.toLowerCase().includes(search.toLowerCase())
+  const filtered = groups
+    ? groups.filter((g) =>
+        g.hostname.toLowerCase().includes(search.toLowerCase())
       )
     : []
 
   return (
     <div className="space-y-4">
       <Input
-        placeholder="Search by hostname or URL..."
+        placeholder="Search by hostname..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="max-w-sm"
@@ -58,15 +65,15 @@ export function ReportsTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>URL</TableHead>
-              <TableHead className="text-right">Score</TableHead>
-              <TableHead>Reporter</TableHead>
-              <TableHead>Time</TableHead>
+              <TableHead>Hostname</TableHead>
+              <TableHead className="text-right">Reports</TableHead>
+              <TableHead className="text-right">Avg Score</TableHead>
+              <TableHead>Last Reported</TableHead>
               <TableHead className="w-28">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!reports ? (
+            {!groups ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   {Array.from({ length: 5 }).map((_, j) => (
@@ -79,72 +86,121 @@ export function ReportsTable({
             ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
-                  {reports.length === 0
+                  {groups.length === 0
                     ? "No reports yet"
-                    : "No matching reports"}
+                    : "No matching hostnames"}
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="max-w-xs truncate" title={r.url}>
-                    {r.hostname}
+              filtered.map((g) => (
+                <TableRow key={g.hostname}>
+                  <TableCell className="font-mono text-sm max-w-xs truncate" title={g.hostname}>
+                    {g.hostname}
                   </TableCell>
+                  <TableCell className="text-right">{g.report_count}</TableCell>
                   <TableCell className="text-right font-mono text-xs">
-                    {r.gambling_score.toFixed(4)}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {r.reporter_ip}
+                    {g.avg_score.toFixed(4)}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {new Date(r.created_at + "Z").toLocaleString()}
+                    {new Date(g.last_reported + "Z").toLocaleString()}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-0.5">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                            disabled={isMutating}
-                            onClick={() => { onWhitelist(r.hostname); onDeleteByHostname(r.hostname) }}
-                          >
-                            <ShieldCheck className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Add to whitelist</TooltipContent>
-                      </Tooltip>
+                      <AlertDialog>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                disabled={isMutating}
+                              >
+                                <ShieldCheck className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>Add to whitelist</TooltipContent>
+                        </Tooltip>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Whitelist {g.hostname}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Reports for this hostname will also be deleted.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onWhitelist(g.hostname)}>
+                              Continue
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
 
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            disabled={isMutating}
-                            onClick={() => { onBlacklist(r.hostname); onDeleteByHostname(r.hostname) }}
-                          >
-                            <Ban className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Add to blacklist</TooltipContent>
-                      </Tooltip>
+                      <AlertDialog>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                disabled={isMutating}
+                              >
+                                <Ban className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>Add to blacklist</TooltipContent>
+                        </Tooltip>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Blacklist {g.hostname}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Reports for this hostname will also be deleted.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onBlacklist(g.hostname)}>
+                              Continue
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
 
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                            disabled={isMutating}
-                            onClick={() => onDelete(r.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Delete report</TooltipContent>
-                      </Tooltip>
+                      <AlertDialog>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                disabled={isMutating}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete all reports</TooltipContent>
+                        </Tooltip>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete all reports for {g.hostname}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDeleteByHostname(g.hostname)}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -154,9 +210,9 @@ export function ReportsTable({
         </Table>
       </div>
 
-      {reports && (
+      {groups && (
         <p className="text-sm text-muted-foreground">
-          Showing {filtered.length} of {reports.length} reports
+          {groups.length} hostname{groups.length !== 1 && "s"} reported
         </p>
       )}
     </div>

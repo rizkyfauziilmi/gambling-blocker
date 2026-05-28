@@ -7,7 +7,8 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     const blockedUrl = params.get("url");
     const gamblingScore = params.get("gambling_score");
-    const [reportState, setReportState] = useState<"idle" | "loading" | "done" | "rate_limited" | "not_classified">("idle");
+    const fromList = params.get("from_list");
+    const [reportState, setReportState] = useState<"idle" | "loading" | "done" | "rate_limited" | "not_classified" | "listed">("idle");
 
     async function handleReport() {
         setReportState("loading");
@@ -26,6 +27,9 @@ function App() {
                 setTimeout(() => setReportState("idle"), 3000);
             } else if (data.detail?.error === "not_classified") {
                 setReportState("not_classified");
+                setTimeout(() => setReportState("idle"), 5000);
+            } else if (data.detail?.error === "already_blacklisted" || data.detail?.error === "already_whitelisted") {
+                setReportState("listed");
                 setTimeout(() => setReportState("idle"), 5000);
             } else {
                 setReportState("rate_limited");
@@ -48,8 +52,13 @@ function App() {
                         {t("blocked_title")}
                     </h1>
                     <p className="text-red-600 font-medium text-sm mb-6">
-                        {t("blocked_description")}
+                        {fromList ? t("popup_blockedByAdmin") : t("blocked_description")}
                     </p>
+                    {fromList === "blacklist" && (
+                        <p className="text-xs text-red-500/70 -mt-4 mb-6">
+                            {t("popup_blockedByAdminDesc")}
+                        </p>
+                    )}
 
                     <div className="bg-gray-50 rounded-xl p-4 mb-3 text-left border border-gray-200">
                         <p className="text-xs text-gray-500 mb-1">
@@ -77,18 +86,29 @@ function App() {
                         </div>
                     </div>
 
-                    <button
-                        onClick={reportState === "idle" ? handleReport : undefined}
-                        disabled={reportState !== "idle"}
-                        className="w-full py-2.5 px-4 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-medium cursor-pointer transition-all hover:bg-gray-50 flex items-center justify-center gap-2 shadow-xs disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 disabled:hover:bg-gray-50"
-                    >
-                        <span>📋</span>
-                        {reportState === "idle" && t("blocked_reportFalsePositive")}
-                        {reportState === "loading" && t("reportSending")}
-                        {reportState === "done" && t("reportSent")}
-                        {reportState === "rate_limited" && t("reportRateLimited")}
-                        {reportState === "not_classified" && t("reportNotClassified")}
-                    </button>
+                    {fromList ? (
+                        <button
+                            disabled
+                            className="w-full py-2.5 px-4 rounded-xl bg-gray-100 border border-gray-200 text-gray-400 text-sm font-medium cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            <span>📋</span>
+                            {t("reportListed")}
+                        </button>
+                    ) : (
+                        <button
+                            onClick={reportState === "idle" ? handleReport : undefined}
+                            disabled={reportState !== "idle"}
+                            className="w-full py-2.5 px-4 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-medium cursor-pointer transition-all hover:bg-gray-50 flex items-center justify-center gap-2 shadow-xs disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 disabled:hover:bg-gray-50"
+                        >
+                            <span>📋</span>
+                            {reportState === "idle" && t("blocked_reportFalsePositive")}
+                            {reportState === "loading" && t("reportSending")}
+                            {reportState === "done" && t("reportSent")}
+                            {reportState === "rate_limited" && t("reportRateLimited")}
+                            {reportState === "not_classified" && t("reportNotClassified")}
+                            {reportState === "listed" && t("reportListed")}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

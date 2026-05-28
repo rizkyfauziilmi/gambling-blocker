@@ -44,6 +44,27 @@
     "popup_bareIpDesc": {
         "message": "Tambahkan path untuk deteksi judi"
     },
+    "popup_blockedByAdmin": {
+        "message": "Diblokir oleh admin"
+    },
+    "popup_blockedByAdminDesc": {
+        "message": "Situs ini ditambahkan ke daftar hitam oleh administrator."
+    },
+    "popup_allowedByAdmin": {
+        "message": "Diizinkan oleh admin"
+    },
+    "popup_allowedByAdminDesc": {
+        "message": "Situs ini ditambahkan ke daftar putih oleh administrator."
+    },
+    "reportListed": {
+        "message": "Tidak bisa melapor — dikelola admin"
+    },
+    "reportListedBlacklistDesc": {
+        "message": "URL ini ada di daftar hitam. Hubungi administrator."
+    },
+    "reportListedWhitelistDesc": {
+        "message": "URL ini ada di daftar putih. Hubungi administrator."
+    },
     "blocked_title": {
         "message": "Situs Ini Diblokir"
     },

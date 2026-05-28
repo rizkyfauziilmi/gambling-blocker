@@ -1,4 +1,15 @@
 import { useState } from "react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -10,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import type { ListEntry } from "@/hooks/useLists"
 import { useWhitelist } from "@/hooks/useLists"
 
 export function WhitelistPanel() {
@@ -27,7 +39,7 @@ export function WhitelistPanel() {
     <div className="space-y-4">
       <div className="flex gap-2">
         <Input
-          placeholder="hostname to whitelist..."
+          placeholder="URL to whitelist..."
           value={hostname}
           onChange={(e) => setHostname(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
@@ -63,22 +75,39 @@ export function WhitelistPanel() {
                 </TableCell>
               </TableRow>
             ) : (
-              data.entries.map((entry) => (
+              data.entries.map((entry: ListEntry) => (
                 <TableRow key={entry.id}>
                   <TableCell className="font-mono text-sm">{entry.hostname}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {new Date(entry.created_at + "Z").toLocaleString()}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => remove.mutate(entry.id)}
-                      disabled={remove.isPending}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      Delete
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={remove.isPending}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remove {entry.hostname} from whitelist?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This hostname will no longer be allowed.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => remove.mutate(entry.id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))

@@ -1,12 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
-export interface Report {
-  id: number
-  url: string
+export interface GroupedReport {
   hostname: string
-  gambling_score: number
-  reporter_ip: string
-  created_at: string
+  report_count: number
+  avg_score: number
+  last_reported: string
 }
 
 interface Stats {
@@ -16,7 +15,7 @@ interface Stats {
 }
 
 interface ReportsResponse {
-  reports: Report[]
+  groups: GroupedReport[]
   stats: Stats
 }
 
@@ -49,12 +48,20 @@ export function useReports() {
 
   const remove = useMutation({
     mutationFn: deleteReport,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reports"] }),
+    onSuccess: () => {
+      toast.success("Report deleted")
+      queryClient.invalidateQueries({ queryKey: ["reports"] })
+    },
+    onError: () => toast.error("Failed to delete report"),
   })
 
   const removeByHostname = useMutation({
     mutationFn: deleteByHostname,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reports"] }),
+    onSuccess: () => {
+      toast.success("Reports deleted")
+      queryClient.invalidateQueries({ queryKey: ["reports"] })
+    },
+    onError: () => toast.error("Failed to delete reports"),
   })
 
   return { ...query, remove, removeByHostname }

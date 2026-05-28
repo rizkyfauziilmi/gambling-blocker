@@ -46,6 +46,7 @@ export default defineBackground(() => {
                     const qp = new URLSearchParams({
                         url: tab.url!,
                         gambling_score: String(data.gambling_score),
+                        from_list: data.from_list || "",
                     });
                     const blocked =
                         browser.runtime.getURL("/blocked.html") + "?" + qp;

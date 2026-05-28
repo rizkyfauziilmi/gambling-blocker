@@ -1,13 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import type { Report } from "@/hooks/useReports"
 
-interface SummaryCardsProps {
-  reports: Report[] | undefined
+interface Stats {
+  total: number
+  today: number
+  unique_hostnames: number
 }
 
-export function SummaryCards({ reports }: SummaryCardsProps) {
-  if (!reports) {
+interface SummaryCardsProps {
+  stats: Stats | undefined
+}
+
+export function SummaryCards({ stats }: SummaryCardsProps) {
+  if (!stats) {
     return (
       <div className="grid gap-4 sm:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (
@@ -24,16 +29,10 @@ export function SummaryCards({ reports }: SummaryCardsProps) {
     )
   }
 
-  const today = reports.filter(
-    (r) =>
-      new Date(r.created_at + "Z").toDateString() === new Date().toDateString()
-  ).length
-  const uniqueHostnames = new Set(reports.map((r) => r.hostname)).size
-
   const cards = [
-    { label: "Total Reports", value: reports.length },
-    { label: "Reports Today", value: today },
-    { label: "Unique Hostnames", value: uniqueHostnames },
+    { label: "Total Reports", value: stats.total },
+    { label: "Reports Today", value: stats.today },
+    { label: "Unique Hostnames", value: stats.unique_hostnames },
   ]
 
   return (

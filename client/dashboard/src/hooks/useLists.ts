@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 export interface ListEntry {
   id: number
@@ -49,12 +50,23 @@ export function useBlacklist() {
 
   const add = useMutation({
     mutationFn: (hostname: string) => addToList("blacklist", hostname),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["blacklist"] }),
+    onSuccess: (data) => {
+      toast.success(`${data.entry?.hostname || "Hostname"} blacklisted`)
+      queryClient.invalidateQueries({ queryKey: ["blacklist"] })
+      queryClient.invalidateQueries({ queryKey: ["reports"] })
+      queryClient.invalidateQueries({ queryKey: ["cache"] })
+    },
+    onError: (err) => toast.error(err.message || "Failed to add to blacklist"),
   })
 
   const remove = useMutation({
     mutationFn: (id: number) => removeFromList("blacklist", id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["blacklist"] }),
+    onSuccess: () => {
+      toast.success("Removed from blacklist")
+      queryClient.invalidateQueries({ queryKey: ["blacklist"] })
+      queryClient.invalidateQueries({ queryKey: ["cache"] })
+    },
+    onError: () => toast.error("Failed to remove from blacklist"),
   })
 
   return { ...query, add, remove }
@@ -70,12 +82,23 @@ export function useWhitelist() {
 
   const add = useMutation({
     mutationFn: (hostname: string) => addToList("whitelist", hostname),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["whitelist"] }),
+    onSuccess: (data) => {
+      toast.success(`${data.entry?.hostname || "Hostname"} whitelisted`)
+      queryClient.invalidateQueries({ queryKey: ["whitelist"] })
+      queryClient.invalidateQueries({ queryKey: ["reports"] })
+      queryClient.invalidateQueries({ queryKey: ["cache"] })
+    },
+    onError: (err) => toast.error(err.message || "Failed to add to whitelist"),
   })
 
   const remove = useMutation({
     mutationFn: (id: number) => removeFromList("whitelist", id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["whitelist"] }),
+    onSuccess: () => {
+      toast.success("Removed from whitelist")
+      queryClient.invalidateQueries({ queryKey: ["whitelist"] })
+      queryClient.invalidateQueries({ queryKey: ["cache"] })
+    },
+    onError: () => toast.error("Failed to remove from whitelist"),
   })
 
   return { ...query, add, remove }

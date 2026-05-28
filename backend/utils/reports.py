@@ -80,4 +80,21 @@ def get_report_stats() -> dict[str, int]:
     return {"total": total, "today": today, "unique_hostnames": hostnames}
 
 
+def get_grouped_reports() -> list[dict]:
+    init_db()
+    conn = _conn()
+    rows = conn.execute("""
+        SELECT
+            hostname,
+            COUNT(*) AS report_count,
+            ROUND(AVG(gambling_score), 4) AS avg_score,
+            MAX(created_at) AS last_reported
+        FROM reports
+        GROUP BY hostname
+        ORDER BY report_count DESC, last_reported DESC
+    """).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
 init_db()
