@@ -61,5 +61,8 @@
     },
     "reportRateLimited": {
         "message": "Too many reports"
+    },
+    "reportNotClassified": {
+        "message": "Visit the site first"
     }
 }
