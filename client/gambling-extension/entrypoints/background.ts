@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.WXT_API_URL;
+const API_BASE = import.meta.env.WXT_API_BASE;
 
 function shouldSkip(url: string): boolean {
     try {
@@ -34,7 +34,7 @@ export default defineBackground(() => {
         if (shouldSkip(tab.url)) return;
 
         const params = new URLSearchParams({ url: tab.url });
-        const fullUrl = `${API_URL}?${params}`;
+        const fullUrl = `${API_BASE}/classify/url?${params}`;
         console.log("[BG] fetching:", fullUrl);
 
         fetch(fullUrl)

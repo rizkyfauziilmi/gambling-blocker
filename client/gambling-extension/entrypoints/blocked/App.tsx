@@ -1,9 +1,34 @@
+import { useState } from "react";
+
+const API_BASE = import.meta.env.WXT_API_BASE;
 const t = browser.i18n.getMessage;
 
 function App() {
     const params = new URLSearchParams(window.location.search);
     const blockedUrl = params.get("url");
     const gamblingScore = params.get("gambling_score");
+    const [reportState, setReportState] = useState<"idle" | "loading" | "done" | "rate_limited">("idle");
+
+    async function handleReport() {
+        setReportState("loading");
+        try {
+            const res = await fetch(`${API_BASE}/report/false-positive`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    url: blockedUrl,
+                    gambling_score: Number(gamblingScore),
+                }),
+            });
+            const data = await res.json();
+            const isDone = data.status === "ok";
+            setReportState(isDone ? "done" : "rate_limited");
+            setTimeout(() => setReportState("idle"), isDone ? 3000 : 5000);
+        } catch {
+            setReportState("rate_limited");
+            setTimeout(() => setReportState("idle"), 5000);
+        }
+    }
 
     return (
         <div className="min-h-screen bg-linear-to-b from-white to-gray-50 flex items-center justify-center p-4">
@@ -45,9 +70,16 @@ function App() {
                         </div>
                     </div>
 
-                    <button className="w-full py-2.5 px-4 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-medium cursor-pointer transition-all hover:bg-gray-50 flex items-center justify-center gap-2 shadow-xs">
+                    <button
+                        onClick={reportState === "idle" ? handleReport : undefined}
+                        disabled={reportState !== "idle"}
+                        className="w-full py-2.5 px-4 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-medium cursor-pointer transition-all hover:bg-gray-50 flex items-center justify-center gap-2 shadow-xs disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 disabled:hover:bg-gray-50"
+                    >
                         <span>📋</span>
-                        {t("blocked_reportFalsePositive")}
+                        {reportState === "idle" && t("blocked_reportFalsePositive")}
+                        {reportState === "loading" && t("reportSending")}
+                        {reportState === "done" && t("reportSent")}
+                        {reportState === "rate_limited" && t("reportRateLimited")}
                     </button>
                 </div>
             </div>
