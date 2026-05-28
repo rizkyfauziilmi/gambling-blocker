@@ -1,9 +1,11 @@
 import json
+import os
 from typing import Any
 from urllib.parse import urlparse
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import AnyHttpUrl, BaseModel
 
 from utils.cache import get as cache_get
@@ -11,6 +13,10 @@ from utils.cache import incr as cache_incr
 from utils.cache import is_available as cache_available
 from utils.cache import setex as cache_setex
 from utils.helpers import cache_key, is_ip, resolve_ips
+from utils.lists import add_entry as list_add
+from utils.lists import check_hostname as list_check
+from utils.lists import get_entries as list_get
+from utils.lists import remove_entry as list_remove
 from utils.model import infer
 from utils.model import is_loaded as model_loaded
 from utils.reports import get_all_reports, get_report_stats, save_report
@@ -21,9 +27,21 @@ app: FastAPI = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
 )
+
+security = HTTPBasic()
+DASHBOARD_USER: str = os.getenv("DASHBOARD_USERNAME", "admin")
+DASHBOARD_PASS: str = os.getenv("DASHBOARD_PASSWORD", "admin123")
+
+
+def require_auth(credentials: HTTPBasicCredentials = Depends(security)) -> None:
+    if (
+        credentials.username != DASHBOARD_USER
+        or credentials.password != DASHBOARD_PASS
+    ):
+        raise HTTPException(status_code=401)
 
 
 @app.get("/")
@@ -40,6 +58,24 @@ def classify_url(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
         raise HTTPException(
             status_code=400, detail="Could not extract hostname from URL"
         )
+
+    listed: str | None = list_check(hostname)
+    if listed == "whitelist":
+        return {
+            "url": url_str,
+            "category": "non-gambling",
+            "gambling_score": 0,
+            "resolved_ips": [],
+            "from_cache": False,
+        }
+    if listed == "blacklist":
+        return {
+            "url": url_str,
+            "category": "gambling",
+            "gambling_score": 1.0,
+            "resolved_ips": resolve_ips(hostname),
+            "from_cache": False,
+        }
 
     key: str = cache_key(hostname)
 
@@ -146,8 +182,69 @@ def report_false_positive(body: ReportBody, request: Request) -> dict[str, Any]:
 def list_reports(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
+    _: None = Depends(require_auth),
 ) -> dict[str, object]:
     return {
         "reports": get_all_reports(limit, offset),
         "stats": get_report_stats(),
     }
+
+
+class ListBody(BaseModel):
+    hostname: str
+
+
+@app.get("/blacklist")
+def get_blacklist(_: None = Depends(require_auth)) -> dict[str, object]:
+    return {"entries": list_get("blacklist")}
+
+
+@app.post("/blacklist")
+def add_blacklist(
+    body: ListBody,
+    _: None = Depends(require_auth),
+) -> dict[str, object]:
+    entry = list_add(body.hostname.strip().lower(), "blacklist")
+    if entry is None:
+        raise HTTPException(
+            status_code=409, detail="Hostname already in blacklist"
+        )
+    return {"entry": entry}
+
+
+@app.delete("/blacklist/{entry_id}")
+def delete_blacklist(
+    entry_id: int,
+    _: None = Depends(require_auth),
+) -> dict[str, object]:
+    if not list_remove(entry_id):
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return {"status": "ok"}
+
+
+@app.get("/whitelist")
+def get_whitelist(_: None = Depends(require_auth)) -> dict[str, object]:
+    return {"entries": list_get("whitelist")}
+
+
+@app.post("/whitelist")
+def add_whitelist(
+    body: ListBody,
+    _: None = Depends(require_auth),
+) -> dict[str, object]:
+    entry = list_add(body.hostname.strip().lower(), "whitelist")
+    if entry is None:
+        raise HTTPException(
+            status_code=409, detail="Hostname already in whitelist"
+        )
+    return {"entry": entry}
+
+
+@app.delete("/whitelist/{entry_id}")
+def delete_whitelist(
+    entry_id: int,
+    _: None = Depends(require_auth),
+) -> dict[str, object]:
+    if not list_remove(entry_id):
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return {"status": "ok"}
