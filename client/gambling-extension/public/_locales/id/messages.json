@@ -1,0 +1,56 @@
+{
+    "extName": {
+        "message": "Gambling Blocker"
+    },
+    "extDescription": {
+        "message": "Mendeteksi dan memblokir situs perjudian secara otomatis."
+    },
+    "popup_title": {
+        "message": "Gambling Blocker"
+    },
+    "popup_protectionActive": {
+        "message": "Perlindungan Aktif"
+    },
+    "popup_currentTab": {
+        "message": "Tab Saat Ini"
+    },
+    "popup_scanning": {
+        "message": "Memindai..."
+    },
+    "popup_failedToScan": {
+        "message": "Gagal memindai URL"
+    },
+    "popup_safe": {
+        "message": "Aman"
+    },
+    "popup_blocked": {
+        "message": "Diblokir"
+    },
+    "popup_gamblingScore": {
+        "message": "Skor Judi"
+    },
+    "popup_notScannable": {
+        "message": "Tidak dapat memindai halaman ini"
+    },
+    "popup_notScannableDesc": {
+        "message": "Hanya situs HTTP(S) yang diperiksa"
+    },
+    "popup_reportFalsePositive": {
+        "message": "Laporkan Salah Deteksi"
+    },
+    "blocked_title": {
+        "message": "Situs Ini Diblokir"
+    },
+    "blocked_description": {
+        "message": "Terdeteksi sebagai situs perjudian"
+    },
+    "blocked_url": {
+        "message": "URL"
+    },
+    "blocked_gamblingScore": {
+        "message": "Skor Judi"
+    },
+    "blocked_reportFalsePositive": {
+        "message": "Laporkan Salah Deteksi"
+    }
+}

@@ -1,0 +1,56 @@
+{
+    "extName": {
+        "message": "Gambling Blocker"
+    },
+    "extDescription": {
+        "message": "Automatically detects and blocks gambling websites."
+    },
+    "popup_title": {
+        "message": "Gambling Blocker"
+    },
+    "popup_protectionActive": {
+        "message": "Protection Active"
+    },
+    "popup_currentTab": {
+        "message": "Current Tab"
+    },
+    "popup_scanning": {
+        "message": "Scanning..."
+    },
+    "popup_failedToScan": {
+        "message": "Failed to scan URL"
+    },
+    "popup_safe": {
+        "message": "Safe"
+    },
+    "popup_blocked": {
+        "message": "Blocked"
+    },
+    "popup_gamblingScore": {
+        "message": "Gambling Score"
+    },
+    "popup_notScannable": {
+        "message": "Cannot scan this page"
+    },
+    "popup_notScannableDesc": {
+        "message": "Only HTTP(S) websites are checked"
+    },
+    "popup_reportFalsePositive": {
+        "message": "Report a False Detection"
+    },
+    "blocked_title": {
+        "message": "This Site Has Been Blocked"
+    },
+    "blocked_description": {
+        "message": "Detected as a gambling site"
+    },
+    "blocked_url": {
+        "message": "URL"
+    },
+    "blocked_gamblingScore": {
+        "message": "Gambling Score"
+    },
+    "blocked_reportFalsePositive": {
+        "message": "Report a False Detection"
+    }
+}
