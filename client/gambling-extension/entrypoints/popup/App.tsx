@@ -25,7 +25,7 @@ function shouldSkip(url: string): boolean {
     }
 }
 
-type Status = "idle" | "loading" | "safe" | "gambling" | "skipped" | "error";
+type Status = "idle" | "loading" | "safe" | "gambling" | "bare-ip" | "skipped" | "error";
 
 interface Result {
     category: string;
@@ -62,7 +62,9 @@ function App() {
             .then((res) => res?.json())
             .then((data: Result) => {
                 setResult(data);
-                setStatus(data.category === "gambling" ? "gambling" : "safe");
+                if (data.category === "gambling") setStatus("gambling");
+                else if (data.category === "bare-ip") setStatus("bare-ip");
+                else setStatus("safe");
             })
             .catch(() =>
                 setStatus((prev) => (prev === "skipped" ? prev : "error")),
@@ -150,6 +152,17 @@ function App() {
                     </p>
                     <p className="text-amber-600/70 text-xs mt-1">
                         {t("popup_notScannableDesc")}
+                    </p>
+                </div>
+            )}
+
+            {status === "bare-ip" && (
+                <div className="bg-gray-100 border border-gray-300 rounded-xl p-4 text-center">
+                    <p className="text-gray-700 text-sm font-medium">
+                        {t("popup_bareIp")}
+                    </p>
+                    <p className="text-gray-500 text-xs mt-1">
+                        {t("popup_bareIpDesc")}
                     </p>
                 </div>
             )}
