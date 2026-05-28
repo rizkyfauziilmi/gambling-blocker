@@ -7,7 +7,7 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     const blockedUrl = params.get("url");
     const gamblingScore = params.get("gambling_score");
-    const [reportState, setReportState] = useState<"idle" | "loading" | "done" | "rate_limited">("idle");
+    const [reportState, setReportState] = useState<"idle" | "loading" | "done" | "rate_limited" | "not_classified">("idle");
 
     async function handleReport() {
         setReportState("loading");
@@ -21,9 +21,16 @@ function App() {
                 }),
             });
             const data = await res.json();
-            const isDone = data.status === "ok";
-            setReportState(isDone ? "done" : "rate_limited");
-            setTimeout(() => setReportState("idle"), isDone ? 3000 : 5000);
+            if (data.status === "ok") {
+                setReportState("done");
+                setTimeout(() => setReportState("idle"), 3000);
+            } else if (data.detail?.error === "not_classified") {
+                setReportState("not_classified");
+                setTimeout(() => setReportState("idle"), 5000);
+            } else {
+                setReportState("rate_limited");
+                setTimeout(() => setReportState("idle"), 5000);
+            }
         } catch {
             setReportState("rate_limited");
             setTimeout(() => setReportState("idle"), 5000);
@@ -80,6 +87,7 @@ function App() {
                         {reportState === "loading" && t("reportSending")}
                         {reportState === "done" && t("reportSent")}
                         {reportState === "rate_limited" && t("reportRateLimited")}
+                        {reportState === "not_classified" && t("reportNotClassified")}
                     </button>
                 </div>
             </div>

@@ -61,5 +61,8 @@
     },
     "reportRateLimited": {
         "message": "Terlalu banyak laporan"
+    },
+    "reportNotClassified": {
+        "message": "Kunjungi situsnya dulu"
     }
 }

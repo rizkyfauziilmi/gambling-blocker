@@ -13,7 +13,7 @@ from utils.cache import setex as cache_setex
 from utils.helpers import cache_key, is_ip, resolve_ips
 from utils.model import infer
 from utils.model import is_loaded as model_loaded
-from utils.reports import save_report
+from utils.reports import get_all_reports, get_report_stats, save_report
 
 app: FastAPI = FastAPI()
 
@@ -103,6 +103,29 @@ class ReportBody(BaseModel):
 @app.post("/report/false-positive")
 def report_false_positive(body: ReportBody, request: Request) -> dict[str, Any]:
     client_ip: str = request.client.host if request.client else "unknown"
+    hostname: str = urlparse(body.url).hostname or ""
+
+    if not hostname:
+        raise HTTPException(status_code=400, detail="Could not extract hostname from URL")
+
+    if not cache_available():
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "cache_unavailable",
+                "message": "Cache required for report validation. Try again later.",
+            },
+        )
+
+    cached = cache_get(cache_key(hostname))
+    if cached is None:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "not_classified",
+                "message": "This URL has not been classified yet. Visit it first via the browser.",
+            },
+        )
 
     count: int = cache_incr(f"report:ip:{client_ip}", ttl=3600)
     if count > 5:
@@ -117,3 +140,14 @@ def report_false_positive(body: ReportBody, request: Request) -> dict[str, Any]:
 
     save_report(body.url, body.gambling_score, client_ip)
     return {"status": "ok", "message": "Report saved"}
+
+
+@app.get("/reports")
+def list_reports(
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+) -> dict[str, object]:
+    return {
+        "reports": get_all_reports(limit, offset),
+        "stats": get_report_stats(),
+    }
