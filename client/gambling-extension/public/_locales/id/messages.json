@@ -52,5 +52,14 @@
     },
     "blocked_reportFalsePositive": {
         "message": "Laporkan Salah Deteksi"
+    },
+    "reportSending": {
+        "message": "Mengirim..."
+    },
+    "reportSent": {
+        "message": "Terkirim! ✅"
+    },
+    "reportRateLimited": {
+        "message": "Terlalu banyak laporan"
     }
 }

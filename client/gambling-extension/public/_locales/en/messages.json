@@ -52,5 +52,14 @@
     },
     "blocked_reportFalsePositive": {
         "message": "Report a False Detection"
+    },
+    "reportSending": {
+        "message": "Sending..."
+    },
+    "reportSent": {
+        "message": "Reported! ✅"
+    },
+    "reportRateLimited": {
+        "message": "Too many reports"
     }
 }

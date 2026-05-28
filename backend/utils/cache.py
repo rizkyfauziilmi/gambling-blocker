@@ -52,4 +52,16 @@ def setex(key: str, value: str) -> None:
         pass
 
 
+def incr(key: str, ttl: int = 3600) -> int:
+    if not _redis_available or _redis is None:
+        return 0
+    try:
+        count: int = _redis.incr(key)
+        if count == 1:
+            _redis.expire(key, ttl)
+        return count
+    except Exception:
+        return 0
+
+
 connect()

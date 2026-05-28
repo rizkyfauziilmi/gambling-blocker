@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+const API_BASE = import.meta.env.WXT_API_BASE;
 const API_URL = import.meta.env.WXT_API_URL;
 const t = browser.i18n.getMessage;
 
@@ -36,6 +37,7 @@ function App() {
     const [tabUrl, setTabUrl] = useState<string>("");
     const [status, setStatus] = useState<Status>("idle");
     const [result, setResult] = useState<Result | null>(null);
+    const [reportState, setReportState] = useState<"idle" | "loading" | "done" | "rate_limited">("idle");
 
     useEffect(() => {
         browser.tabs
@@ -66,6 +68,27 @@ function App() {
                 setStatus((prev) => (prev === "skipped" ? prev : "error")),
             );
     }, []);
+
+    async function handleReport() {
+        setReportState("loading");
+        try {
+            const res = await fetch(`${API_BASE}/report/false-positive`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    url: tabUrl,
+                    gambling_score: result?.gambling_score,
+                }),
+            });
+            const data = await res.json();
+            const isDone = data.status === "ok";
+            setReportState(isDone ? "done" : "rate_limited");
+            setTimeout(() => setReportState("idle"), isDone ? 3000 : 5000);
+        } catch {
+            setReportState("rate_limited");
+            setTimeout(() => setReportState("idle"), 5000);
+        }
+    }
 
     const scorePercent = result
         ? (result.gambling_score * 100).toFixed(1)
@@ -174,8 +197,12 @@ function App() {
                 </div>
             )}
 
-            {(["safe", "gambling"] as Status[]).includes(status) ? (
-                <button className="w-full mt-3 py-2.5 px-4 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-medium cursor-pointer transition-all hover:bg-gray-50 flex items-center justify-center gap-2 shadow-xs">
+            {(["safe", "gambling"] as Status[]).includes(status) &&
+            reportState === "idle" ? (
+                <button
+                    onClick={handleReport}
+                    className="w-full mt-3 py-2.5 px-4 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-medium cursor-pointer transition-all hover:bg-gray-50 flex items-center justify-center gap-2 shadow-xs"
+                >
                     <span className="text-base">📋</span>
                     {t("popup_reportFalsePositive")}
                 </button>
@@ -185,7 +212,10 @@ function App() {
                     className="w-full mt-3 py-2.5 px-4 rounded-xl bg-gray-50 border border-gray-200 text-gray-400 text-sm font-medium cursor-not-allowed transition-all flex items-center justify-center gap-2"
                 >
                     <span className="text-base">📋</span>
-                    {t("popup_reportFalsePositive")}
+                    {reportState === "loading" && t("reportSending")}
+                    {reportState === "done" && t("reportSent")}
+                    {reportState === "rate_limited" && t("reportRateLimited")}
+                    {reportState === "idle" && t("popup_reportFalsePositive")}
                 </button>
             )}
         </div>
