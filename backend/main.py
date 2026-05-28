@@ -65,7 +65,7 @@ def classify_url(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
         if not path or path == "/":
             return {
                 "url": url_str,
-                "category": "non-gambling",
+                "category": "bare-ip",
                 "gambling_score": 0,
                 "resolved_ips": [hostname],
                 "from_cache": False,

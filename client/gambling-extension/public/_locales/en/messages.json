@@ -38,6 +38,12 @@
     "popup_reportFalsePositive": {
         "message": "Report a False Detection"
     },
+    "popup_bareIp": {
+        "message": "Direct IP — not scanned"
+    },
+    "popup_bareIpDesc": {
+        "message": "Add a path to enable gambling detection"
+    },
     "blocked_title": {
         "message": "This Site Has Been Blocked"
     },
