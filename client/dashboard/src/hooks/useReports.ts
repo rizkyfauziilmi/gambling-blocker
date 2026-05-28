@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 export interface Report {
   id: number
@@ -27,9 +27,35 @@ async function fetchReports(): Promise<ReportsResponse> {
   return res.json()
 }
 
+async function deleteReport(id: number): Promise<void> {
+  const base = import.meta.env.VITE_API_BASE ?? ""
+  const res = await fetch(`${base}/reports/${id}`, { method: "DELETE" })
+  if (!res.ok) throw new Error("Failed to delete report")
+}
+
+async function deleteByHostname(hostname: string): Promise<void> {
+  const base = import.meta.env.VITE_API_BASE ?? ""
+  const res = await fetch(`${base}/reports/by-hostname/${encodeURIComponent(hostname)}`, { method: "DELETE" })
+  if (!res.ok) throw new Error("Failed to delete reports")
+}
+
 export function useReports() {
-  return useQuery<ReportsResponse>({
+  const queryClient = useQueryClient()
+
+  const query = useQuery<ReportsResponse>({
     queryKey: ["reports"],
     queryFn: fetchReports,
   })
+
+  const remove = useMutation({
+    mutationFn: deleteReport,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reports"] }),
+  })
+
+  const removeByHostname = useMutation({
+    mutationFn: deleteByHostname,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reports"] }),
+  })
+
+  return { ...query, remove, removeByHostname }
 }

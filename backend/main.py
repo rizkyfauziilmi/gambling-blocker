@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import AnyHttpUrl, BaseModel
 
+from utils.cache import delete as cache_delete
 from utils.cache import get as cache_get
 from utils.cache import incr as cache_incr
 from utils.cache import is_available as cache_available
@@ -19,6 +20,8 @@ from utils.lists import get_entries as list_get
 from utils.lists import remove_entry as list_remove
 from utils.model import infer
 from utils.model import is_loaded as model_loaded
+from utils.reports import delete_report as reports_delete
+from utils.reports import delete_reports_by_hostname as reports_delete_by_host
 from utils.reports import get_all_reports, get_report_stats, save_report
 
 app: FastAPI = FastAPI()
@@ -194,6 +197,25 @@ class ListBody(BaseModel):
     hostname: str
 
 
+@app.delete("/reports/by-hostname/{hostname}")
+def delete_reports_by_hostname_endpoint(
+    hostname: str,
+    _: None = Depends(require_auth),
+) -> dict[str, object]:
+    reports_delete_by_host(hostname)
+    return {"status": "ok"}
+
+
+@app.delete("/reports/{report_id}")
+def delete_report_endpoint(
+    report_id: int,
+    _: None = Depends(require_auth),
+) -> dict[str, object]:
+    if not reports_delete(report_id):
+        raise HTTPException(status_code=404, detail="Report not found")
+    return {"status": "ok"}
+
+
 @app.get("/blacklist")
 def get_blacklist(_: None = Depends(require_auth)) -> dict[str, object]:
     return {"entries": list_get("blacklist")}
@@ -204,11 +226,13 @@ def add_blacklist(
     body: ListBody,
     _: None = Depends(require_auth),
 ) -> dict[str, object]:
-    entry = list_add(body.hostname.strip().lower(), "blacklist")
+    hostname = body.hostname.strip().lower()
+    entry = list_add(hostname, "blacklist")
     if entry is None:
         raise HTTPException(
             status_code=409, detail="Hostname already in blacklist"
         )
+    cache_delete(cache_key(hostname))
     return {"entry": entry}
 
 
@@ -232,11 +256,13 @@ def add_whitelist(
     body: ListBody,
     _: None = Depends(require_auth),
 ) -> dict[str, object]:
-    entry = list_add(body.hostname.strip().lower(), "whitelist")
+    hostname = body.hostname.strip().lower()
+    entry = list_add(hostname, "whitelist")
     if entry is None:
         raise HTTPException(
             status_code=409, detail="Hostname already in whitelist"
         )
+    cache_delete(cache_key(hostname))
     return {"entry": entry}
 
 
