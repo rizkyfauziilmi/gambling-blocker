@@ -44,6 +44,27 @@
     "popup_bareIpDesc": {
         "message": "Add a path to enable gambling detection"
     },
+    "popup_blockedByAdmin": {
+        "message": "Blocked by admin"
+    },
+    "popup_blockedByAdminDesc": {
+        "message": "This site was added to the blacklist by an administrator."
+    },
+    "popup_allowedByAdmin": {
+        "message": "Allowed by admin"
+    },
+    "popup_allowedByAdminDesc": {
+        "message": "This site was added to the whitelist by an administrator."
+    },
+    "reportListed": {
+        "message": "Cannot report — managed by admin"
+    },
+    "reportListedBlacklistDesc": {
+        "message": "This URL is on the blacklist. Contact the administrator."
+    },
+    "reportListedWhitelistDesc": {
+        "message": "This URL is on the whitelist. Contact the administrator."
+    },
     "blocked_title": {
         "message": "This Site Has Been Blocked"
     },

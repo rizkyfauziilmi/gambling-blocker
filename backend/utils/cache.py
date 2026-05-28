@@ -1,3 +1,4 @@
+import json
 import os
 
 import redis as redis_lib
@@ -59,6 +60,40 @@ def delete(key: str) -> None:
         _redis.delete(key)
     except Exception:
         pass
+
+
+def scan(count: int = 50) -> list[dict]:
+    if not _redis_available or _redis is None:
+        return []
+    try:
+        keys: list[str] = []
+        for pattern in ("domain:*", "ip:*"):
+            for key in _redis.scan_iter(match=pattern, count=count * 2):
+                keys.append(key)
+        results: list[dict] = []
+        for key in sorted(keys, reverse=True)[:count]:
+            val = _redis.get(key)
+            if val:
+                entry = json.loads(val)
+                entry["cache_key"] = key
+                results.append(entry)
+        return results
+    except Exception:
+        return []
+
+
+def flush_cache() -> int:
+    if not _redis_available or _redis is None:
+        return 0
+    try:
+        deleted: int = 0
+        for pattern in ("domain:*", "ip:*"):
+            for key in _redis.scan_iter(match=pattern):
+                _redis.delete(key)
+                deleted += 1
+        return deleted
+    except Exception:
+        return 0
 
 
 def incr(key: str, ttl: int = 3600) -> int:

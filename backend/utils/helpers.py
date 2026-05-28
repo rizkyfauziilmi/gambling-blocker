@@ -1,7 +1,23 @@
 import ipaddress
 import re
 import socket
-from urllib.parse import unquote
+from urllib.parse import unquote, urlparse
+
+from fastapi import HTTPException
+
+
+def parse_hostname(raw: str) -> str:
+    raw = raw.strip().lower()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Hostname is required")
+    if not raw.startswith(("http://", "https://")):
+        raw = "https://" + raw
+    hostname = urlparse(raw).hostname
+    if not hostname:
+        raise HTTPException(status_code=400, detail="Invalid URL or hostname")
+    if "." not in hostname and not is_ip(hostname):
+        raise HTTPException(status_code=400, detail="Invalid hostname format")
+    return hostname
 
 
 def is_ip(hostname: str) -> bool:

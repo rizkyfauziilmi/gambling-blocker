@@ -1,4 +1,15 @@
 import { useState } from "react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -27,7 +38,7 @@ export function BlacklistPanel() {
     <div className="space-y-4">
       <div className="flex gap-2">
         <Input
-          placeholder="hostname to blacklist..."
+          placeholder="URL to blacklist..."
           value={hostname}
           onChange={(e) => setHostname(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
@@ -70,15 +81,32 @@ export function BlacklistPanel() {
                     {new Date(entry.created_at + "Z").toLocaleString()}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => remove.mutate(entry.id)}
-                      disabled={remove.isPending}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      Delete
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={remove.isPending}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remove {entry.hostname} from blacklist?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This hostname will no longer be blocked.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => remove.mutate(entry.id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))

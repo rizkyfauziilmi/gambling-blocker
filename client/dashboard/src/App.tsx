@@ -1,5 +1,7 @@
+import { Toaster } from "@/components/ui/sonner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { CachePanel } from "@/components/CachePanel"
 import { SummaryCards } from "@/components/SummaryCards"
 import { ReportsTable } from "@/components/ReportsTable"
 import { BlacklistPanel } from "@/components/BlacklistPanel"
@@ -8,11 +10,11 @@ import { useReports } from "@/hooks/useReports"
 import { useBlacklist, useWhitelist } from "@/hooks/useLists"
 
 export function App() {
-  const { data, remove, removeByHostname } = useReports()
+  const { data, removeByHostname } = useReports()
   const { add: addBlacklist } = useBlacklist()
   const { add: addWhitelist } = useWhitelist()
 
-  const isMutating = remove.isPending || addBlacklist.isPending || addWhitelist.isPending
+  const isMutating = removeByHostname.isPending || addBlacklist.isPending || addWhitelist.isPending
 
   return (
     <TooltipProvider>
@@ -26,17 +28,17 @@ export function App() {
 
         <Tabs defaultValue="reports">
           <TabsList>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-            <TabsTrigger value="blacklist">Blacklist</TabsTrigger>
-            <TabsTrigger value="whitelist">Whitelist</TabsTrigger>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="blacklist">Blacklist</TabsTrigger>
+          <TabsTrigger value="whitelist">Whitelist</TabsTrigger>
+          <TabsTrigger value="cache">Cache</TabsTrigger>
           </TabsList>
           <TabsContent value="reports" className="space-y-8">
-            <SummaryCards reports={data?.reports} />
+            <SummaryCards stats={data?.stats} />
             <ReportsTable
-              reports={data?.reports}
+              groups={data?.groups}
               onWhitelist={(hostname) => addWhitelist.mutate(hostname)}
               onBlacklist={(hostname) => addBlacklist.mutate(hostname)}
-              onDelete={(id) => remove.mutate(id)}
               onDeleteByHostname={(hostname) => removeByHostname.mutate(hostname)}
               isMutating={isMutating}
             />
@@ -44,12 +46,16 @@ export function App() {
           <TabsContent value="blacklist">
             <BlacklistPanel />
           </TabsContent>
-          <TabsContent value="whitelist">
-            <WhitelistPanel />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </TooltipProvider>
+        <TabsContent value="whitelist">
+          <WhitelistPanel />
+        </TabsContent>
+        <TabsContent value="cache">
+          <CachePanel />
+        </TabsContent>
+      </Tabs>
+    </div>
+    <Toaster />
+  </TooltipProvider>
   )
 }
 

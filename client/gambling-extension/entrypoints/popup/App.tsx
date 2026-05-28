@@ -31,13 +31,14 @@ interface Result {
     category: string;
     gambling_score: number;
     url: string;
+    from_list?: string;
 }
 
 function App() {
     const [tabUrl, setTabUrl] = useState<string>("");
     const [status, setStatus] = useState<Status>("idle");
     const [result, setResult] = useState<Result | null>(null);
-    const [reportState, setReportState] = useState<"idle" | "loading" | "done" | "rate_limited" | "not_classified">("idle");
+    const [reportState, setReportState] = useState<"idle" | "loading" | "done" | "rate_limited" | "not_classified" | "listed">("idle");
 
     useEffect(() => {
         browser.tabs
@@ -88,6 +89,9 @@ function App() {
                 setTimeout(() => setReportState("idle"), 3000);
             } else if (data.detail?.error === "not_classified") {
                 setReportState("not_classified");
+                setTimeout(() => setReportState("idle"), 5000);
+            } else if (data.detail?.error === "already_blacklisted" || data.detail?.error === "already_whitelisted") {
+                setReportState("listed");
                 setTimeout(() => setReportState("idle"), 5000);
             } else {
                 setReportState("rate_limited");
@@ -172,10 +176,14 @@ function App() {
                     <div className="flex items-center gap-2 mb-2">
                         <div className="size-2.5 rounded-full bg-emerald-500 shadow-sm" />
                         <span className="text-emerald-700 font-medium text-sm">
-                            {t("popup_safe")}
+                            {result?.from_list === "whitelist" ? t("popup_allowedByAdmin") : t("popup_safe")}
                         </span>
                     </div>
-                    {scorePercent && (
+                    {result?.from_list === "whitelist" ? (
+                        <p className="text-xs text-emerald-600/70">
+                            {t("popup_allowedByAdminDesc")}
+                        </p>
+                    ) : scorePercent && (
                         <div>
                             <div className="flex justify-between text-xs text-gray-500 mb-1">
                                 <span>{t("popup_gamblingScore")}</span>
@@ -197,10 +205,14 @@ function App() {
                     <div className="flex items-center gap-2 mb-2">
                         <div className="size-2.5 rounded-full bg-red-500 shadow-sm" />
                         <span className="text-red-700 font-medium text-sm">
-                            {t("popup_blocked")}
+                            {result?.from_list === "blacklist" ? t("popup_blockedByAdmin") : t("popup_blocked")}
                         </span>
                     </div>
-                    {scorePercent && (
+                    {result?.from_list === "blacklist" ? (
+                        <p className="text-xs text-red-600/70">
+                            {t("popup_blockedByAdminDesc")}
+                        </p>
+                    ) : scorePercent && (
                         <div>
                             <div className="flex justify-between text-xs text-gray-500 mb-1">
                                 <span>{t("popup_gamblingScore")}</span>
@@ -217,8 +229,16 @@ function App() {
                 </div>
             )}
 
-            {(["safe", "gambling"] as Status[]).includes(status) &&
-            reportState === "idle" ? (
+            {result?.from_list ? (
+                <button
+                    disabled
+                    className="w-full mt-3 py-2.5 px-4 rounded-xl bg-gray-100 border border-gray-200 text-gray-400 text-sm font-medium cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                    <span className="text-base">📋</span>
+                    {t("reportListed")}
+                </button>
+            ) : (["safe", "gambling"] as Status[]).includes(status) &&
+              reportState === "idle" ? (
                 <button
                     onClick={handleReport}
                     className="w-full mt-3 py-2.5 px-4 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-medium cursor-pointer transition-all hover:bg-gray-50 flex items-center justify-center gap-2 shadow-xs"
@@ -236,6 +256,7 @@ function App() {
                     {reportState === "done" && t("reportSent")}
                     {reportState === "rate_limited" && t("reportRateLimited")}
                     {reportState === "not_classified" && t("reportNotClassified")}
+                    {reportState === "listed" && t("reportListed")}
                     {reportState === "idle" && t("popup_reportFalsePositive")}
                 </button>
             )}

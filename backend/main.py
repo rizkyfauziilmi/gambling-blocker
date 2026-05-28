@@ -9,11 +9,13 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import AnyHttpUrl, BaseModel
 
 from utils.cache import delete as cache_delete
+from utils.cache import flush_cache as cache_flush
 from utils.cache import get as cache_get
 from utils.cache import incr as cache_incr
 from utils.cache import is_available as cache_available
+from utils.cache import scan as cache_scan
 from utils.cache import setex as cache_setex
-from utils.helpers import cache_key, is_ip, resolve_ips
+from utils.helpers import cache_key, is_ip, parse_hostname, resolve_ips
 from utils.lists import add_entry as list_add
 from utils.lists import check_hostname as list_check
 from utils.lists import get_entries as list_get
@@ -22,7 +24,7 @@ from utils.model import infer
 from utils.model import is_loaded as model_loaded
 from utils.reports import delete_report as reports_delete
 from utils.reports import delete_reports_by_hostname as reports_delete_by_host
-from utils.reports import get_all_reports, get_report_stats, save_report
+from utils.reports import get_all_reports, get_grouped_reports, get_report_stats, save_report
 
 app: FastAPI = FastAPI()
 
@@ -40,10 +42,7 @@ DASHBOARD_PASS: str = os.getenv("DASHBOARD_PASSWORD", "admin123")
 
 
 def require_auth(credentials: HTTPBasicCredentials = Depends(security)) -> None:
-    if (
-        credentials.username != DASHBOARD_USER
-        or credentials.password != DASHBOARD_PASS
-    ):
+    if credentials.username != DASHBOARD_USER or credentials.password != DASHBOARD_PASS:
         raise HTTPException(status_code=401)
 
 
@@ -55,12 +54,7 @@ def root() -> dict[str, str]:
 @app.get("/classify/url")
 def classify_url(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
     url_str: str = str(url)
-    hostname: str = urlparse(url_str).hostname or ""
-
-    if not hostname:
-        raise HTTPException(
-            status_code=400, detail="Could not extract hostname from URL"
-        )
+    hostname: str = parse_hostname(url_str)
 
     listed: str | None = list_check(hostname)
     if listed == "whitelist":
@@ -70,6 +64,7 @@ def classify_url(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             "gambling_score": 0,
             "resolved_ips": [],
             "from_cache": False,
+            "from_list": "whitelist",
         }
     if listed == "blacklist":
         return {
@@ -78,6 +73,7 @@ def classify_url(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             "gambling_score": 1.0,
             "resolved_ips": resolve_ips(hostname),
             "from_cache": False,
+            "from_list": "blacklist",
         }
 
     key: str = cache_key(hostname)
@@ -134,6 +130,29 @@ def classify_url(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
     return result
 
 
+@app.get("/cache")
+def list_cache(
+    limit: int = Query(50, ge=1, le=200),
+    _: None = Depends(require_auth),
+) -> dict[str, object]:
+    return {"entries": cache_scan(limit)}
+
+
+@app.delete("/cache")
+def delete_all_cache(_: None = Depends(require_auth)) -> dict[str, object]:
+    deleted: int = cache_flush()
+    return {"status": "ok", "deleted": deleted}
+
+
+@app.delete("/cache/{key:path}")
+def delete_cache_entry(
+    key: str,
+    _: None = Depends(require_auth),
+) -> dict[str, object]:
+    cache_delete(key)
+    return {"status": "ok"}
+
+
 class ReportBody(BaseModel):
     url: str
     gambling_score: float
@@ -142,10 +161,25 @@ class ReportBody(BaseModel):
 @app.post("/report/false-positive")
 def report_false_positive(body: ReportBody, request: Request) -> dict[str, Any]:
     client_ip: str = request.client.host if request.client else "unknown"
-    hostname: str = urlparse(body.url).hostname or ""
+    hostname: str = parse_hostname(body.url)
 
-    if not hostname:
-        raise HTTPException(status_code=400, detail="Could not extract hostname from URL")
+    listed: str | None = list_check(hostname)
+    if listed == "blacklist":
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "already_blacklisted",
+                "message": "This URL is already blacklisted by admin.",
+            },
+        )
+    if listed == "whitelist":
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "already_whitelisted",
+                "message": "This URL is already whitelisted by admin.",
+            },
+        )
 
     if not cache_available():
         raise HTTPException(
@@ -183,12 +217,10 @@ def report_false_positive(body: ReportBody, request: Request) -> dict[str, Any]:
 
 @app.get("/reports")
 def list_reports(
-    limit: int = Query(100, ge=1, le=1000),
-    offset: int = Query(0, ge=0),
     _: None = Depends(require_auth),
 ) -> dict[str, object]:
     return {
-        "reports": get_all_reports(limit, offset),
+        "groups": get_grouped_reports(),
         "stats": get_report_stats(),
     }
 
@@ -202,7 +234,8 @@ def delete_reports_by_hostname_endpoint(
     hostname: str,
     _: None = Depends(require_auth),
 ) -> dict[str, object]:
-    reports_delete_by_host(hostname)
+    h = parse_hostname(hostname)
+    reports_delete_by_host(h)
     return {"status": "ok"}
 
 
@@ -226,13 +259,12 @@ def add_blacklist(
     body: ListBody,
     _: None = Depends(require_auth),
 ) -> dict[str, object]:
-    hostname = body.hostname.strip().lower()
+    hostname = parse_hostname(body.hostname)
     entry = list_add(hostname, "blacklist")
     if entry is None:
-        raise HTTPException(
-            status_code=409, detail="Hostname already in blacklist"
-        )
+        raise HTTPException(status_code=409, detail="Hostname already in blacklist")
     cache_delete(cache_key(hostname))
+    reports_delete_by_host(hostname)
     return {"entry": entry}
 
 
@@ -256,13 +288,12 @@ def add_whitelist(
     body: ListBody,
     _: None = Depends(require_auth),
 ) -> dict[str, object]:
-    hostname = body.hostname.strip().lower()
+    hostname = parse_hostname(body.hostname)
     entry = list_add(hostname, "whitelist")
     if entry is None:
-        raise HTTPException(
-            status_code=409, detail="Hostname already in whitelist"
-        )
+        raise HTTPException(status_code=409, detail="Hostname already in whitelist")
     cache_delete(cache_key(hostname))
+    reports_delete_by_host(hostname)
     return {"entry": entry}
 
 
