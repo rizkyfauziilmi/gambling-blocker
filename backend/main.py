@@ -24,7 +24,7 @@ from utils.model import infer
 from utils.model import is_loaded as model_loaded
 from utils.reports import delete_report as reports_delete
 from utils.reports import delete_reports_by_hostname as reports_delete_by_host
-from utils.reports import get_all_reports, get_grouped_reports, get_report_stats, save_report
+from utils.reports import get_grouped_reports, get_report_stats, save_report
 
 app: FastAPI = FastAPI()
 
