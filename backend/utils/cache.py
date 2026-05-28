@@ -52,6 +52,15 @@ def setex(key: str, value: str) -> None:
         pass
 
 
+def delete(key: str) -> None:
+    if not _redis_available or _redis is None:
+        return
+    try:
+        _redis.delete(key)
+    except Exception:
+        pass
+
+
 def incr(key: str, ttl: int = 3600) -> int:
     if not _redis_available or _redis is None:
         return 0

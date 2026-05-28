@@ -49,6 +49,23 @@ def get_all_reports(limit: int = 100, offset: int = 0) -> list[dict[str, object]
     return [dict(r) for r in rows]
 
 
+def delete_reports_by_hostname(hostname: str) -> None:
+    init_db()
+    conn = _conn()
+    conn.execute("DELETE FROM reports WHERE hostname = ?", (hostname,))
+    conn.commit()
+    conn.close()
+
+
+def delete_report(report_id: int) -> bool:
+    init_db()
+    conn = _conn()
+    cur = conn.execute("DELETE FROM reports WHERE id = ?", (report_id,))
+    conn.commit()
+    conn.close()
+    return cur.rowcount > 0
+
+
 def get_report_stats() -> dict[str, int]:
     init_db()
     conn = _conn()
