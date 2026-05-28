@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react"
+import { Ban, ShieldCheck, Trash2 } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,9 +27,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useCache } from "@/hooks/useCache"
+import { useBlacklist, useWhitelist } from "@/hooks/useLists"
+
+function hostnameFromUrl(url: string): string {
+  return url.split("/")[0]
+}
 
 export function CachePanel() {
   const { data, isLoading, remove, flush } = useCache()
+  const { add: addBlacklist } = useBlacklist()
+  const { add: addWhitelist } = useWhitelist()
+
+  const isMutating = remove.isPending || addBlacklist.isPending || addWhitelist.isPending
 
   const categoryVariant: Record<string, "destructive" | "secondary" | "outline"> = {
     gambling: "destructive",
@@ -77,7 +86,7 @@ export function CachePanel() {
               <TableHead>URL</TableHead>
               <TableHead>Category</TableHead>
               <TableHead className="text-right">Score</TableHead>
-              <TableHead className="w-12" />
+              <TableHead className="w-36">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -87,7 +96,7 @@ export function CachePanel() {
                   <TableCell><Skeleton className="h-4 w-60" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                 </TableRow>
               ))
             ) : !data?.entries.length ? (
@@ -97,37 +106,106 @@ export function CachePanel() {
                 </TableCell>
               </TableRow>
             ) : (
-              data.entries.map((entry) => (
-                <TableRow key={entry.cache_key}>
-                  <TableCell className="max-w-md truncate" title={entry.url}>
-                    {entry.url}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={categoryVariant[entry.category] ?? "outline"}>
-                      {entry.category}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-xs">
-                    {entry.gambling_score.toFixed(4)}
-                  </TableCell>
-                  <TableCell>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                          disabled={remove.isPending}
-                          onClick={() => remove.mutate(entry.cache_key)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Delete cache entry</TooltipContent>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))
+              data.entries.map((entry) => {
+                const hostname = hostnameFromUrl(entry.url)
+                return (
+                  <TableRow key={entry.cache_key}>
+                    <TableCell className="max-w-md truncate" title={entry.url}>
+                      {entry.url}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={categoryVariant[entry.category] ?? "outline"}>
+                        {entry.category}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs">
+                      {entry.gambling_score.toFixed(4)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-0.5">
+                        <AlertDialog>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  disabled={isMutating}
+                                >
+                                  <ShieldCheck className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>Add to whitelist</TooltipContent>
+                          </Tooltip>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Whitelist {hostname}?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Reports for this hostname will also be deleted.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => addWhitelist.mutate(hostname)}>
+                                Continue
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+
+                        <AlertDialog>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  disabled={isMutating}
+                                >
+                                  <Ban className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>Add to blacklist</TooltipContent>
+                          </Tooltip>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Blacklist {hostname}?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Reports for this hostname will also be deleted.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => addBlacklist.mutate(hostname)}>
+                                Continue
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              disabled={remove.isPending}
+                              onClick={() => remove.mutate(entry.cache_key)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete cache entry</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>
