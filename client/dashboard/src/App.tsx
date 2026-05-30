@@ -2,60 +2,79 @@ import { Toaster } from "@/components/ui/sonner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { CachePanel } from "@/components/CachePanel"
-import { SummaryCards } from "@/components/SummaryCards"
-import { ReportsTable } from "@/components/ReportsTable"
 import { BlacklistPanel } from "@/components/BlacklistPanel"
 import { WhitelistPanel } from "@/components/WhitelistPanel"
-import { useReports } from "@/hooks/useReports"
-import { useBlacklist, useWhitelist } from "@/hooks/useLists"
+import { ReportsContent } from "./components/ReportsContent"
+import { useState } from "react"
 
 export function App() {
-  const { data, removeByHostname } = useReports()
-  const { add: addBlacklist } = useBlacklist()
-  const { add: addWhitelist } = useWhitelist()
+  type TabKey = "reports" | "blacklist" | "whitelist" | "cache"
 
-  const isMutating = removeByHostname.isPending || addBlacklist.isPending || addWhitelist.isPending
+  const [activeTabs, setActiveTabs] = useState<TabKey>("reports")
+
+  const tabMeta: Record<
+    TabKey,
+    {
+      title: string
+      description: string
+    }
+  > = {
+    reports: {
+      title: "Reports Management",
+      description: "False detection reports submitted by users",
+    },
+    blacklist: {
+      title: "Blacklist Management",
+      description: "Manage blocked domains and URLs",
+    },
+    whitelist: {
+      title: "Whitelist Management",
+      description: "Manage allowed domains and URLs",
+    },
+    cache: {
+      title: "Cache Management",
+      description: "View and clear application cache",
+    },
+  }
 
   return (
     <TooltipProvider>
       <div className="mx-auto max-w-5xl space-y-8 p-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Gambling Blocker Reports</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {tabMeta[activeTabs].title}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            False positive reports submitted by users
+            {tabMeta[activeTabs].description}
           </p>
         </div>
 
-        <Tabs defaultValue="reports">
+        <Tabs
+          value={activeTabs}
+          onValueChange={(value) => setActiveTabs(value as TabKey)}
+        >
           <TabsList>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
-          <TabsTrigger value="blacklist">Blacklist</TabsTrigger>
-          <TabsTrigger value="whitelist">Whitelist</TabsTrigger>
-          <TabsTrigger value="cache">Cache</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="blacklist">Blacklist</TabsTrigger>
+            <TabsTrigger value="whitelist">Whitelist</TabsTrigger>
+            <TabsTrigger value="cache">Cache</TabsTrigger>
           </TabsList>
           <TabsContent value="reports" className="space-y-8">
-            <SummaryCards stats={data?.stats} />
-            <ReportsTable
-              groups={data?.groups}
-              onWhitelist={(hostname) => addWhitelist.mutate(hostname)}
-              onBlacklist={(hostname) => addBlacklist.mutate(hostname)}
-              onDeleteByHostname={(hostname) => removeByHostname.mutate(hostname)}
-              isMutating={isMutating}
-            />
+            <ReportsContent />
           </TabsContent>
           <TabsContent value="blacklist">
             <BlacklistPanel />
           </TabsContent>
-        <TabsContent value="whitelist">
-          <WhitelistPanel />
-        </TabsContent>
-        <TabsContent value="cache">
-          <CachePanel />
-        </TabsContent>
-      </Tabs>
-    </div>
-    <Toaster />
-  </TooltipProvider>
+          <TabsContent value="whitelist">
+            <WhitelistPanel />
+          </TabsContent>
+          <TabsContent value="cache">
+            <CachePanel />
+          </TabsContent>
+        </Tabs>
+      </div>
+      <Toaster />
+    </TooltipProvider>
   )
 }
 
