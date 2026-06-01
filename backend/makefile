@@ -5,9 +5,6 @@
 jupyter: ## Run Jupyter Lab
 	uv run --with jupyter jupyter lab
 
-crawl: ## Run crawler to generate dataset
-	uv run python -m crawler
-
 screenshot: ## Run screenshot crawler
 	uv run python -m crawler.screenshot_crawler
 
