@@ -40,8 +40,12 @@ def resolve_ips(hostname: str) -> list[str]:
         return []
 
 
-def prepare_url_for_cnn(url: str) -> str:
+def clean_url(url: str) -> str:
     url = unquote(url).lower()
     url = re.sub(r"https?:\/\/", "", url)
-    url = re.sub(r"[?#].*$", "", url)
-    return url.strip()
+    url = re.sub(r"[-_/]", " ", url)
+    url = re.sub(r"[^a-zA-Z0-9\s]", " ", url)
+    url = re.sub(r"(\d)([a-z])", r"\1 \2", url)
+    url = re.sub(r"([a-z])(\d)", r"\1 \2", url)
+    url = re.sub(r"\s+", " ", url).strip()
+    return url
