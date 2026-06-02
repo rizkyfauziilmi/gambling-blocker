@@ -34,7 +34,10 @@ async function deleteReport(id: number): Promise<void> {
 
 async function deleteByHostname(hostname: string): Promise<void> {
   const base = import.meta.env.VITE_API_BASE ?? ""
-  const res = await fetch(`${base}/reports/by-hostname/${encodeURIComponent(hostname)}`, { method: "DELETE" })
+  const res = await fetch(
+    `${base}/reports/by-hostname/${encodeURIComponent(hostname)}`,
+    { method: "DELETE" }
+  )
   if (!res.ok) throw new Error("Failed to delete reports")
 }
 

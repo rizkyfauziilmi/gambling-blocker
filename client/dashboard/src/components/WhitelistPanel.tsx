@@ -52,7 +52,10 @@ export function WhitelistPanel() {
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
           className="max-w-sm"
         />
-        <Button onClick={handleAdd} disabled={!hostname.trim() || add.isPending}>
+        <Button
+          onClick={handleAdd}
+          disabled={!hostname.trim() || add.isPending}
+        >
           {add.isPending ? "Adding..." : "Add"}
         </Button>
       </div>
@@ -77,14 +80,23 @@ export function WhitelistPanel() {
             {isLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-40" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-16" />
+                  </TableCell>
                 </TableRow>
               ))
             ) : !filtered.length ? (
               <TableRow>
-                <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={3}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   {filter && data?.entries.length
                     ? "No matching hostnames"
                     : "No whitelisted hosts"}
@@ -93,7 +105,9 @@ export function WhitelistPanel() {
             ) : (
               filtered.map((entry: ListEntry) => (
                 <TableRow key={entry.id}>
-                  <TableCell className="font-mono text-sm">{entry.hostname}</TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {entry.hostname}
+                  </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {new Date(entry.created_at + "Z").toLocaleString()}
                   </TableCell>
@@ -111,14 +125,18 @@ export function WhitelistPanel() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Remove {entry.hostname} from whitelist?</AlertDialogTitle>
+                          <AlertDialogTitle>
+                            Remove {entry.hostname} from whitelist?
+                          </AlertDialogTitle>
                           <AlertDialogDescription>
                             This hostname will no longer be allowed.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => remove.mutate(entry.id)}>
+                          <AlertDialogAction
+                            onClick={() => remove.mutate(entry.id)}
+                          >
                             Delete
                           </AlertDialogAction>
                         </AlertDialogFooter>
@@ -134,7 +152,8 @@ export function WhitelistPanel() {
 
       {data?.entries && (
         <p className="text-sm text-muted-foreground">
-          {data.entries.length} hostname{data.entries.length !== 1 && "s"} whitelisted
+          {data.entries.length} hostname{data.entries.length !== 1 && "s"}{" "}
+          whitelisted
         </p>
       )}
     </div>
