@@ -85,7 +85,10 @@ export function ReportsTable({
               ))
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={5}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   {groups.length === 0
                     ? "No reports yet"
                     : "No matching hostnames"}
@@ -94,7 +97,10 @@ export function ReportsTable({
             ) : (
               filtered.map((g) => (
                 <TableRow key={g.hostname}>
-                  <TableCell className="font-mono text-sm max-w-xs truncate" title={g.hostname}>
+                  <TableCell
+                    className="max-w-xs truncate font-mono text-sm"
+                    title={g.hostname}
+                  >
                     {g.hostname}
                   </TableCell>
                   <TableCell className="text-right">{g.report_count}</TableCell>
@@ -113,7 +119,7 @@ export function ReportsTable({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                className="h-8 w-8 text-green-600 hover:bg-green-50 hover:text-green-700"
                                 disabled={isMutating}
                               >
                                 <ShieldCheck className="h-4 w-4" />
@@ -124,14 +130,18 @@ export function ReportsTable({
                         </Tooltip>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Whitelist {g.hostname}?</AlertDialogTitle>
+                            <AlertDialogTitle>
+                              Whitelist {g.hostname}?
+                            </AlertDialogTitle>
                             <AlertDialogDescription>
                               Reports for this hostname will also be deleted.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onWhitelist(g.hostname)}>
+                            <AlertDialogAction
+                              onClick={() => onWhitelist(g.hostname)}
+                            >
                               Continue
                             </AlertDialogAction>
                           </AlertDialogFooter>
@@ -145,7 +155,7 @@ export function ReportsTable({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
                                 disabled={isMutating}
                               >
                                 <Ban className="h-4 w-4" />
@@ -156,14 +166,18 @@ export function ReportsTable({
                         </Tooltip>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Blacklist {g.hostname}?</AlertDialogTitle>
+                            <AlertDialogTitle>
+                              Blacklist {g.hostname}?
+                            </AlertDialogTitle>
                             <AlertDialogDescription>
                               Reports for this hostname will also be deleted.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onBlacklist(g.hostname)}>
+                            <AlertDialogAction
+                              onClick={() => onBlacklist(g.hostname)}
+                            >
                               Continue
                             </AlertDialogAction>
                           </AlertDialogFooter>
@@ -188,14 +202,18 @@ export function ReportsTable({
                         </Tooltip>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete all reports for {g.hostname}?</AlertDialogTitle>
+                            <AlertDialogTitle>
+                              Delete all reports for {g.hostname}?
+                            </AlertDialogTitle>
                             <AlertDialogDescription>
                               This action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDeleteByHostname(g.hostname)}>
+                            <AlertDialogAction
+                              onClick={() => onDeleteByHostname(g.hostname)}
+                            >
                               Delete
                             </AlertDialogAction>
                           </AlertDialogFooter>

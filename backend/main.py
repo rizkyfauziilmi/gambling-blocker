@@ -262,7 +262,9 @@ def add_blacklist(
     hostname = parse_hostname(body.hostname)
     entry = list_add(hostname, "blacklist")
     if entry is None:
-        raise HTTPException(status_code=409, detail="Hostname already in blacklist")
+        raise HTTPException(
+            status_code=409, detail="Hostname already in blacklist/whitelist"
+        )
     cache_delete(cache_key(hostname))
     reports_delete_by_host(hostname)
     return {"entry": entry}
@@ -291,7 +293,9 @@ def add_whitelist(
     hostname = parse_hostname(body.hostname)
     entry = list_add(hostname, "whitelist")
     if entry is None:
-        raise HTTPException(status_code=409, detail="Hostname already in whitelist")
+        raise HTTPException(
+            status_code=409, detail="Hostname already in whitelist/blacklist"
+        )
     cache_delete(cache_key(hostname))
     reports_delete_by_host(hostname)
     return {"entry": entry}
