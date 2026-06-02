@@ -1,5 +1,4 @@
 const API_BASE = import.meta.env.WXT_API_BASE
-const API_CLASSIFY_URL = import.meta.env.WXT_API_CLASSIFY_URL
 
 function shouldSkip(url: string): boolean {
   try {
