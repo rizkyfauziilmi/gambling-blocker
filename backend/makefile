@@ -5,9 +5,6 @@
 jupyter: ## Run Jupyter Lab
 	uv run --with jupyter jupyter lab
 
-screenshot: ## Run screenshot crawler
-	uv run python -m crawler.screenshot_crawler
-
 redis-up: ## Start Redis via Docker Compose
 	docker compose up -d redis
 
