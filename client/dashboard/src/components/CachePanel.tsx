@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Ban, ShieldCheck, Trash2 } from "lucide-react"
 import {
   AlertDialog,
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -34,6 +36,7 @@ export function CachePanel() {
   const { data, isLoading, remove, flush } = useCache()
   const { add: addBlacklist } = useBlacklist()
   const { add: addWhitelist } = useWhitelist()
+  const [filter, setFilter] = useState("")
 
   const isMutating =
     remove.isPending || addBlacklist.isPending || addWhitelist.isPending
@@ -46,6 +49,16 @@ export function CachePanel() {
     "non-gambling": "secondary",
     "bare-ip": "outline",
   }
+
+  const filtered = data?.entries
+    ? data.entries.filter((e) => {
+        const q = filter.toLowerCase()
+        return (
+          e.url.toLowerCase().includes(q) ||
+          hostnameFromUrl(e.url).toLowerCase().includes(q)
+        )
+      })
+    : []
 
   return (
     <div className="space-y-4">
@@ -85,12 +98,19 @@ export function CachePanel() {
         ) : null}
       </div>
 
+      <Input
+        placeholder="Search by URL or hostname..."
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        className="max-w-sm"
+      />
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>URL</TableHead>
-              <TableHead>Domain</TableHead>
+              <TableHead>Hostname</TableHead>
               <TableHead>Category</TableHead>
               <TableHead className="text-right">Score</TableHead>
               <TableHead className="w-36">Actions</TableHead>
@@ -117,17 +137,19 @@ export function CachePanel() {
                   </TableCell>
                 </TableRow>
               ))
-            ) : !data?.entries.length ? (
+            ) : !filtered.length ? (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={5}
                   className="py-8 text-center text-muted-foreground"
                 >
-                  No cached classifications
+                  {filter && data?.entries.length
+                    ? "No matching entries"
+                    : "No cached classifications"}
                 </TableCell>
               </TableRow>
             ) : (
-              data.entries.map((entry) => {
+              filtered.map((entry) => {
                 const hostname = hostnameFromUrl(entry.url)
                 return (
                   <TableRow key={entry.cache_key}>
