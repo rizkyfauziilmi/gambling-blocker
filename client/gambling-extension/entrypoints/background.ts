@@ -35,7 +35,7 @@ export default defineBackground(() => {
     if (shouldSkip(tab.url)) return
 
     const params = new URLSearchParams({ url: tab.url })
-    const fullUrl = `${API_CLASSIFY_URL}?${params}`
+    const fullUrl = `${API_BASE}/classify/url?${params}`
     console.log("[BG] fetching:", fullUrl)
 
     fetch(fullUrl)

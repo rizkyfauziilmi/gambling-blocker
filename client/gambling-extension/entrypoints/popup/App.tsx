@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 
 const API_BASE = import.meta.env.WXT_API_BASE
-const API_CLASSIFY_URL = import.meta.env.WXT_API_CLASSIFY_URL
 const t = browser.i18n.getMessage
 
 function shouldSkip(url: string): boolean {
@@ -67,7 +66,7 @@ function App() {
         setStatus("loading")
 
         const params = new URLSearchParams({ url: tab.url })
-        return fetch(`${API_CLASSIFY_URL}?${params}`)
+        return fetch(`${API_BASE}/classify/url?${params}`)
       })
       .then((res) => res?.json())
       .then((data: Result) => {
