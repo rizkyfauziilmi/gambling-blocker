@@ -4,7 +4,7 @@ import pandas as pd
 
 DATA_PATH = "model/dataset/dataset_crawl_070526.csv"
 SCREENSHOT_DIR = "model/screenshots"
-OUTPUT_PATH = "model/dataset/dataset_crawl_070526_with_images.csv"
+OUTPUT_PATH = "model/dataset/dataset_crawl_070526_with_images_path.csv"
 
 
 def build_image_map():
