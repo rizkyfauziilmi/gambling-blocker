@@ -22,7 +22,9 @@ async function fetchCache(): Promise<CacheResponse> {
 
 async function deleteCacheEntry(key: string): Promise<void> {
   const base = import.meta.env.VITE_API_BASE ?? ""
-  const res = await fetch(`${base}/cache/${encodeURIComponent(key)}`, { method: "DELETE" })
+  const res = await fetch(`${base}/cache/${encodeURIComponent(key)}`, {
+    method: "DELETE",
+  })
   if (!res.ok) throw new Error("Failed to delete cache entry")
 }
 
