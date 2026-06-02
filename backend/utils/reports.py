@@ -31,7 +31,11 @@ def save_report(url: str, gambling_score: float, reporter_ip: str) -> None:
     hostname: str = urlparse(url).hostname or url
     conn = _conn()
     conn.execute(
-        "INSERT INTO reports (url, hostname, gambling_score, reporter_ip) VALUES (?, ?, ?, ?)",
+        (
+            "INSERT INTO reports "
+            "(url, hostname, gambling_score, reporter_ip) "
+            "VALUES (?, ?, ?, ?)"
+        ),
         (url, hostname, gambling_score, reporter_ip),
     )
     conn.commit()
@@ -73,9 +77,9 @@ def get_report_stats() -> dict[str, int]:
     today = conn.execute(
         "SELECT COUNT(*) FROM reports WHERE date(created_at) = date('now')"
     ).fetchone()[0]
-    hostnames = conn.execute(
-        "SELECT COUNT(DISTINCT hostname) FROM reports"
-    ).fetchone()[0]
+    hostnames = conn.execute("SELECT COUNT(DISTINCT hostname) FROM reports").fetchone()[
+        0
+    ]
     conn.close()
     return {"total": total, "today": today, "unique_hostnames": hostnames}
 

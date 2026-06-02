@@ -8,7 +8,6 @@ from keras import Model
 from .config import SAVE_DIR
 from .helpers import clean_url
 
-
 _model: Model | None = None
 _vectorizer: Any | None = (
     None  # Penyesuaian: Tokenizer diganti menjadi Vectorizer (FeatureUnion)
@@ -24,7 +23,10 @@ def load() -> bool:
 
     if not all(p.exists() for p in [model_path, vectorizer_path, threshold_path]):
         print(
-            f"[WARN] Model files not found in {SAVE_DIR} — /classify/url will return 503"
+            (
+                f"[WARN] Model files not found in {SAVE_DIR} — "
+                "/classify/url will return 503"
+            )
         )
         return False
 

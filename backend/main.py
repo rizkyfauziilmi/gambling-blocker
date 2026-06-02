@@ -90,7 +90,10 @@ def classify_url(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             status_code=503,
             detail={
                 "error": "model_not_loaded",
-                "message": "CNN model not available. Train and save model files to backend/model/bin/",
+                "message": (
+                    "CNN model not available. "
+                    "Train and save model files to backend/model/bin/"
+                ),
             },
         )
 
@@ -196,7 +199,10 @@ def report_false_positive(body: ReportBody, request: Request) -> dict[str, Any]:
             status_code=400,
             detail={
                 "error": "not_classified",
-                "message": "This URL has not been classified yet. Visit it first via the browser.",
+                "message": (
+                    "This URL has not been classified yet. "
+                    "Visit it first via the browser."
+                ),
             },
         )
 
