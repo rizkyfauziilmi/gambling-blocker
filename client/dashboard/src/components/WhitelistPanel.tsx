@@ -27,6 +27,7 @@ import { useWhitelist } from "@/hooks/useLists"
 export function WhitelistPanel() {
   const { data, isLoading, add, remove } = useWhitelist()
   const [hostname, setHostname] = useState("")
+  const [filter, setFilter] = useState("")
 
   const handleAdd = () => {
     const h = hostname.trim().toLowerCase()
@@ -34,6 +35,12 @@ export function WhitelistPanel() {
     add.mutate(h)
     setHostname("")
   }
+
+  const filtered = data?.entries
+    ? data.entries.filter((e) =>
+        e.hostname.toLowerCase().includes(filter.toLowerCase())
+      )
+    : []
 
   return (
     <div className="space-y-4">
@@ -49,6 +56,13 @@ export function WhitelistPanel() {
           {add.isPending ? "Adding..." : "Add"}
         </Button>
       </div>
+
+      <Input
+        placeholder="Search by hostname..."
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        className="max-w-sm"
+      />
 
       <div className="rounded-md border">
         <Table>
@@ -68,14 +82,16 @@ export function WhitelistPanel() {
                   <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                 </TableRow>
               ))
-            ) : !data?.entries.length ? (
+            ) : !filtered.length ? (
               <TableRow>
                 <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
-                  No whitelisted hosts
+                  {filter && data?.entries.length
+                    ? "No matching hostnames"
+                    : "No whitelisted hosts"}
                 </TableCell>
               </TableRow>
             ) : (
-              data.entries.map((entry: ListEntry) => (
+              filtered.map((entry: ListEntry) => (
                 <TableRow key={entry.id}>
                   <TableCell className="font-mono text-sm">{entry.hostname}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">

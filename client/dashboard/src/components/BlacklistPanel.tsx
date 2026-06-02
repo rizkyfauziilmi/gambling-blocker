@@ -26,6 +26,7 @@ import { useBlacklist } from "@/hooks/useLists"
 export function BlacklistPanel() {
   const { data, isLoading, add, remove } = useBlacklist()
   const [hostname, setHostname] = useState("")
+  const [filter, setFilter] = useState("")
 
   const handleAdd = () => {
     const h = hostname.trim().toLowerCase()
@@ -33,6 +34,12 @@ export function BlacklistPanel() {
     add.mutate(h)
     setHostname("")
   }
+
+  const filtered = data?.entries
+    ? data.entries.filter((e) =>
+        e.hostname.toLowerCase().includes(filter.toLowerCase())
+      )
+    : []
 
   return (
     <div className="space-y-4">
@@ -51,6 +58,13 @@ export function BlacklistPanel() {
           {add.isPending ? "Adding..." : "Add"}
         </Button>
       </div>
+
+      <Input
+        placeholder="Search by hostname..."
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        className="max-w-sm"
+      />
 
       <div className="rounded-md border">
         <Table>
@@ -76,17 +90,19 @@ export function BlacklistPanel() {
                   </TableCell>
                 </TableRow>
               ))
-            ) : !data?.entries.length ? (
+            ) : !filtered.length ? (
               <TableRow>
                 <TableCell
                   colSpan={3}
                   className="py-8 text-center text-muted-foreground"
                 >
-                  No blacklisted hosts
+                  {filter && data?.entries.length
+                    ? "No matching hostnames"
+                    : "No blacklisted hosts"}
                 </TableCell>
               </TableRow>
             ) : (
-              data.entries.map((entry) => (
+              filtered.map((entry) => (
                 <TableRow key={entry.id}>
                   <TableCell className="font-mono text-sm">
                     {entry.hostname}
