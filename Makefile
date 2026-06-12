@@ -13,7 +13,7 @@ format-check:
 	cd client/gambling-extension && pnpm format:check
 
 dev-backend: ## Start backend dev server
-	cd backend && $(MAKE) redis-up && $(MAKE) dev-server
+	cd backend && $(MAKE) storage-up && $(MAKE) dev-server
 
 dev-dashboard: ## Start dashboard dev server
 	cd client/dashboard && pnpm run dev

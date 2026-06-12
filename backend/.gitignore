@@ -230,3 +230,6 @@ __marimo__/
 # Tapi tetap track yang ada di folder dataset
 !model/dataset/**/*.csv
 !model/dataset/**/*.json
+
+# exclude bin hasil training
+!model/bin/*

@@ -11,5 +11,22 @@ services:
       - redis_data:/data
     command: redis-server --requirepass "${REDIS_PASSWORD:-}"
 
+  minio:
+    image: minio/minio:latest
+    container_name: gambling-minio
+    restart: unless-stopped
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    env_file:
+      - .env
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
 volumes:
   redis_data:
+  minio_data:

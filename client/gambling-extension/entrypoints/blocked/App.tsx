@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { Flag, ShieldX } from "lucide-react"
 
 const API_BASE = import.meta.env.WXT_API_BASE
 const t = browser.i18n.getMessage
@@ -50,8 +51,8 @@ function App() {
     <div className="flex min-h-screen items-center justify-center bg-linear-to-b from-white to-gray-50 p-4">
       <div className="w-full max-w-md">
         <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl border border-red-200 bg-red-50 text-3xl">
-            🚫
+          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl border border-red-200 bg-red-50">
+            <ShieldX className="size-8 text-red-500" />
           </div>
           <h1 className="mb-1 text-2xl font-bold text-gray-900">
             {t("blocked_title")}
@@ -92,7 +93,7 @@ function App() {
               disabled
               className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-100 px-4 py-2.5 text-sm font-medium text-gray-400"
             >
-              <span>📋</span>
+              <Flag className="size-4" />
               {t("reportListed")}
             </button>
           ) : (
@@ -101,7 +102,7 @@ function App() {
               disabled={reportState !== "idle"}
               className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-xs transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 disabled:hover:bg-gray-50"
             >
-              <span>📋</span>
+              <Flag className="size-4" />
               {reportState === "idle" && t("blocked_reportFalsePositive")}
               {reportState === "loading" && t("reportSending")}
               {reportState === "done" && t("reportSent")}

@@ -11,7 +11,7 @@ export default defineConfig({
     name: "__MSG_extName__",
     description: "__MSG_extDescription__",
     default_locale: "en",
-    permissions: ["tabs"],
+    permissions: ["tabs", "storage"],
     host_permissions: ["http://127.0.0.1:8000/*"],
   },
 })

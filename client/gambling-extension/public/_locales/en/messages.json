@@ -91,5 +91,32 @@
     },
     "reportNotClassified": {
         "message": "Visit the site first"
+    },
+    "loading_title": {
+        "message": "Checking Site"
+    },
+    "loading_description": {
+        "message": "Analyzing website content..."
+    },
+    "popup_notClassified": {
+        "message": "Not yet scanned"
+    },
+    "popup_notClassifiedDesc": {
+        "message": "Visit the site to trigger classification"
+    },
+    "popup_textScore": {
+        "message": "Text Analysis"
+    },
+    "popup_imageScore": {
+        "message": "Image Analysis"
+    },
+    "popup_screenshot_ok": {
+        "message": "Screenshot captured"
+    },
+    "popup_screenshot_failed": {
+        "message": "Screenshot unavailable"
+    },
+    "popup_fusionInfo": {
+        "message": "Fusion weight: {alpha}"
     }
 }

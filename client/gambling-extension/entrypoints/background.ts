@@ -22,7 +22,7 @@ function shouldSkip(url: string): boolean {
 }
 
 export default defineBackground(() => {
-  browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     console.log("[BG] onUpdated:", {
       tabId,
       status: changeInfo.status,
@@ -33,25 +33,31 @@ export default defineBackground(() => {
     if (!tab.url || !tab.url.startsWith("http")) return
     if (shouldSkip(tab.url)) return
 
-    const params = new URLSearchParams({ url: tab.url })
-    const fullUrl = `${API_BASE}/classify/url?${params}`
-    console.log("[BG] fetching:", fullUrl)
+    // Compare by hostname (not full URL) to survive URL changes like
+    // Google adding &sei=... on redirect.
+    const tabHostname = new URL(tab.url).hostname
+    const storage = browser.storage.session || browser.storage.local
+    const { recentlyChecked } = (await storage.get(
+      "recentlyChecked",
+    )) as { recentlyChecked?: { hostname: string; ts: number } }
+    if (
+      recentlyChecked?.hostname === tabHostname &&
+      Date.now() - recentlyChecked.ts < 30000
+    ) {
+      console.log("[BG] skip recently checked:", tab.url)
+      // Don't remove flag — let it expire via 30s TTL check to prevent
+      // loops from Chrome firing multiple onUpdated events.
+      return
+    }
 
-    fetch(fullUrl)
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("[BG] response:", data)
-        if (data.category === "gambling") {
-          console.log("[BG] blocking! redirecting to blocked.html")
-          const qp = new URLSearchParams({
-            url: tab.url!,
-            gambling_score: String(data.gambling_score),
-            from_list: data.from_list || "",
-          })
-          const blocked = browser.runtime.getURL("/blocked.html") + "?" + qp
-          browser.tabs.update(tabId, { url: blocked })
-        }
-      })
-      .catch((err) => console.error("[BG] fetch error:", err))
+    console.log("[BG] redirecting to loading page:", tab.url)
+    // Set flag before redirect so loading page can redirect back without looping
+    storage.set({
+      recentlyChecked: { hostname: tabHostname, ts: Date.now() },
+    })
+    const params = new URLSearchParams({ url: tab.url })
+    const loadingUrl =
+      browser.runtime.getURL("/loading.html" as never) + "?" + params
+    browser.tabs.update(tabId, { url: loadingUrl })
   })
 })

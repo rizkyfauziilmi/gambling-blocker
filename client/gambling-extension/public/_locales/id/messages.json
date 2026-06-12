@@ -91,5 +91,32 @@
     },
     "reportNotClassified": {
         "message": "Kunjungi situsnya dulu"
+    },
+    "loading_title": {
+        "message": "Memeriksa Situs"
+    },
+    "loading_description": {
+        "message": "Menganalisis konten situs..."
+    },
+    "popup_notClassified": {
+        "message": "Belum dipindai"
+    },
+    "popup_notClassifiedDesc": {
+        "message": "Kunjungi situs untuk memicu pemindaian"
+    },
+    "popup_textScore": {
+        "message": "Analisis Teks"
+    },
+    "popup_imageScore": {
+        "message": "Analisis Gambar"
+    },
+    "popup_screenshot_ok": {
+        "message": "Screenshot berhasil"
+    },
+    "popup_screenshot_failed": {
+        "message": "Screenshot tidak tersedia"
+    },
+    "popup_fusionInfo": {
+        "message": "Bobot fusion: {alpha}"
     }
 }

@@ -1,4 +1,4 @@
-.PHONY: help jupyter crawl
+.PHONY: help jupyter
 
 .DEFAULT_GOAL := help
 
@@ -23,9 +23,25 @@ dev-server: ## Run backend dev server
 server: ## Run backend prod server
 	fastapi run
 
+minio-up: ## Start MinIO via Docker Compose
+	docker compose up -d minio
+
+minio-down: ## Stop MinIO
+	docker compose down
+
+minio-logs: ## View MinIO logs
+	docker compose logs -f minio
+
+minio-reset: ## Wipe MinIO data and stop
+	docker compose down -v
+
+storage-up: redis-up minio-up ## Start all storage services
+
+storage-down: redis-down minio-down ## Stop all storage services
+
 help: ## Show help
 	@echo "Usage:"
 	@echo "  make <target>"
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
-	awk 'BEGIN {FS = ":.*?## "} {printf "  %-10s %s\n", $$1, $$2}'
+	awk 'BEGIN {FS = ":.*?## "} {printf "  %-12s %s\n", $$1, $$2}'
