@@ -7,6 +7,9 @@ export default defineConfig({
   vite: () => ({
     plugins: [tailwindcss()],
   }),
+  suppressWarnings: {
+    firefoxDataCollection: true,
+  },
   manifest: {
     name: "__MSG_extName__",
     description: "__MSG_extDescription__",
