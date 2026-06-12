@@ -23,7 +23,7 @@ dev-extension: ## Start extension dev server
 
 dev: ## Start all development servers
 	@echo "Starting all services (Redis, Backend, Dashboard, Extension)..."
-	@trap 'echo "\nStopping all services..."; kill 0 2>/dev/null; exit' SIGINT SIGTERM EXIT; \
+	@trap 'echo "\nStopping all services..."; kill 0 2>/dev/null; exit' INT TERM EXIT; \
 		( $(MAKE) dev-backend ) 2>&1 | sed 's/^/[backend] /' & \
 		( $(MAKE) dev-dashboard ) 2>&1 | sed 's/^/[dashboard] /' & \
 		( $(MAKE) dev-extension ) 2>&1 | sed 's/^/[extension] /' & \

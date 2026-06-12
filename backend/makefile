@@ -18,10 +18,10 @@ redis-reset: ## Wipe Redis data and stop
 	docker compose down -v
 
 dev-server: ## Run backend dev server
-	fastapi dev
+	uv run fastapi dev
 
 server: ## Run backend prod server
-	fastapi run
+	uv run fastapi run
 
 minio-up: ## Start MinIO via Docker Compose
 	docker compose up -d minio
