@@ -78,3 +78,15 @@ def get_storage() -> Storage:
     if _storage is None:
         _storage = Storage()
     return _storage
+
+
+def enrich_screenshot_url(entry: dict) -> None:
+    """Regenerate a fresh presigned URL from screenshot_object_key if present."""
+    object_key = entry.get("screenshot_object_key")
+    if object_key:
+        storage = get_storage()
+        entry["screenshot_url"] = (
+            storage.presigned_url(object_key) if storage.is_ready() else None
+        )
+    else:
+        entry.setdefault("screenshot_url", None)

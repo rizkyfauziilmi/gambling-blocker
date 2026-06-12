@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Ban, ShieldCheck, Trash2 } from "lucide-react"
+import { Ban, Camera, CameraOff, ShieldCheck, Trash2 } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,6 +13,14 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -112,7 +120,10 @@ export function CachePanel() {
               <TableHead>URL</TableHead>
               <TableHead>Hostname</TableHead>
               <TableHead>Category</TableHead>
-              <TableHead className="text-right">Score</TableHead>
+              <TableHead className="text-right">Fused Score</TableHead>
+              <TableHead className="text-right">Text</TableHead>
+              <TableHead className="text-right">Image</TableHead>
+              <TableHead>Screenshot</TableHead>
               <TableHead className="w-36">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -133,6 +144,15 @@ export function CachePanel() {
                     <Skeleton className="ml-auto h-4 w-16" />
                   </TableCell>
                   <TableCell>
+                    <Skeleton className="ml-auto h-4 w-12" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="ml-auto h-4 w-12" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-20" />
+                  </TableCell>
+                  <TableCell>
                     <Skeleton className="h-4 w-24" />
                   </TableCell>
                 </TableRow>
@@ -140,7 +160,7 @@ export function CachePanel() {
             ) : !filtered.length ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={8}
                   className="py-8 text-center text-muted-foreground"
                 >
                   {filter && data?.entries.length
@@ -151,9 +171,21 @@ export function CachePanel() {
             ) : (
               filtered.map((entry) => {
                 const hostname = hostnameFromUrl(entry.url)
+                const pct = (v: number | null | undefined) =>
+                  v != null ? (v * 100).toFixed(1) + "%" : "—"
+
+                const screenshotLabel = (s: string | null | undefined) => {
+                  if (!s || s === "bypass_list" || s === "bypass_bare_ip") return null
+                  if (s === "screenshot_ok") return { label: "OK", icon: Camera, variant: "success" as const }
+                  if (s === "noise_screenshot") return { label: "Noise", icon: CameraOff, variant: "warning" as const }
+                  return { label: "Failed", icon: CameraOff, variant: "destructive" as const }
+                }
+
+                const ss = screenshotLabel(entry.screenshot_status)
+
                 return (
-                  <TableRow key={entry.cache_key}>
-                    <TableCell className="max-w-md truncate" title={entry.url}>
+                  <TableRow key={entry.cache_key} className={entry.is_fused ? "" : "opacity-60"}>
+                    <TableCell className="max-w-sm truncate" title={entry.url}>
                       {entry.url}
                     </TableCell>
                     <TableCell className="font-mono text-sm">
@@ -168,6 +200,52 @@ export function CachePanel() {
                     </TableCell>
                     <TableCell className="text-right font-mono text-xs">
                       {entry.gambling_score.toFixed(4)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                      {pct(entry.text_score)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                      {pct(entry.image_score)}
+                    </TableCell>
+                    <TableCell>
+                      {ss ? (
+                        entry.screenshot_url ? (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 gap-1 px-2 text-xs"
+                              >
+                                <ss.icon className="h-3 w-3" />
+                                {ss.label}
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-3xl">
+                              <DialogHeader>
+                                <DialogTitle>Screenshot</DialogTitle>
+                                <DialogDescription>
+                                  {hostname}
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="flex items-center justify-center">
+                                <img
+                                  src={entry.screenshot_url!}
+                                  alt="Screenshot"
+                                  className="max-h-[70vh] rounded border object-contain"
+                                />
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                            <ss.icon className="h-3 w-3" />
+                            {ss.label}
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-0.5">

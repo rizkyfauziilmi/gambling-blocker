@@ -57,10 +57,7 @@ def load() -> bool:
             fusion_config_path,
         ]
     ):
-        print(
-            f"[WARN] Model files not found in {SAVE_DIR} "
-            "- /classify/url will return 503"
-        )
+        print(f"[WARN] Model files not found in {SAVE_DIR} - inference will return 503")
         return False
 
     _text_model = tf.keras.models.load_model(str(text_model_path))
@@ -94,20 +91,7 @@ def is_loaded() -> bool:
     )
 
 
-def infer(url: str) -> dict[str, Any]:
-    assert _vectorizer is not None
-    assert _text_model is not None
-
-    cleaned: str = clean_url(url)
-    seq_tfidf = _vectorizer.transform([cleaned])
-    seq_tfidf.sort_indices()
-    prob: float = float(_text_model.predict(seq_tfidf, verbose=0)[0][0])
-    category: str = "gambling" if prob > _text_threshold else "non-gambling"
-
-    return {"url": url, "category": category, "gambling_score": round(prob, 4)}
-
-
-# ---- Image / Fusion ----
+# ---- Fusion ----
 
 
 def _extract_features(img_bytes: bytes) -> np.ndarray:
@@ -218,6 +202,7 @@ def infer_fused(url: str) -> dict[str, Any]:
     img_bytes, http_status = _capture_screenshot(url)
     prob_image: float | None = None
     screenshot_url: str | None = None
+    screenshot_object_key: str | None = None
     screenshot_status: str = "no_screenshot"
 
     if img_bytes is not None:
@@ -236,6 +221,9 @@ def infer_fused(url: str) -> dict[str, Any]:
                 object_name: str = f"{md5(url.encode()).hexdigest()[:12]}.png"
                 if storage.upload_bytes(object_name, img_bytes):
                     screenshot_url = storage.presigned_url(object_name)
+                    screenshot_object_key = object_name
+                else:
+                    screenshot_object_key = None
 
                 screenshot_status = label
             except Exception as e:
@@ -261,6 +249,7 @@ def infer_fused(url: str) -> dict[str, Any]:
         "image_score": round(prob_image, 4) if prob_image is not None else None,
         "fusion_alpha": _image_alpha,
         "screenshot_url": screenshot_url,
+        "screenshot_object_key": screenshot_object_key,
         "screenshot_status": screenshot_status,
     }
 

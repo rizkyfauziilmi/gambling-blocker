@@ -7,6 +7,13 @@ export interface CacheEntry {
   gambling_score: number
   resolved_ips: string[]
   cache_key: string
+  text_score?: number | null
+  image_score?: number | null
+  fusion_alpha?: number | null
+  screenshot_url?: string | null
+  screenshot_status?: string | null
+  from_list?: string | null
+  is_fused?: boolean
 }
 
 interface CacheResponse {

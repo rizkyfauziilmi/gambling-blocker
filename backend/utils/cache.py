@@ -4,6 +4,7 @@ import os
 import redis as redis_lib
 
 from .config import CACHE_TTL
+from .storage import enrich_screenshot_url
 
 _redis: redis_lib.Redis | None = None
 _redis_available: bool = False
@@ -66,17 +67,22 @@ def scan(count: int = 50) -> list[dict]:
     if not _redis_available or _redis is None:
         return []
     try:
-        keys: list[str] = []
-        for pattern in ("domain:*", "ip:*"):
-            for key in _redis.scan_iter(match=pattern, count=count * 2):
-                keys.append(key)
+        entries: list[tuple[str, str]] = []
+        for pattern in ("fused:domain:*", "fused:ip:*"):
+            for key in _redis.scan_iter(match=pattern, count=count * 4):
+                val = _redis.get(key)
+                if val is None:
+                    continue
+                entries.append((key, val))
+
+        entries.sort(key=lambda x: x[0], reverse=True)
         results: list[dict] = []
-        for key in sorted(keys, reverse=True)[:count]:
-            val = _redis.get(key)
-            if val:
-                entry = json.loads(val)
-                entry["cache_key"] = key
-                results.append(entry)
+        for redis_key, val in entries[:count]:
+            entry = json.loads(val)
+            entry["cache_key"] = redis_key
+            entry["is_fused"] = True
+            enrich_screenshot_url(entry)
+            results.append(entry)
         return results
     except Exception:
         return []
@@ -87,7 +93,7 @@ def flush_cache() -> int:
         return 0
     try:
         deleted: int = 0
-        for pattern in ("domain:*", "ip:*"):
+        for pattern in ("fused:domain:*", "fused:ip:*"):
             for key in _redis.scan_iter(match=pattern):
                 _redis.delete(key)
                 deleted += 1
