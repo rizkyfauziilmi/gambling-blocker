@@ -15,7 +15,7 @@ from utils.cache import incr as cache_incr
 from utils.cache import is_available as cache_available
 from utils.cache import scan as cache_scan
 from utils.cache import setex as cache_setex
-from utils.helpers import cache_key, is_ip, parse_hostname, resolve_ips
+from utils.helpers import cache_key, is_ip, parse_hostname
 from utils.lists import add_entry as list_add
 from utils.lists import check_hostname as list_check
 from utils.lists import get_entries as list_get
@@ -95,7 +95,6 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             "fusion_alpha": 0.0,
             "screenshot_url": None,
             "screenshot_status": "bypass_list",
-            "resolved_ips": [],
             "from_cache": False,
             "from_list": "whitelist",
         }
@@ -110,7 +109,6 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             "fusion_alpha": 0.0,
             "screenshot_url": None,
             "screenshot_status": "bypass_list",
-            "resolved_ips": resolve_ips(hostname),
             "from_cache": False,
             "from_list": "blacklist",
         }
@@ -126,16 +124,6 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             print(f"[API] served from fused cache | result={json.dumps(result)}")
             return result
 
-    if not model_loaded():
-        print("[API] model not loaded, raising 503")
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "error": "model_not_loaded",
-                "message": "Models not available. Train and save to backend/model/bin/",
-            },
-        )
-
     if is_ip(hostname):
         path: str = urlparse(url_str).path
         if not path or path == "/":
@@ -149,35 +137,28 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
                 "fusion_alpha": 0.0,
                 "screenshot_url": None,
                 "screenshot_status": "bypass_bare_ip",
-                "resolved_ips": [hostname],
                 "from_cache": False,
             }
+
+    if not model_loaded():
+        print("[API] model not loaded, raising 503")
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "model_not_loaded",
+                "message": "Models not available. Train and save to backend/model/bin/",
+            },
+        )
 
     print("[API] running infer_fused...")
     result = infer_fused(url_str)
     print(f"[API] infer_fused result={json.dumps(result)}")
-
-    if result["category"] == "gambling":
-        ips: list[str] = resolve_ips(hostname)
-        result["resolved_ips"] = ips
-    else:
-        result["resolved_ips"] = []
 
     if cache_available():
         print(f"[API] writing to cache key={key}")
         cached_result = dict(result)
         cached_result.pop("screenshot_url", None)
         cache_setex(key, json.dumps(cached_result))
-        if result["category"] == "gambling":
-            for ip in result["resolved_ips"]:
-                ip_cache: dict[str, Any] = {
-                    "url": result["url"],
-                    "category": "gambling",
-                    "gambling_score": result["gambling_score"],
-                    "resolved_ips": [ip],
-                }
-                cache_setex(f"fused:ip:{ip}", json.dumps(ip_cache))
-                print(f"[API] wrote ip cache for {ip}")
 
     result["from_cache"] = False
     print(f"[API] returning final result={json.dumps(result)}")
@@ -206,7 +187,6 @@ def classify_result(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             "screenshot_status": None,
             "from_list": "whitelist",
             "from_cache": False,
-            "resolved_ips": [],
         }
     if listed == "blacklist":
         return {
@@ -221,7 +201,6 @@ def classify_result(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             "screenshot_status": None,
             "from_list": "blacklist",
             "from_cache": False,
-            "resolved_ips": resolve_ips(hostname),
         }
 
     if cache_available():
@@ -243,7 +222,6 @@ def classify_result(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
                 "screenshot_status": r.get("screenshot_status"),
                 "from_list": r.get("from_list", ""),
                 "from_cache": True,
-                "resolved_ips": r.get("resolved_ips", []),
             }
 
     print("[API] result: no cache found, returning not_classified")
@@ -259,7 +237,6 @@ def classify_result(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
         "screenshot_status": None,
         "from_list": "",
         "from_cache": False,
-        "resolved_ips": [],
     }
 
 

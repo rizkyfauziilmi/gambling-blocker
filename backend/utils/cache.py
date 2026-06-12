@@ -68,7 +68,7 @@ def scan(count: int = 50) -> list[dict]:
         return []
     try:
         entries: list[tuple[str, str]] = []
-        for pattern in ("fused:domain:*", "fused:ip:*"):
+        for pattern in ("fused:domain:*",):
             for key in _redis.scan_iter(match=pattern, count=count * 4):
                 val = _redis.get(key)
                 if val is None:
@@ -93,7 +93,7 @@ def flush_cache() -> int:
         return 0
     try:
         deleted: int = 0
-        for pattern in ("fused:domain:*", "fused:ip:*"):
+        for pattern in ("fused:domain:*",):
             for key in _redis.scan_iter(match=pattern):
                 _redis.delete(key)
                 deleted += 1

@@ -1,6 +1,5 @@
 import ipaddress
 import re
-import socket
 from urllib.parse import unquote, urlparse
 
 from fastapi import HTTPException
@@ -15,7 +14,7 @@ def parse_hostname(raw: str) -> str:
     hostname = urlparse(raw).hostname
     if not hostname:
         raise HTTPException(status_code=400, detail="Invalid URL or hostname")
-    if "." not in hostname and not is_ip(hostname):
+    if "." not in hostname:
         raise HTTPException(status_code=400, detail="Invalid hostname format")
     return hostname
 
@@ -29,15 +28,7 @@ def is_ip(hostname: str) -> bool:
 
 
 def cache_key(hostname: str) -> str:
-    return f"ip:{hostname}" if is_ip(hostname) else f"domain:{hostname}"
-
-
-def resolve_ips(hostname: str) -> list[str]:
-    try:
-        addrs = socket.getaddrinfo(hostname, 80, type=socket.SOCK_STREAM)
-        return list(set(str(addr[4][0]) for addr in addrs))
-    except socket.gaierror:
-        return []
+    return f"domain:{hostname}"
 
 
 def clean_url(url: str) -> str:

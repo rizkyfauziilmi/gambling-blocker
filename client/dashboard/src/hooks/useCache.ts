@@ -5,7 +5,6 @@ export interface CacheEntry {
   url: string
   category: string
   gambling_score: number
-  resolved_ips: string[]
   cache_key: string
   text_score?: number | null
   image_score?: number | null
