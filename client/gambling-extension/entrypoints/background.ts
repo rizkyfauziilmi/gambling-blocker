@@ -36,10 +36,10 @@ export default defineBackground(() => {
     // Compare by hostname (not full URL) to survive URL changes like
     // Google adding &sei=... on redirect.
     const tabHostname = new URL(tab.url).hostname
-    const storage = browser.storage.session || browser.storage.local
-    const { recentlyChecked } = (await storage.get("recentlyChecked")) as {
-      recentlyChecked?: { hostname: string; ts: number }
-    }
+    const recentlyChecked = await storage.getItem<{
+      hostname: string
+      ts: number
+    }>("session:recentlyChecked")
     if (
       recentlyChecked?.hostname === tabHostname &&
       Date.now() - recentlyChecked.ts < 30000
@@ -52,8 +52,9 @@ export default defineBackground(() => {
 
     console.log("[BG] redirecting to loading page:", tab.url)
     // Set flag before redirect so loading page can redirect back without looping
-    storage.set({
-      recentlyChecked: { hostname: tabHostname, ts: Date.now() },
+    await storage.setItem("session:recentlyChecked", {
+      hostname: tabHostname,
+      ts: Date.now(),
     })
     const params = new URLSearchParams({ url: tab.url })
     const loadingUrl =
