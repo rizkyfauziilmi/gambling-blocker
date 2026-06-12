@@ -37,9 +37,9 @@ export default defineBackground(() => {
     // Google adding &sei=... on redirect.
     const tabHostname = new URL(tab.url).hostname
     const storage = browser.storage.session || browser.storage.local
-    const { recentlyChecked } = (await storage.get(
-      "recentlyChecked",
-    )) as { recentlyChecked?: { hostname: string; ts: number } }
+    const { recentlyChecked } = (await storage.get("recentlyChecked")) as {
+      recentlyChecked?: { hostname: string; ts: number }
+    }
     if (
       recentlyChecked?.hostname === tabHostname &&
       Date.now() - recentlyChecked.ts < 30000

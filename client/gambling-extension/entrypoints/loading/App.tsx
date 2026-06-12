@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 
-console.log("[LOADING] script loaded, browser:", typeof browser !== "undefined" ? navigator.userAgent : "no browser API")
+console.log(
+  "[LOADING] script loaded, browser:",
+  typeof browser !== "undefined" ? navigator.userAgent : "no browser API"
+)
 
 const API_BASE = import.meta.env.WXT_API_BASE
 const t = (key: string, ...args: (string | number)[]) =>
@@ -22,7 +25,7 @@ function App() {
 
     fetch(
       `${API_BASE}/classify/url-fused?url=${encodeURIComponent(originalUrl)}`,
-      { signal: controller.signal },
+      { signal: controller.signal }
     )
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -37,8 +40,7 @@ function App() {
             gambling_score: String(data.gambling_score),
             from_list: data.from_list || "",
           })
-          location.href =
-            browser.runtime.getURL("/blocked.html") + "?" + qp
+          location.href = browser.runtime.getURL("/blocked.html") + "?" + qp
         } else {
           console.log("[LOADING] safe → redirect back to:", originalUrl)
           location.href = originalUrl

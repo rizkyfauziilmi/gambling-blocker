@@ -175,16 +175,34 @@ export function CachePanel() {
                   v != null ? (v * 100).toFixed(1) + "%" : "—"
 
                 const screenshotLabel = (s: string | null | undefined) => {
-                  if (!s || s === "bypass_list" || s === "bypass_bare_ip") return null
-                  if (s === "screenshot_ok") return { label: "OK", icon: Camera, variant: "success" as const }
-                  if (s === "noise_screenshot") return { label: "Noise", icon: CameraOff, variant: "warning" as const }
-                  return { label: "Failed", icon: CameraOff, variant: "destructive" as const }
+                  if (!s || s === "bypass_list" || s === "bypass_bare_ip")
+                    return null
+                  if (s === "screenshot_ok")
+                    return {
+                      label: "OK",
+                      icon: Camera,
+                      variant: "success" as const,
+                    }
+                  if (s === "noise_screenshot")
+                    return {
+                      label: "Noise",
+                      icon: CameraOff,
+                      variant: "warning" as const,
+                    }
+                  return {
+                    label: "Failed",
+                    icon: CameraOff,
+                    variant: "destructive" as const,
+                  }
                 }
 
                 const ss = screenshotLabel(entry.screenshot_status)
 
                 return (
-                  <TableRow key={entry.cache_key} className={entry.is_fused ? "" : "opacity-60"}>
+                  <TableRow
+                    key={entry.cache_key}
+                    className={entry.is_fused ? "" : "opacity-60"}
+                  >
                     <TableCell className="max-w-sm truncate" title={entry.url}>
                       {entry.url}
                     </TableCell>

@@ -190,9 +190,7 @@ function App() {
     }
   }
 
-  const scorePercent = result
-    ? (result.gambling_score * 100).toFixed(1)
-    : null
+  const scorePercent = result ? (result.gambling_score * 100).toFixed(1) : null
 
   function ScreenshotIcon({
     status: s,
@@ -234,9 +232,7 @@ function App() {
           <h1 className="text-sm font-semibold text-gray-900">
             {t("popup_title")}
           </h1>
-          <p className="text-xs text-gray-500">
-            {t("popup_protectionActive")}
-          </p>
+          <p className="text-xs text-gray-500">{t("popup_protectionActive")}</p>
         </div>
       </div>
 
@@ -351,7 +347,7 @@ function App() {
                     <div className="mt-1 text-[10px] text-gray-400">
                       {t("popup_fusionInfo").replace(
                         "{alpha}",
-                        `${result.fusion_alpha}`,
+                        `${result.fusion_alpha}`
                       )}
                     </div>
                   )}
@@ -416,7 +412,7 @@ function App() {
                     <div className="mt-1 text-[10px] text-gray-400">
                       {t("popup_fusionInfo").replace(
                         "{alpha}",
-                        `${result.fusion_alpha}`,
+                        `${result.fusion_alpha}`
                       )}
                     </div>
                   )}
@@ -428,7 +424,8 @@ function App() {
       )}
 
       {/* Report button */}
-      {(status === "safe" || status === "gambling") && !result?.from_list &&
+      {(status === "safe" || status === "gambling") &&
+        !result?.from_list &&
         reportState === "idle" && (
           <button
             onClick={handleReport}
