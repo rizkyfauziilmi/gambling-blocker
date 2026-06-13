@@ -165,12 +165,154 @@ def _capture_screenshot(url: str) -> tuple[bytes | None, str | None]:
     from playwright.sync_api import sync_playwright
     from playwright_stealth import Stealth
 
+    BLOCKED_DOMAINS: set[str] = {
+        "doubleclick.net",
+        "googlesyndication.com",
+        "googletagmanager.com",
+        "google-analytics.com",
+        "facebook.net",
+        "fbcdn.net",
+        "amazon-adsystem.com",
+        "adservice.google.com",
+        "criteo.com",
+        "scorecardresearch.com",
+        "hotjar.com",
+        "newrelic.com",
+    }
+
+    INIT_CSS: str = """
+        (() => {
+            const s = document.createElement('style');
+            s.id = '__clean_css';
+            s.textContent = `
+                [class*="cookie"],[id*="cookie"],[class*="Cookie"],[id*="Cookie"],
+                [class*="popup"],[id*="popup"],[class*="Popup"],[id*="Popup"],
+                [class*="modal"],[id*="modal"],[class*="Modal"],[id*="Modal"],
+                [class*="overlay"],[id*="overlay"],[class*="Overlay"],[id*="Overlay"],
+                [class*="consent"],[id*="consent"],[class*="Consent"],[id*="Consent"],
+                [class*="notification"],[id*="notification"],[class*="Notification"],[id*="Notification"],
+                [class*="gdpr"],[id*="gdpr"],[class*="GDPR"],
+                [class*="ad-"],[id*="ad-"],[class*="banner"],[id*="banner"],
+                [class*="backdrop"],[id*="backdrop"],[class*="Backdrop"],[id*="Backdrop"],
+                [class*="interstitial"],[aria-modal="true"],[role="dialog"],
+                .modal,.popup,.overlay,.cookie,.cookies,.gdpr,.consent,
+                .newsletter,.subscribe,.modal-backdrop,.modal-overlay,
+                .fb-lightbox,.notification-bar,.adsbox,.ad-container
+                { display:none!important;visibility:hidden!important;
+                  pointer-events:none!important;opacity:0!important;z-index:-1!important }
+            `;
+            document.documentElement.appendChild(s);
+        })();
+    """
+
+    REMOVE_OVERLAYS: str = """
+        (() => {
+            const SEL = [
+                '[class*="cookie"],[id*="cookie"],[class*="Cookie"],[id*="Cookie"]',
+                '[class*="popup"],[id*="popup"],[class*="Popup"],[id*="Popup"]',
+                '[class*="modal"],[id*="modal"],[class*="Modal"],[id*="Modal"]',
+                '[class*="overlay"],[id*="overlay"],[class*="Overlay"],[id*="Overlay"]',
+                '[class*="consent"],[id*="consent"],[class*="Consent"],[id*="Consent"]',
+                '[class*="notification"],[id*="notification"],[class*="Notification"],[id*="Notification"]',
+                '[class*="gdpr"],[id*="gdpr"],[class*="GDPR"]',
+                '[class*="ad-"],[id*="ad-"],[class*="banner"],[id*="banner"]',
+                '[class*="backdrop"],[id*="backdrop"],[class*="Backdrop"],[id*="Backdrop"]',
+                '[class*="interstitial"],[aria-modal="true"],[role="dialog"]',
+                '.modal,.popup,.overlay,.cookie,.cookies,.gdpr,.consent',
+                '.newsletter,.subscribe,.modal-backdrop,.modal-overlay',
+                '.fb-lightbox,.notification-bar,.adsbox,.ad-container',
+            ].join(',');
+            function deep(root) {
+                root.querySelectorAll(SEL).forEach(e => e.remove());
+                root.querySelectorAll('*').forEach(e => {
+                    if (e.shadowRoot) deep(e.shadowRoot);
+                });
+            }
+            deep(document);
+            const all = document.querySelectorAll('*');
+            const vw = innerWidth, vh = innerHeight;
+            all.forEach(el => {
+                if (el === document.body || el === document.documentElement) return;
+                const s = getComputedStyle(el);
+                if (s.position !== 'fixed' && s.position !== 'sticky') return;
+                const z = parseInt(s.zIndex);
+                if (isNaN(z) || z < 100) return;
+                const r = el.getBoundingClientRect();
+                if (r.width * r.height > vw * vh * 0.3) return;
+                el.remove();
+            });
+            all.forEach(el => {
+                if (el === document.body || el === document.documentElement) return;
+                const s = getComputedStyle(el);
+                if (s.position !== 'fixed' && s.position !== 'absolute') return;
+                const z = parseInt(s.zIndex);
+                if (isNaN(z) || z < 50) return;
+                const r = el.getBoundingClientRect();
+                if (r.width * r.height > vw * vh * 0.5) el.remove();
+            });
+            all.forEach(el => {
+                const s = getComputedStyle(el);
+                if (parseFloat(s.opacity) > 0.3) return;
+                if (s.position !== 'fixed' && s.position !== 'absolute') return;
+                const r = el.getBoundingClientRect();
+                if (r.width * r.height > vw * vh * 0.9) el.remove();
+            });
+            ['body','html'].forEach(tag => {
+                const el = document.querySelector(tag);
+                if (!el) return;
+                el.style.overflow = 'visible';
+                el.style.position = 'static';
+            });
+        })();
+    """
+
     try:
         with sync_playwright() as pw:
-            browser = pw.chromium.launch(headless=True)
-            page = browser.new_page(viewport={"width": 1280, "height": 720})
+            browser = pw.chromium.launch(
+                headless=True,
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-web-security",
+                    "--disable-features=IsolateOrigins,site-per-process",
+                    "--disable-setuid-sandbox",
+                    "--disable-accelerated-2d-canvas",
+                    "--disable-gpu",
+                    "--disable-notifications",
+                    "--disable-geolocation",
+                    "--disable-popup-blocking",
+                ],
+            )
+            page = browser.new_page(
+                viewport={"width": 1280, "height": 720},
+                user_agent=(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/125.0.0.0 Safari/537.36"
+                ),
+            )
             Stealth().apply_stealth_sync(page)
-            resp = page.goto(url, timeout=5000, wait_until="domcontentloaded")
+
+            page.on("dialog", lambda d: d.dismiss())
+
+            page.route("**/*", lambda route: (
+                route.abort()
+                if any(d in route.request.url for d in BLOCKED_DOMAINS)
+                else route.continue_()
+            ))
+
+            page.add_init_script(INIT_CSS)
+
+            resp = page.goto(url, timeout=7000, wait_until="domcontentloaded")
+
+            try:
+                page.evaluate(REMOVE_OVERLAYS)
+                page.keyboard.press("Escape")
+                page.mouse.click(5, 5)
+            except Exception:
+                pass
+
             http_status: str | None = str(resp.status) if resp else None
             buf: bytes = page.screenshot(full_page=False)
             browser.close()
