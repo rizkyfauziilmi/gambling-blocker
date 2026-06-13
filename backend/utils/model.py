@@ -422,7 +422,9 @@ def _infer_multipage(url: str, prob_root: float) -> float:
         depth = len([s for s in p.strip("/").split("/") if s])
         print(f"[MULTIPAGE] depth={depth} {p} → {prob:.4f}")
 
-    avg = sum(scores) / len(scores)
+    from math import prod
+
+    avg = prod(max(s, 1e-8) for s in scores) ** (1 / len(scores))
     print(
         f"[MULTIPAGE] root={prob_root:.4f} sampled={sampled} "
         f"scores={[round(s,4) for s in scores]} avg={avg:.4f}"
