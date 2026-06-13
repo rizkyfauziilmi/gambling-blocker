@@ -1,9 +1,12 @@
 import json
 import os
+from datetime import datetime
 
 import redis as redis_lib
 
 from .config import CACHE_TTL
+from .logger import log
+from .settings import get as get_settings
 from .storage import enrich_screenshot_url
 
 _redis: redis_lib.Redis | None = None
@@ -26,10 +29,10 @@ def connect() -> None:
         )
         _redis.ping()
         _redis_available = True
-        print(f"[INFO] Redis connected at {host}:{port}")
+        log("INFO", f"Redis connected at {host}:{port}")
     except Exception as exc:
         _redis_available = False
-        print(f"[WARN] Redis unavailable at {host}:{port} — {exc}")
+        log("WARN", f"Redis unavailable at {host}:{port} — {exc}")
 
 
 def is_available() -> bool:
@@ -49,6 +52,12 @@ def setex(key: str, value: str) -> None:
     if not _redis_available or _redis is None:
         return
     try:
+        expires_at = get_settings().get("cache_expires_at")
+        if expires_at:
+            ttl = int((datetime.fromisoformat(expires_at) - datetime.now()).total_seconds())
+            if ttl > 0:
+                _redis.setex(key, ttl, value)
+                return
         _redis.setex(key, CACHE_TTL, value)
     except Exception:
         pass

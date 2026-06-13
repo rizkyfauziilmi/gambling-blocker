@@ -16,6 +16,9 @@ from utils.cache import is_available as cache_available
 from utils.cache import scan as cache_scan
 from utils.cache import setex as cache_setex
 from utils.helpers import cache_key, is_ip, parse_hostname
+from utils.logger import get_logs as logs_get
+from utils.logger import clear as logs_clear
+from utils.logger import log as log_msg
 from utils.lists import add_entry as list_add
 from utils.lists import check_hostname as list_check
 from utils.lists import get_entries as list_get
@@ -25,6 +28,8 @@ from utils.model import is_loaded as model_loaded
 from utils.reports import delete_report as reports_delete
 from utils.reports import delete_reports_by_hostname as reports_delete_by_host
 from utils.reports import get_grouped_reports, get_report_stats, save_report
+from utils.settings import get as settings_get
+from utils.settings import save as settings_save
 from utils.storage import enrich_screenshot_url
 
 app: FastAPI = FastAPI()
@@ -33,7 +38,7 @@ app: FastAPI = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET", "POST", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -57,23 +62,23 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
     url_str: str = str(url)
     hostname: str = parse_hostname(url_str)
 
-    print(f"[API] /classify/url-fused called | url={url_str} | hostname={hostname}")
+    log_msg("API", f"/classify/url-fused called | url={url_str} | hostname={hostname}")
 
     # Rate limit: 10req/min per hostname (cegah spam refresh loading page)
     if cache_available():
         rl_key: str = f"rate:fused:{hostname}"
         count = cache_incr(rl_key, ttl=60)
-        print(f"[API] rate limit count={count}")
+        log_msg("API", f"rate limit count={count}")
         if count > 10:
-            print(f"[API] RATE LIMITED hostname={hostname}")
+            log_msg("API", f"RATE LIMITED hostname={hostname}")
             cached = cache_get(f"fused:{cache_key(hostname)}")
             if cached:
                 result = json.loads(cached)
                 enrich_screenshot_url(result)
                 result["from_cache"] = True
-                print(f"[API] served from fallback cache | result={json.dumps(result)}")
+                log_msg("API", f"served from fallback cache | result={json.dumps(result)}")
                 return result
-            print("[API] raising 429")
+            log_msg("API", "raising 429")
             raise HTTPException(
                 status_code=429,
                 detail={
@@ -83,9 +88,9 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             )
 
     listed: str | None = list_check(hostname)
-    print(f"[API] list_check={listed}")
+    log_msg("API", f"list_check={listed}")
     if listed == "whitelist":
-        print("[API] whitelist, returning safe")
+        log_msg("API", "whitelist, returning safe")
         return {
             "url": url_str,
             "category": "non-gambling",
@@ -99,7 +104,7 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             "from_list": "whitelist",
         }
     if listed == "blacklist":
-        print("[API] blacklist, returning gambling")
+        log_msg("API", "blacklist, returning gambling")
         return {
             "url": url_str,
             "category": "gambling",
@@ -121,13 +126,13 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             result = json.loads(cached)
             enrich_screenshot_url(result)
             result["from_cache"] = True
-            print(f"[API] served from fused cache | result={json.dumps(result)}")
+            log_msg("API", f"served from fused cache | result={json.dumps(result)}")
             return result
 
     if is_ip(hostname):
         path: str = urlparse(url_str).path
         if not path or path == "/":
-            print("[API] bare ip, returning safe")
+            log_msg("API", "bare ip, returning safe")
             return {
                 "url": url_str,
                 "category": "bare-ip",
@@ -141,7 +146,7 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             }
 
     if not model_loaded():
-        print("[API] model not loaded, raising 503")
+        log_msg("API", "model not loaded, raising 503")
         raise HTTPException(
             status_code=503,
             detail={
@@ -150,18 +155,18 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             },
         )
 
-    print("[API] running infer_fused...")
+    log_msg("API", "running infer_fused...")
     result = infer_fused(url_str)
-    print(f"[API] infer_fused result={json.dumps(result)}")
+    log_msg("API", f"infer_fused result={json.dumps(result)}")
 
     if cache_available():
-        print(f"[API] writing to cache key={key}")
+        log_msg("API", f"writing to cache key={key}")
         cached_result = dict(result)
         cached_result.pop("screenshot_url", None)
         cache_setex(key, json.dumps(cached_result))
 
     result["from_cache"] = False
-    print(f"[API] returning final result={json.dumps(result)}")
+    log_msg("API", f"returning final result={json.dumps(result)}")
     return result
 
 
@@ -170,10 +175,10 @@ def classify_result(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
     url_str: str = str(url)
     hostname: str = parse_hostname(url_str)
 
-    print(f"[API] /classify/result called | url={url_str} | hostname={hostname}")
+    log_msg("API", f"/classify/result called | url={url_str} | hostname={hostname}")
 
     listed: str | None = list_check(hostname)
-    print(f"[API] result list_check={listed}")
+    log_msg("API", f"result list_check={listed}")
     if listed == "whitelist":
         return {
             "url": url_str,
@@ -206,7 +211,7 @@ def classify_result(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
     if cache_available():
         fused_key = f"fused:{cache_key(hostname)}"
         cached = cache_get(fused_key)
-        print(f"[API] result cache: fused={fused_key} found={cached is not None}")
+        log_msg("API", f"result cache: fused={fused_key} found={cached is not None}")
         if cached:
             r = json.loads(cached)
             enrich_screenshot_url(r)
@@ -224,7 +229,7 @@ def classify_result(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
                 "from_cache": True,
             }
 
-    print("[API] result: no cache found, returning not_classified")
+    log_msg("API", "result: no cache found, returning not_classified")
     return {
         "url": url_str,
         "status": "not_classified",
@@ -422,3 +427,34 @@ def delete_whitelist(
     if not list_remove(entry_id):
         raise HTTPException(status_code=404, detail="Entry not found")
     return {"status": "ok"}
+
+
+@app.get("/logs")
+def list_logs(
+    tag: str = Query(None),
+    _: None = Depends(require_auth),
+) -> dict[str, object]:
+    return {"entries": logs_get(tag)}
+
+
+@app.delete("/logs")
+def delete_logs(_: None = Depends(require_auth)) -> dict[str, object]:
+    logs_clear()
+    return {"status": "ok"}
+
+
+@app.get("/settings")
+def get_settings(_: None = Depends(require_auth)) -> dict:
+    return settings_get()
+
+
+@app.put("/settings")
+def update_settings(
+    body: dict,
+    _: None = Depends(require_auth),
+) -> dict:
+    allowed = {"bypass_text_enabled", "multipage_enabled", "debug_logging_enabled", "cache_expires_at"}
+    updates = {k: v for k, v in body.items() if k in allowed}
+    if not updates:
+        raise HTTPException(status_code=400, detail="No valid fields provided")
+    return settings_save(updates)

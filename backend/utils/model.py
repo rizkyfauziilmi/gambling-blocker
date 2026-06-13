@@ -17,6 +17,8 @@ from sklearn.preprocessing import StandardScaler
 
 from .config import SAVE_DIR
 from .helpers import clean_url
+from .logger import log
+from .settings import get as get_settings
 from .storage import get_storage
 
 NOISE_SIZE_LIMIT: int = 100_000
@@ -58,7 +60,7 @@ def load() -> bool:
             fusion_config_path,
         ]
     ):
-        print(f"[WARN] Model files not found in {SAVE_DIR} - inference will return 503")
+        log("WARN", f"Model files not found in {SAVE_DIR} - inference will return 503")
         return False
 
     _text_model = tf.keras.models.load_model(str(text_model_path))
@@ -74,11 +76,9 @@ def load() -> bool:
         _image_alpha = fc["alpha"]
         _image_threshold = fc["threshold"]
 
-    print(
-        f"[INFO] Models loaded from {SAVE_DIR} "
-        f"(text_threshold={_text_threshold:.4f}, "
-        f"image_threshold={_image_threshold:.4f}, "
-        f"fusion_alpha={_image_alpha:.2f})"
+    log(
+        "INFO",
+        f"Models loaded from {SAVE_DIR} (text_threshold={_text_threshold:.4f}, image_threshold={_image_threshold:.4f}, fusion_alpha={_image_alpha:.2f})",  # noqa: E501
     )
     return True
 
@@ -331,20 +331,14 @@ def _capture_screenshot(url: str) -> tuple[bytes | None, str | None]:
 
             title = page.title()
             buf_kb = len(buf) / 1024
-            print(
-                f"[SCREENSHOT] {url} "
-                f"status={http_status} "
-                f"title={title[:80]!r} "
-                f"goto={t1 - t0:.1f}s "
-                f"ss={t2 - t1:.1f}s "
-                f"size={buf_kb:.0f}KB "
-                f"threshold={NOISE_SIZE_LIMIT / 1024:.0f}KB "
-                f"noise={buf_kb < NOISE_SIZE_LIMIT / 1024}"
+            log(
+                "SCREENSHOT",
+                f"{url} status={http_status} title={title[:80]!r} goto={t1 - t0:.1f}s ss={t2 - t1:.1f}s size={buf_kb:.0f}KB threshold={NOISE_SIZE_LIMIT / 1024:.0f}KB noise={buf_kb < NOISE_SIZE_LIMIT / 1024}",  # noqa: E501
             )
             browser.close()
         return buf, http_status
     except Exception as e:
-        print(f"[WARN] Screenshot failed for {url}: {type(e).__name__}: {e}")
+        log("WARN", f"Screenshot failed for {url}: {type(e).__name__}: {e}")
         return None, None
 
 
@@ -387,7 +381,7 @@ def _infer_multipage(url: str, prob_root: float) -> float:
         )
         resp.raise_for_status()
     except Exception as e:
-        print(f"[MULTIPAGE] fetch failed for {url}: {e}")
+        log("MULTIPAGE", f"fetch failed for {url}: {e}")
         return prob_root
 
     seen: set[str] = set()
@@ -411,7 +405,7 @@ def _infer_multipage(url: str, prob_root: float) -> float:
             raw_paths.append(p)
 
     if not raw_paths:
-        print(f"[MULTIPAGE] no internal paths found for {url}")
+        log("MULTIPAGE", f"no internal paths found for {url}")
         return prob_root
 
     # Pisahkan berdasarkan depth
@@ -433,7 +427,7 @@ def _infer_multipage(url: str, prob_root: float) -> float:
         sampled = (deep + shallow)[:8]
 
     if not sampled:
-        print(f"[MULTIPAGE] no sampled paths for {url}")
+        log("MULTIPAGE", f"no sampled paths for {url}")
         return prob_root
 
     scores: list[float] = []
@@ -445,14 +439,14 @@ def _infer_multipage(url: str, prob_root: float) -> float:
         prob = float(_text_model.predict(seq, verbose=0)[0][0])
         scores.append(prob)
         depth = len([s for s in p.strip("/").split("/") if s])
-        print(f"[MULTIPAGE] depth={depth} {p} → {prob:.4f}")
+        log("MULTIPAGE", f"depth={depth} {p} → {prob:.4f}")
 
     from math import prod
 
     avg = prod(max(s, 1e-8) for s in scores) ** (1 / len(scores))
-    print(
-        f"[MULTIPAGE] root={prob_root:.4f} sampled={sampled} "
-        f"scores={[round(s, 4) for s in scores]} avg={avg:.4f}"
+    log(
+        "MULTIPAGE",
+        f"root={prob_root:.4f} sampled={sampled} scores={[round(s, 4) for s in scores]} avg={avg:.4f}",
     )
     return avg
 
@@ -470,7 +464,8 @@ def infer_fused(url: str) -> dict[str, Any]:
         seq_tfidf = _vectorizer.transform([cleaned])
         seq_tfidf.sort_indices()
         prob_text = float(_text_model.predict(seq_tfidf, verbose=0)[0][0])
-        prob_text = _infer_multipage(url, prob_text)
+        if get_settings()["multipage_enabled"]:
+            prob_text = _infer_multipage(url, prob_text)
     else:
         cleaned = clean_url(url)
         seq_tfidf = _vectorizer.transform([cleaned])
@@ -478,7 +473,9 @@ def infer_fused(url: str) -> dict[str, Any]:
         prob_text = float(_text_model.predict(seq_tfidf, verbose=0)[0][0])
 
     # Skip screenshot jika text model sudah konklusif
-    if prob_text >= 0.95 or prob_text <= 0.05:
+    if get_settings()["bypass_text_enabled"] and (
+        prob_text >= 0.95 or prob_text <= 0.05
+    ):
         return {
             "url": url,
             "category": "gambling" if prob_text > _image_threshold else "non-gambling",
@@ -519,7 +516,7 @@ def infer_fused(url: str) -> dict[str, Any]:
 
                 screenshot_status = label
             except Exception as e:
-                print(f"[WARN] Feature extraction failed: {e}")
+                log("WARN", f"Feature extraction failed: {e}")
                 screenshot_status = "extraction_failed"
     else:
         screenshot_status = "capture_failed"

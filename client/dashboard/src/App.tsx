@@ -5,10 +5,12 @@ import { CachePanel } from "@/components/CachePanel"
 import { BlacklistPanel } from "@/components/BlacklistPanel"
 import { WhitelistPanel } from "@/components/WhitelistPanel"
 import { ReportsContent } from "./components/ReportsContent"
+import { SettingsPanel } from "@/components/SettingsPanel"
+import { LogsPanel } from "@/components/LogsPanel"
 import { useState } from "react"
 
 export function App() {
-  type TabKey = "reports" | "blacklist" | "whitelist" | "cache"
+  type TabKey = "reports" | "blacklist" | "whitelist" | "cache" | "settings" | "logs"
 
   const [activeTabs, setActiveTabs] = useState<TabKey>("reports")
 
@@ -35,6 +37,14 @@ export function App() {
       title: "Cache Management",
       description: "View and clear application cache",
     },
+    settings: {
+      title: "Settings",
+      description: "Application configuration and feature flags",
+    },
+    logs: {
+      title: "Logs",
+      description: "Backend API logs (last 1000 entries)",
+    },
   }
 
   return (
@@ -58,6 +68,8 @@ export function App() {
             <TabsTrigger value="blacklist">Blacklist</TabsTrigger>
             <TabsTrigger value="whitelist">Whitelist</TabsTrigger>
             <TabsTrigger value="cache">Cache</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="logs">Logs</TabsTrigger>
           </TabsList>
           <TabsContent value="reports" className="space-y-8">
             <ReportsContent />
@@ -70,6 +82,12 @@ export function App() {
           </TabsContent>
           <TabsContent value="cache">
             <CachePanel />
+          </TabsContent>
+          <TabsContent value="settings">
+            <SettingsPanel />
+          </TabsContent>
+          <TabsContent value="logs">
+            <LogsPanel />
           </TabsContent>
         </Tabs>
       </div>

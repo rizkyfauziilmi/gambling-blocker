@@ -56,6 +56,8 @@ export default defineConfig({
       "/cache": { target: "http://127.0.0.1:8000", ...authProxy() },
       "/report": "http://127.0.0.1:8000",
       "/classify": "http://127.0.0.1:8000",
+      "/settings": { target: "http://127.0.0.1:8000", ...authProxy() },
+      "/logs": { target: "http://127.0.0.1:8000", ...authProxy() },
     },
   },
 })
