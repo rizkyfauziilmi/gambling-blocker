@@ -64,7 +64,7 @@ def load() -> bool:
     with open(vectorizer_path, "rb") as f:
         _vectorizer = pickle.load(f)
     with open(text_threshold_path) as f:
-        _text_threshold = json.load(f)["best_threshold"]
+        _text_threshold = json.load(f)["text_best_threshold"]
 
     _image_model = joblib.load(str(image_model_path))
     _image_scaler = joblib.load(str(image_scaler_path))

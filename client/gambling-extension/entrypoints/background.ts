@@ -22,6 +22,8 @@ function shouldSkip(url: string): boolean {
 }
 
 export default defineBackground(() => {
+  const recentlyChecked = new Map<number, { hostname: string; ts: number }>()
+
   browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     console.log("[BG] onUpdated:", {
       tabId,
@@ -33,29 +35,19 @@ export default defineBackground(() => {
     if (!tab.url || !tab.url.startsWith("http")) return
     if (shouldSkip(tab.url)) return
 
-    // Compare by hostname (not full URL) to survive URL changes like
-    // Google adding &sei=... on redirect.
     const tabHostname = new URL(tab.url).hostname
-    const recentlyChecked = await storage.getItem<{
-      hostname: string
-      ts: number
-    }>("session:recentlyChecked")
-    if (
-      recentlyChecked?.hostname === tabHostname &&
-      Date.now() - recentlyChecked.ts < 30000
-    ) {
+    const prev = recentlyChecked.get(tabId)
+    const now = Date.now()
+
+    // Skip jika hostname yg sama di tab yg sama dalam 2 detik.
+    // Mencegah: (1) redirect-back dari loading page, (2) duplicate Chrome event.
+    if (prev?.hostname === tabHostname && now - prev.ts < 2000) {
       console.log("[BG] skip recently checked:", tab.url)
-      // Don't remove flag — let it expire via 30s TTL check to prevent
-      // loops from Chrome firing multiple onUpdated events.
       return
     }
 
     console.log("[BG] redirecting to loading page:", tab.url)
-    // Set flag before redirect so loading page can redirect back without looping
-    await storage.setItem("session:recentlyChecked", {
-      hostname: tabHostname,
-      ts: Date.now(),
-    })
+    recentlyChecked.set(tabId, { hostname: tabHostname, ts: now })
     const params = new URLSearchParams({ url: tab.url })
     const loadingUrl =
       browser.runtime.getURL("/loading.html" as never) + "?" + params
