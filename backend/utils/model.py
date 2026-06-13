@@ -358,7 +358,8 @@ def _infer_multipage(url: str, prob_root: float) -> float:
             },
         )
         resp.raise_for_status()
-    except Exception:
+    except Exception as e:
+        print(f"[MULTIPAGE] fetch failed for {url}: {e}")
         return prob_root
 
     seen: set[str] = set()
@@ -382,17 +383,22 @@ def _infer_multipage(url: str, prob_root: float) -> float:
             paths.append(p)
 
     if not paths:
+        print(f"[MULTIPAGE] no internal paths found for {url}")
         return prob_root
 
     scores: list[float] = [prob_root]
     for p in sorted(paths)[:5]:
-        cleaned = clean_url(urljoin(url, p))
+        full = urljoin(url, p)
+        cleaned = clean_url(full)
         seq = _vectorizer.transform([cleaned])
         seq.sort_indices()
         prob = float(_text_model.predict(seq, verbose=0)[0][0])
         scores.append(prob)
+        print(f"[MULTIPAGE] {p} → {prob:.4f}")
 
-    return sum(scores) / len(scores)
+    avg = sum(scores) / len(scores)
+    print(f"[MULTIPAGE] root={prob_root:.4f} paths={[p for p in sorted(paths)[:5]]} scores={[round(s,4) for s in scores]} avg={avg:.4f}")
+    return avg
 
 
 def infer_fused(url: str) -> dict[str, Any]:
