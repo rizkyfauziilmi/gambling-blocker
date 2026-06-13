@@ -189,25 +189,51 @@ export function CachePanel() {
                       variant: "warning" as const,
                     }
                   if (s.startsWith("http_error_")) {
-                    const code = s.replace("http_error_", "").replace("_noise", "")
+                    const code = s
+                      .replace("http_error_", "")
+                      .replace("_noise", "")
                     const isNoise = s.endsWith("_noise")
                     return {
                       label: isNoise ? `Noise (HTTP ${code})` : `HTTP ${code}`,
                       icon: CameraOff,
-                      variant: isNoise ? ("warning" as const) : ("destructive" as const),
+                      variant: isNoise
+                        ? ("warning" as const)
+                        : ("destructive" as const),
                     }
                   }
-                  const labels: Record<string, { label: string; variant: "default" | "destructive" | "warning" | "success" }> = {
+                  const labels: Record<
+                    string,
+                    {
+                      label: string
+                      variant: "default" | "destructive" | "warning" | "success"
+                    }
+                  > = {
                     bypass_list: { label: "By List", variant: "default" },
                     bypass_bare_ip: { label: "Bare IP", variant: "default" },
-                    bypass_text_only: { label: "Text Only", variant: "default" },
-                    no_screenshot: { label: "No Screenshot", variant: "default" },
-                    capture_failed: { label: "Capture Failed", variant: "destructive" },
-                    extraction_failed: { label: "Extraction Failed", variant: "destructive" },
+                    bypass_text_only: {
+                      label: "Text Only",
+                      variant: "default",
+                    },
+                    no_screenshot: {
+                      label: "No Screenshot",
+                      variant: "default",
+                    },
+                    capture_failed: {
+                      label: "Capture Failed",
+                      variant: "destructive",
+                    },
+                    extraction_failed: {
+                      label: "Extraction Failed",
+                      variant: "destructive",
+                    },
                   }
                   const known = labels[s]
                   if (known) return { ...known, icon: CameraOff }
-                  return { label: s, icon: CameraOff, variant: "destructive" as const }
+                  return {
+                    label: s,
+                    icon: CameraOff,
+                    variant: "destructive" as const,
+                  }
                 }
 
                 const ss = screenshotLabel(entry.screenshot_status)

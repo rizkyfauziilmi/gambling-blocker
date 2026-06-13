@@ -204,7 +204,7 @@ def _capture_screenshot(url: str) -> tuple[bytes | None, str | None]:
             `;
             document.documentElement.appendChild(s);
         })();
-    """
+    """  # noqa: E501
 
     REMOVE_OVERLAYS: str = """
         (() => {
