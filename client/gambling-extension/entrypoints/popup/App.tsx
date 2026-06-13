@@ -7,16 +7,16 @@ import {
   Image,
   Loader2,
   Scan,
+  Settings,
   Shield,
   ShieldCheck,
   ShieldX,
   TriangleAlert,
 } from "lucide-react"
+import { initLanguage, t } from "@/utils/i18n"
 
 const API_BASE = import.meta.env.WXT_API_BASE
 const EXT_URL = browser.runtime.getURL("")
-const t = (key: string, ...args: (string | number)[]) =>
-  browser.i18n.getMessage(key as never, args.map(String))
 
 function shouldSkip(url: string): boolean {
   try {
@@ -101,9 +101,15 @@ function App() {
   >("idle")
 
   useEffect(() => {
-    browser.tabs
-      .query({ active: true, currentWindow: true })
-      .then(([tab]) => {
+    ;(async () => {
+      await initLanguage()
+
+      try {
+        const [tab] = await browser.tabs.query({
+          active: true,
+          currentWindow: true,
+        })
+
         if (!tab.url) {
           setTabUrl("")
           setStatus("skipped")
@@ -122,14 +128,12 @@ function App() {
             return
         }
 
-        // hit cache for full result (including text_score, image_score)
         setStatus("loading")
         const params = new URLSearchParams({ url: check.originalUrl })
-        return fetch(`${API_BASE}/classify/result?${params}`)
-      })
-      .then((res) => res?.json())
-      .then((data: Result) => {
+        const res = await fetch(`${API_BASE}/classify/result?${params}`)
+        const data: Result = await res.json()
         if (!data) return
+
         setResult(data)
         if (data.status === "not_classified") {
           setStatus("not_classified")
@@ -140,8 +144,10 @@ function App() {
         } else {
           setStatus("safe")
         }
-      })
-      .catch(() => setStatus((prev) => (prev === "skipped" ? prev : "error")))
+      } catch {
+        setStatus((prev) => (prev === "skipped" ? prev : "error"))
+      }
+    })()
   }, [])
 
   async function handleReport() {
@@ -447,6 +453,14 @@ function App() {
           {reportState === "idle" && t("popup_reportFalsePositive")}
         </button>
       ) : null}
+
+      <button
+        onClick={() => browser.runtime.openOptionsPage()}
+        className="mt-3 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-medium text-gray-500 shadow-xs transition-all hover:bg-gray-50"
+      >
+        <Settings className="size-3" />
+        {t("extName")} Settings
+      </button>
     </div>
   )
 }

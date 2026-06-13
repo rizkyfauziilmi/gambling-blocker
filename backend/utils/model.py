@@ -446,7 +446,7 @@ def _infer_multipage(url: str, prob_root: float) -> float:
     avg = prod(max(s, 1e-8) for s in scores) ** (1 / len(scores))
     log(
         "MULTIPAGE",
-        f"root={prob_root:.4f} sampled={sampled} scores={[round(s, 4) for s in scores]} avg={avg:.4f}",
+        f"root={prob_root:.4f} sampled={sampled} scores={[round(s, 4) for s in scores]} avg={avg:.4f}",  # noqa: E501
     )
     return avg
 

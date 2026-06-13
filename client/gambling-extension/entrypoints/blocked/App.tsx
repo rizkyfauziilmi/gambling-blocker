@@ -1,10 +1,17 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Flag, ShieldX } from "lucide-react"
+import { initLanguage, getCurrentLanguage, t as i18nT } from "@/utils/i18n"
 
 const API_BASE = import.meta.env.WXT_API_BASE
-const t = browser.i18n.getMessage
 
 function App() {
+  const [, setReady] = useState(false)
+
+  useEffect(() => {
+    initLanguage().then(() => setReady(true))
+  }, [])
+
+  const t = i18nT
   const params = new URLSearchParams(window.location.search)
   const blockedUrl = params.get("url")
   const gamblingScore = params.get("gambling_score")

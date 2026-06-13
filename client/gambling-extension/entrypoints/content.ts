@@ -1,3 +1,5 @@
+import { initLanguage, t } from "@/utils/i18n"
+
 function shouldSkip(url: string): boolean {
   try {
     const p = new URL(url)
@@ -19,7 +21,9 @@ function shouldSkip(url: string): boolean {
 export default defineContentScript({
   matches: ["*://*/*"],
   runAt: "document_start",
-  main(ctx) {
+  async main(ctx) {
+    await initLanguage()
+
     const url = window.location.href
     if (shouldSkip(url)) return
 
@@ -76,8 +80,8 @@ export default defineContentScript({
     overlay.innerHTML = `
       <div class="gb-container">
         <div class="gb-spinner"></div>
-        <h1>${browser.i18n.getMessage("loading_title")}</h1>
-        <p>${browser.i18n.getMessage("loading_description")}</p>
+        <h1>${t("loading_title")}</h1>
+        <p>${t("loading_description")}</p>
       </div>
     `
     document.documentElement.appendChild(overlay)
