@@ -91,9 +91,7 @@ export function ReportsTable({
                   colSpan={5}
                   className="py-8 text-center text-muted-foreground"
                 >
-                  {groups.length === 0
-                    ? t("no_reports")
-                    : t("no_match")}
+                  {groups.length === 0 ? t("no_reports") : t("no_match")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -128,12 +126,16 @@ export function ReportsTable({
                               </Button>
                             </AlertDialogTrigger>
                           </TooltipTrigger>
-                          <TooltipContent>{t("tooltip_whitelist")}</TooltipContent>
+                          <TooltipContent>
+                            {t("tooltip_whitelist")}
+                          </TooltipContent>
                         </Tooltip>
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>
-                              {t("dialog_whitelist_title", { hostname: g.hostname })}
+                              {t("dialog_whitelist_title", {
+                                hostname: g.hostname,
+                              })}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
                               {t("dialog_whitelist_desc")}
@@ -164,12 +166,16 @@ export function ReportsTable({
                               </Button>
                             </AlertDialogTrigger>
                           </TooltipTrigger>
-                          <TooltipContent>{t("tooltip_blacklist")}</TooltipContent>
+                          <TooltipContent>
+                            {t("tooltip_blacklist")}
+                          </TooltipContent>
                         </Tooltip>
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>
-                              {t("dialog_blacklist_title", { hostname: g.hostname })}
+                              {t("dialog_blacklist_title", {
+                                hostname: g.hostname,
+                              })}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
                               {t("dialog_blacklist_desc")}
@@ -200,12 +206,16 @@ export function ReportsTable({
                               </Button>
                             </AlertDialogTrigger>
                           </TooltipTrigger>
-                          <TooltipContent>{t("tooltip_delete_reports")}</TooltipContent>
+                          <TooltipContent>
+                            {t("tooltip_delete_reports")}
+                          </TooltipContent>
                         </Tooltip>
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>
-                              {t("dialog_delete_title", { hostname: g.hostname })}
+                              {t("dialog_delete_title", {
+                                hostname: g.hostname,
+                              })}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
                               {t("dialog_delete_desc")}

@@ -123,7 +123,10 @@ function App() {
       const session = (await browser.storage.session.get([
         "extensions_bypass",
         "extensions_bypass_expires_at",
-      ])) as { extensions_bypass?: boolean; extensions_bypass_expires_at?: number }
+      ])) as {
+        extensions_bypass?: boolean
+        extensions_bypass_expires_at?: number
+      }
       const expiresAt = session.extensions_bypass_expires_at
       if (session.extensions_bypass && expiresAt && expiresAt > Date.now()) {
         setBypassRemaining(Math.round((expiresAt - Date.now()) / 1000))
@@ -342,8 +345,7 @@ function App() {
             {t("partner_popupActive")}
           </p>
           <p className="mt-0.5 text-[11px] text-indigo-600/70">
-            Bypass expires in{" "}
-            {Math.floor(bypassRemaining / 60)}:
+            Bypass expires in {Math.floor(bypassRemaining / 60)}:
             {String(bypassRemaining % 60).padStart(2, "0")}
           </p>
         </div>

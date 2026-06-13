@@ -79,9 +79,7 @@ export function LogsPanel() {
       <CardHeader className="flex-row items-center justify-between">
         <div>
           <CardTitle>{t("api_logs")}</CardTitle>
-          <CardDescription>
-            {t("logs_desc")}
-          </CardDescription>
+          <CardDescription>{t("logs_desc")}</CardDescription>
         </div>
         <Button
           variant="destructive"
@@ -127,9 +125,15 @@ export function LogsPanel() {
             <table className="w-full table-fixed">
               <thead>
                 <tr className="border-b border-border text-xs text-muted-foreground">
-                  <th className="w-20 px-2 py-1 text-left font-medium">{t("time")}</th>
-                  <th className="w-24 px-2 py-1 text-left font-medium">{t("tag")}</th>
-                  <th className="px-2 py-1 text-left font-medium">{t("message")}</th>
+                  <th className="w-20 px-2 py-1 text-left font-medium">
+                    {t("time")}
+                  </th>
+                  <th className="w-24 px-2 py-1 text-left font-medium">
+                    {t("tag")}
+                  </th>
+                  <th className="px-2 py-1 text-left font-medium">
+                    {t("message")}
+                  </th>
                 </tr>
               </thead>
               <tbody>

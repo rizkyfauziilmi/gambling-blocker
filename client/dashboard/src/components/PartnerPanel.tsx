@@ -34,9 +34,7 @@ export function PartnerPanel({ extensionId }: PartnerPanelProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            {t("no_extension")}
-          </p>
+          <p className="text-sm text-muted-foreground">{t("no_extension")}</p>
         </CardContent>
       </Card>
     )
@@ -65,7 +63,9 @@ export function PartnerPanel({ extensionId }: PartnerPanelProps) {
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">{t("last_heartbeat")}</span>
           <span className="font-medium">
-            {age !== null && age !== undefined ? t("hours_ago", { age }) : t("never")}
+            {age !== null && age !== undefined
+              ? t("hours_ago", { age })
+              : t("never")}
           </span>
         </div>
         <div className="flex justify-between text-sm">

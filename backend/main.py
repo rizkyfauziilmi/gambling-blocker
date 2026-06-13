@@ -128,10 +128,11 @@ class ExtensionSetupBody(BaseModel):
 def extension_setup(body: ExtensionSetupBody) -> dict:
     result = setup_partner(body.extension_id, body.partner_email)
     record_heartbeat(body.extension_id)
-    log_msg("PARTNER",
-            f"partner set up for {body.extension_id} → {body.partner_email}")
-    log_msg("HEARTBEAT",
-            f"initial heartbeat recorded for {body.extension_id} (via partner setup)")
+    log_msg("PARTNER", f"partner set up for {body.extension_id} → {body.partner_email}")
+    log_msg(
+        "HEARTBEAT",
+        f"initial heartbeat recorded for {body.extension_id} (via partner setup)",
+    )
     email_ok = send_partner_password(body.partner_email, result["password"])
     if not email_ok:
         log_msg("PARTNER", f"email FAILED to {body.partner_email}")

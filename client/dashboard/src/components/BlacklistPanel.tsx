@@ -127,7 +127,9 @@ export function BlacklistPanel() {
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>
-                            {t("remove_from_blacklist", { hostname: entry.hostname })}
+                            {t("remove_from_blacklist", {
+                              hostname: entry.hostname,
+                            })}
                           </AlertDialogTitle>
                           <AlertDialogDescription>
                             {t("will_not_be_blocked")}

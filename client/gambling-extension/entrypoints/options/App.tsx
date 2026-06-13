@@ -49,7 +49,10 @@ function App() {
         const session = (await browser.storage.session.get([
           "extensions_bypass",
           "extensions_bypass_expires_at",
-        ])) as { extensions_bypass?: boolean; extensions_bypass_expires_at?: number }
+        ])) as {
+          extensions_bypass?: boolean
+          extensions_bypass_expires_at?: number
+        }
         if (
           session.extensions_bypass &&
           session.extensions_bypass_expires_at! > Date.now()

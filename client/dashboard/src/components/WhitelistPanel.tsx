@@ -128,7 +128,9 @@ export function WhitelistPanel() {
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>
-                            {t("remove_from_whitelist", { hostname: entry.hostname })}
+                            {t("remove_from_whitelist", {
+                              hostname: entry.hostname,
+                            })}
                           </AlertDialogTitle>
                           <AlertDialogDescription>
                             {t("will_not_be_allowed")}

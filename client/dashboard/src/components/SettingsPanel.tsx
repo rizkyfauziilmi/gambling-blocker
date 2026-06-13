@@ -1,4 +1,10 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { useSettings } from "@/hooks/useSettings"
@@ -9,9 +15,15 @@ import { useI18n } from "@/i18n/context"
 import { SlidersHorizontal, Database, Activity, Palette } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
-function SectionHeading({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactNode }) {
+function SectionHeading({
+  icon: Icon,
+  children,
+}: {
+  icon: LucideIcon
+  children: React.ReactNode
+}) {
   return (
-    <h3 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+    <h3 className="flex items-center gap-2 text-sm font-semibold tracking-wider text-muted-foreground uppercase">
       <Icon className="h-4 w-4" />
       {children}
     </h3>
@@ -50,13 +62,13 @@ export function SettingsPanel() {
     <Card>
       <CardHeader>
         <CardTitle>{t("settings_title")}</CardTitle>
-        <CardDescription>
-          {t("settings_desc")}
-        </CardDescription>
+        <CardDescription>{t("settings_desc")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <section className="bg-muted/40 rounded-lg border border-border/50 p-4 space-y-4">
-          <SectionHeading icon={SlidersHorizontal}>{t("section_features")}</SectionHeading>
+        <section className="space-y-4 rounded-lg border border-border/50 bg-muted/40 p-4">
+          <SectionHeading icon={SlidersHorizontal}>
+            {t("section_features")}
+          </SectionHeading>
 
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5">
@@ -107,7 +119,7 @@ export function SettingsPanel() {
           </div>
         </section>
 
-        <section className="bg-muted/40 rounded-lg border border-border/50 p-4 space-y-4">
+        <section className="space-y-4 rounded-lg border border-border/50 bg-muted/40 p-4">
           <SectionHeading icon={Database}>{t("section_cache")}</SectionHeading>
 
           <div className="space-y-2">
@@ -131,13 +143,17 @@ export function SettingsPanel() {
           </div>
         </section>
 
-        <section className="bg-muted/40 rounded-lg border border-border/50 p-4 space-y-4">
-          <SectionHeading icon={Activity}>{t("section_monitoring")}</SectionHeading>
+        <section className="space-y-4 rounded-lg border border-border/50 bg-muted/40 p-4">
+          <SectionHeading icon={Activity}>
+            {t("section_monitoring")}
+          </SectionHeading>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-4">
               <div className="space-y-0.5">
-                <div className="text-sm font-medium">{t("stale_threshold")}</div>
+                <div className="text-sm font-medium">
+                  {t("stale_threshold")}
+                </div>
               </div>
               <span className="text-sm font-medium tabular-nums">
                 {settings.stale_hours}h
@@ -167,7 +183,9 @@ export function SettingsPanel() {
             </div>
             <Slider
               value={[settings.stale_check_interval_minutes]}
-              onValueChange={([v]) => update.mutate({ stale_check_interval_minutes: v })}
+              onValueChange={([v]) =>
+                update.mutate({ stale_check_interval_minutes: v })
+              }
               min={5}
               max={120}
               step={5}
@@ -179,8 +197,10 @@ export function SettingsPanel() {
           </div>
         </section>
 
-        <section className="bg-muted/40 rounded-lg border border-border/50 p-4 space-y-4">
-          <SectionHeading icon={Palette}>{t("section_preferences")}</SectionHeading>
+        <section className="space-y-4 rounded-lg border border-border/50 bg-muted/40 p-4">
+          <SectionHeading icon={Palette}>
+            {t("section_preferences")}
+          </SectionHeading>
 
           <div className="space-y-2">
             <div className="text-sm font-medium">{t("language")}</div>

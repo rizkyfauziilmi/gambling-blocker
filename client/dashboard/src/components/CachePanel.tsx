@@ -90,7 +90,9 @@ export function CachePanel() {
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>{t("delete_all_cache_confirm")}</AlertDialogTitle>
+                <AlertDialogTitle>
+                  {t("delete_all_cache_confirm")}
+                </AlertDialogTitle>
                 <AlertDialogDescription>
                   {t("delete_all_cache_desc", { count: data.entries.length })}
                 </AlertDialogDescription>
@@ -283,7 +285,9 @@ export function CachePanel() {
                             </DialogTrigger>
                             <DialogContent className="max-w-3xl">
                               <DialogHeader>
-                                <DialogTitle>{t("screenshot_dialog_title")}</DialogTitle>
+                                <DialogTitle>
+                                  {t("screenshot_dialog_title")}
+                                </DialogTitle>
                                 <DialogDescription>
                                   {hostname}
                                 </DialogDescription>
@@ -304,7 +308,9 @@ export function CachePanel() {
                           </span>
                         )
                       ) : (
-                        <span className="text-xs text-muted-foreground">{t("no_cached")}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {t("no_cached")}
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -323,7 +329,9 @@ export function CachePanel() {
                                 </Button>
                               </AlertDialogTrigger>
                             </TooltipTrigger>
-                            <TooltipContent>{t("tooltip_whitelist")}</TooltipContent>
+                            <TooltipContent>
+                              {t("tooltip_whitelist")}
+                            </TooltipContent>
                           </Tooltip>
                           <AlertDialogContent>
                             <AlertDialogHeader>
@@ -335,7 +343,9 @@ export function CachePanel() {
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+                              <AlertDialogCancel>
+                                {t("cancel")}
+                              </AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => addWhitelist.mutate(entry.url)}
                               >
@@ -359,7 +369,9 @@ export function CachePanel() {
                                 </Button>
                               </AlertDialogTrigger>
                             </TooltipTrigger>
-                            <TooltipContent>{t("tooltip_blacklist")}</TooltipContent>
+                            <TooltipContent>
+                              {t("tooltip_blacklist")}
+                            </TooltipContent>
                           </Tooltip>
                           <AlertDialogContent>
                             <AlertDialogHeader>
@@ -371,7 +383,9 @@ export function CachePanel() {
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+                              <AlertDialogCancel>
+                                {t("cancel")}
+                              </AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => addBlacklist.mutate(entry.url)}
                               >
@@ -393,7 +407,9 @@ export function CachePanel() {
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>{t("tooltip_delete_cache")}</TooltipContent>
+                          <TooltipContent>
+                            {t("tooltip_delete_cache")}
+                          </TooltipContent>
                         </Tooltip>
                       </div>
                     </TableCell>
