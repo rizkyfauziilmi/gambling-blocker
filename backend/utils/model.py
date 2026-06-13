@@ -341,6 +341,20 @@ def infer_fused(url: str) -> dict[str, Any]:
     seq_tfidf.sort_indices()
     prob_text: float = float(_text_model.predict(seq_tfidf, verbose=0)[0][0])
 
+    # Skip screenshot jika text model sudah konklusif — hemat ~7s
+    if prob_text >= 0.95 or prob_text <= 0.05:
+        return {
+            "url": url,
+            "category": "gambling" if prob_text > _image_threshold else "non-gambling",
+            "gambling_score": round(prob_text, 4),
+            "text_score": round(prob_text, 4),
+            "image_score": None,
+            "fusion_alpha": _image_alpha,
+            "screenshot_url": None,
+            "screenshot_object_key": None,
+            "screenshot_status": "bypass_text_only",
+        }
+
     img_bytes, http_status = _capture_screenshot(url)
     prob_image: float | None = None
     screenshot_url: str | None = None
