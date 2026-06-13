@@ -27,7 +27,7 @@ export function SettingsPanel() {
 
   const cacheDate = useMemo(
     () => cacheExpiresAtToDate(settings?.cache_expires_at ?? null),
-    [settings?.cache_expires_at],
+    [settings?.cache_expires_at]
   )
 
   if (isLoading) {
@@ -128,7 +128,9 @@ export function SettingsPanel() {
           </div>
           <DateTimePicker
             value={cacheDate}
-            onChange={(d) => update.mutate({ cache_expires_at: dateToCacheExpiresAt(d) })}
+            onChange={(d) =>
+              update.mutate({ cache_expires_at: dateToCacheExpiresAt(d) })
+            }
             clearable
             disabled={update.isPending}
           />

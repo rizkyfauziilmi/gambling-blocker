@@ -29,15 +29,19 @@ function tagColor(tag: string): string {
 function LogRow({ entry }: { entry: LogEntry }) {
   return (
     <tr className="border-b border-border text-xs">
-      <td className="whitespace-nowrap px-2 py-1 font-mono text-muted-foreground">
+      <td className="px-2 py-1 font-mono whitespace-nowrap text-muted-foreground">
         {format(new Date(entry.time), "HH:mm:ss")}
       </td>
       <td className="px-2 py-1">
-        <Badge className={`${tagColor(entry.tag)} text-white hover:${tagColor(entry.tag)}`}>
+        <Badge
+          className={`${tagColor(entry.tag)} text-white hover:${tagColor(entry.tag)}`}
+        >
           {entry.tag}
         </Badge>
       </td>
-      <td className="px-2 py-1 font-mono">{entry.message}</td>
+      <td className="px-2 py-1 font-mono break-all whitespace-pre-wrap">
+        {entry.message}
+      </td>
     </tr>
   )
 }
@@ -64,7 +68,7 @@ export function LogsPanel() {
         acc[e.tag] = (acc[e.tag] ?? 0) + 1
         return acc
       },
-      {} as Record<string, number>,
+      {} as Record<string, number>
     )
   }, [data])
 
@@ -73,7 +77,9 @@ export function LogsPanel() {
       <CardHeader className="flex-row items-center justify-between">
         <div>
           <CardTitle>API Logs</CardTitle>
-          <CardDescription>Recent backend logs (last 1000 entries)</CardDescription>
+          <CardDescription>
+            Recent backend logs (last 1000 entries)
+          </CardDescription>
         </div>
         <Button
           variant="destructive"
@@ -107,14 +113,16 @@ export function LogsPanel() {
         </div>
 
         {isLoading ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">Loading logs...</div>
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            Loading logs...
+          </div>
         ) : !data?.entries?.length ? (
           <div className="py-8 text-center text-sm text-muted-foreground">
             No logs yet
           </div>
         ) : (
           <ScrollArea className="h-[500px] rounded-md border">
-            <table className="w-full">
+            <table className="w-full table-fixed">
               <thead>
                 <tr className="border-b border-border text-xs text-muted-foreground">
                   <th className="w-20 px-2 py-1 text-left font-medium">Time</th>

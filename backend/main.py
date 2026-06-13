@@ -16,13 +16,13 @@ from utils.cache import is_available as cache_available
 from utils.cache import scan as cache_scan
 from utils.cache import setex as cache_setex
 from utils.helpers import cache_key, is_ip, parse_hostname
-from utils.logger import get_logs as logs_get
-from utils.logger import clear as logs_clear
-from utils.logger import log as log_msg
 from utils.lists import add_entry as list_add
 from utils.lists import check_hostname as list_check
 from utils.lists import get_entries as list_get
 from utils.lists import remove_entry as list_remove
+from utils.logger import clear as logs_clear
+from utils.logger import get_logs as logs_get
+from utils.logger import log as log_msg
 from utils.model import infer_fused
 from utils.model import is_loaded as model_loaded
 from utils.reports import delete_report as reports_delete
@@ -76,7 +76,9 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
                 result = json.loads(cached)
                 enrich_screenshot_url(result)
                 result["from_cache"] = True
-                log_msg("API", f"served from fallback cache | result={json.dumps(result)}")
+                log_msg(
+                    "API", f"served from fallback cache | result={json.dumps(result)}"
+                )
                 return result
             log_msg("API", "raising 429")
             raise HTTPException(
@@ -453,7 +455,12 @@ def update_settings(
     body: dict,
     _: None = Depends(require_auth),
 ) -> dict:
-    allowed = {"bypass_text_enabled", "multipage_enabled", "debug_logging_enabled", "cache_expires_at"}
+    allowed = {
+        "bypass_text_enabled",
+        "multipage_enabled",
+        "debug_logging_enabled",
+        "cache_expires_at",
+    }
     updates = {k: v for k, v in body.items() if k in allowed}
     if not updates:
         raise HTTPException(status_code=400, detail="No valid fields provided")

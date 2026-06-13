@@ -10,7 +10,13 @@ import { LogsPanel } from "@/components/LogsPanel"
 import { useState } from "react"
 
 export function App() {
-  type TabKey = "reports" | "blacklist" | "whitelist" | "cache" | "settings" | "logs"
+  type TabKey =
+    | "reports"
+    | "blacklist"
+    | "whitelist"
+    | "cache"
+    | "settings"
+    | "logs"
 
   const [activeTabs, setActiveTabs] = useState<TabKey>("reports")
 

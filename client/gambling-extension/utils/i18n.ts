@@ -49,8 +49,7 @@ const messages: Record<string, Record<string, string>> = {
   },
   id: {
     extName: "Gambling Blocker",
-    extDescription:
-      "Mendeteksi dan memblokir situs perjudian secara otomatis.",
+    extDescription: "Mendeteksi dan memblokir situs perjudian secara otomatis.",
     popup_title: "Gambling Blocker",
     popup_protectionActive: "Perlindungan Aktif",
     popup_currentTab: "Tab Saat Ini",

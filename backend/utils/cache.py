@@ -54,7 +54,9 @@ def setex(key: str, value: str) -> None:
     try:
         expires_at = get_settings().get("cache_expires_at")
         if expires_at:
-            ttl = int((datetime.fromisoformat(expires_at) - datetime.now()).total_seconds())
+            ttl = int(
+                (datetime.fromisoformat(expires_at) - datetime.now()).total_seconds()
+            )
             if ttl > 0:
                 _redis.setex(key, ttl, value)
                 return
