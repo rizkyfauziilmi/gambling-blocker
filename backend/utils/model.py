@@ -6,6 +6,7 @@ from hashlib import md5
 from io import BytesIO
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import joblib
 import numpy as np
@@ -330,16 +331,89 @@ def _http_status_label(status: str | None) -> str:
     return f"http_error_{status}"
 
 
+def _infer_multipage(url: str, prob_root: float) -> float:
+    """Infer root URL + up to 5 internal paths, return average score.
+    Hanya jalan untuk root domain (path kosong).
+    Fallback ke prob_root jika fetch gagal atau tak ada path.
+    """
+    import re
+
+    import requests
+    from urllib.parse import urljoin, urlparse
+
+    parsed = urlparse(url)
+    if parsed.path not in ("", "/"):
+        return prob_root
+
+    try:
+        resp = requests.get(
+            url,
+            timeout=5,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/125.0.0.0 Safari/537.36"
+                ),
+            },
+        )
+        resp.raise_for_status()
+    except Exception:
+        return prob_root
+
+    seen: set[str] = set()
+    paths: list[str] = []
+    for href in re.findall(r'href="([^"]*)"', resp.text):
+        if href.startswith("/"):
+            p = urlparse(href).path
+        else:
+            p_url = urlparse(href)
+            if p_url.netloc and p_url.netloc != parsed.netloc:
+                continue
+            p = p_url.path
+        if not p or p == "/":
+            continue
+        if re.search(
+            r"\.(jpg|jpeg|png|gif|svg|webp|ico|css|js|woff2?|ttf|eot|pdf|zip|xml)$", p, re.I
+        ):
+            continue
+        if p not in seen:
+            seen.add(p)
+            paths.append(p)
+
+    if not paths:
+        return prob_root
+
+    scores: list[float] = [prob_root]
+    for p in sorted(paths)[:5]:
+        cleaned = clean_url(urljoin(url, p))
+        seq = _vectorizer.transform([cleaned])
+        seq.sort_indices()
+        prob = float(_text_model.predict(seq, verbose=0)[0][0])
+        scores.append(prob)
+
+    return sum(scores) / len(scores)
+
+
 def infer_fused(url: str) -> dict[str, Any]:
     assert _vectorizer is not None
     assert _text_model is not None
     assert _image_model is not None
     assert _image_scaler is not None
 
-    cleaned: str = clean_url(url)
-    seq_tfidf = _vectorizer.transform([cleaned])
-    seq_tfidf.sort_indices()
-    prob_text: float = float(_text_model.predict(seq_tfidf, verbose=0)[0][0])
+    # Multipage inference untuk akurasi lebih baik (terutama root domain)
+    parsed = urlparse(url)
+    if parsed.path in ("", "/"):
+        cleaned = clean_url(url)
+        seq_tfidf = _vectorizer.transform([cleaned])
+        seq_tfidf.sort_indices()
+        prob_text = float(_text_model.predict(seq_tfidf, verbose=0)[0][0])
+        prob_text = _infer_multipage(url, prob_text)
+    else:
+        cleaned = clean_url(url)
+        seq_tfidf = _vectorizer.transform([cleaned])
+        seq_tfidf.sort_indices()
+        prob_text = float(_text_model.predict(seq_tfidf, verbose=0)[0][0])
 
     # Skip screenshot jika text model sudah konklusif — hemat ~7s
     if prob_text >= 0.95 or prob_text <= 0.05:
