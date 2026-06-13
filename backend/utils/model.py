@@ -305,7 +305,10 @@ def _capture_screenshot(url: str) -> tuple[bytes | None, str | None]:
 
             page.add_init_script(INIT_CSS)
 
+            import time
+            t0 = time.time()
             resp = page.goto(url, timeout=7000, wait_until="domcontentloaded")
+            t1 = time.time()
 
             try:
                 page.evaluate(REMOVE_OVERLAYS)
@@ -316,10 +319,24 @@ def _capture_screenshot(url: str) -> tuple[bytes | None, str | None]:
 
             http_status: str | None = str(resp.status) if resp else None
             buf: bytes = page.screenshot(full_page=False)
+            t2 = time.time()
+
+            title = page.title()
+            buf_kb = len(buf) / 1024
+            print(
+                f"[SCREENSHOT] {url} "
+                f"status={http_status} "
+                f"title={title[:80]!r} "
+                f"goto={t1-t0:.1f}s "
+                f"ss={t2-t1:.1f}s "
+                f"size={buf_kb:.0f}KB "
+                f"threshold={NOISE_SIZE_LIMIT/1024:.0f}KB "
+                f"noise={buf_kb < NOISE_SIZE_LIMIT/1024}"
+            )
             browser.close()
         return buf, http_status
     except Exception as e:
-        print(f"[WARN] Screenshot failed for {url}: {e}")
+        print(f"[WARN] Screenshot failed for {url}: {type(e).__name__}: {e}")
         return None, None
 
 
