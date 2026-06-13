@@ -78,20 +78,20 @@ Untuk URL domain root (path kosong atau "/"), sistem melakukan crawling internal
 ```mermaid
 sequenceDiagram
     participant User
-    participant Opt as Options Page
+    participant Options as Options Page
     participant BG as Background
     participant API as Backend API
     participant Partner as Email Partner
 
-    User->>Opt: Masukkan email partner
-    Opt->>BG: Kirim extension_id + email
+    User->>Options: Masukkan email partner
+    Options->>BG: Kirim extension_id + email
     BG->>API: POST /extension/setup
     API->>API: Generate password (16 char random)
     API->>API: PBKDF2 hash (SHA-256, 600K iter)
     API->>API: record_heartbeat()
     API->>Partner: Email password
-    API-->>Opt: {password_hash, password_salt}
-    Opt->>User: Simpan hash + salt di storage.local
+    API-->>Options: {password_hash, password_salt}
+    Options->>User: Simpan hash + salt di storage.local
 ```
 
 ### Password Gate & Bypass
