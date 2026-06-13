@@ -23,6 +23,7 @@ function loadLocale(): Locale {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored === "en" || stored === "id") return stored
+    // eslint-disable-next-line no-empty
   } catch {}
   return "en"
 }
@@ -35,6 +36,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, locale)
+      // eslint-disable-next-line no-empty
     } catch {}
   }, [locale])
 
@@ -58,6 +60,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useI18n(): I18nContextValue {
   const ctx = useContext(I18nContext)
   if (!ctx) throw new Error("useI18n must be used within I18nProvider")
