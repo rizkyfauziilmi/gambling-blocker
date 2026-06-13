@@ -63,13 +63,12 @@ interface Result {
 
 interface TabCheckResult {
   originalUrl: string
-  status: "blocked_page" | "loading_page" | "normal" | "skipped"
+  status: "blocked_page" | "normal" | "skipped"
   params?: { gambling_score?: number; from_list?: string }
 }
 
 function checkTab(tabUrl: string): TabCheckResult {
   const blockedPath = `${EXT_URL}blocked.html`
-  const loadingPath = `${EXT_URL}loading.html`
 
   if (tabUrl.startsWith(blockedPath)) {
     const p = new URLSearchParams(new URL(tabUrl).search)
@@ -80,14 +79,6 @@ function checkTab(tabUrl: string): TabCheckResult {
         gambling_score: Number(p.get("gambling_score")) || undefined,
         from_list: p.get("from_list") || undefined,
       },
-    }
-  }
-
-  if (tabUrl.startsWith(loadingPath)) {
-    const p = new URLSearchParams(new URL(tabUrl).search)
-    return {
-      originalUrl: p.get("url") || tabUrl,
-      status: "loading_page",
     }
   }
 
@@ -126,9 +117,6 @@ function App() {
           case "blocked_page":
           case "normal":
             break
-          case "loading_page":
-            setStatus("loading")
-            return
           case "skipped":
             setStatus("skipped")
             return
@@ -206,18 +194,26 @@ function App() {
         </div>
       )
     }
-    if (s === "capture_failed" || s?.endsWith("_noise")) {
-      return (
-        <div className="flex items-center gap-1 text-xs text-gray-400">
-          <CameraOff className="size-3" />
-          <span>{t("popup_screenshot_failed")}</span>
-        </div>
-      )
+    let label: string
+    if (s.startsWith("http_error_")) {
+      const code = s.replace("http_error_", "").replace("_noise", "")
+      label = s.endsWith("_noise") ? `Noise (HTTP ${code})` : `HTTP ${code}`
+    } else {
+      const labels: Record<string, string> = {
+        bypass_list: "By List",
+        bypass_bare_ip: "Bare IP",
+        bypass_text_only: "Text Only",
+        capture_failed: "Capture Failed",
+        extraction_failed: "Extraction Failed",
+        noise_screenshot: "Noise",
+        no_screenshot: "No Screenshot",
+      }
+      label = labels[s] ?? s
     }
     return (
       <div className="flex items-center gap-1 text-xs text-gray-400">
         <CameraOff className="size-3" />
-        <span>{s}</span>
+        <span>{label}</span>
       </div>
     )
   }

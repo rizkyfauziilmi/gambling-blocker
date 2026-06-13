@@ -1,56 +1,51 @@
 const API_BASE = import.meta.env.WXT_API_BASE
 
-function shouldSkip(url: string): boolean {
-  try {
-    const parsed = new URL(url)
-    if (
-      parsed.protocol === "chrome-extension:" ||
-      parsed.protocol === "moz-extension:"
-    )
-      return true
-    if (
-      parsed.hostname === "127.0.0.1" ||
-      parsed.hostname === "localhost" ||
-      parsed.hostname === "[::1]" ||
-      parsed.hostname === "0.0.0.0"
-    )
-      return true
-    return false
-  } catch {
-    return true
-  }
+interface ClassifyMsg {
+  type: "classify"
+  url: string
+}
+
+interface RedirectMsg {
+  type: "redirect"
+  url: string
+  gambling_score: string
+  from_list: string
+}
+
+type BgMsg = ClassifyMsg | RedirectMsg
+
+function isClassifyMsg(msg: BgMsg): msg is ClassifyMsg {
+  return msg.type === "classify"
+}
+
+function isRedirectMsg(msg: BgMsg): msg is RedirectMsg {
+  return msg.type === "redirect"
 }
 
 export default defineBackground(() => {
-  const recentlyChecked = new Map<number, { hostname: string; ts: number }>()
+  browser.runtime.onMessage.addListener(
+    (msg: BgMsg, sender: Browser.runtime.MessageSender) => {
+      if (isClassifyMsg(msg)) {
+        return fetch(
+          `${API_BASE}/classify/url-fused?url=${encodeURIComponent(msg.url)}`
+        ).then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          return res.json()
+        })
+      }
 
-  browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-    console.log("[BG] onUpdated:", {
-      tabId,
-      status: changeInfo.status,
-      url: tab.url,
-    })
+      if (isRedirectMsg(msg)) {
+        const tabId = sender.tab?.id
+        if (!tabId) return
 
-    if (changeInfo.status !== "loading") return
-    if (!tab.url || !tab.url.startsWith("http")) return
-    if (shouldSkip(tab.url)) return
-
-    const tabHostname = new URL(tab.url).hostname
-    const prev = recentlyChecked.get(tabId)
-    const now = Date.now()
-
-    // Skip jika hostname yg sama di tab yg sama dalam 2 detik.
-    // Mencegah: (1) redirect-back dari loading page, (2) duplicate Chrome event.
-    if (prev?.hostname === tabHostname && now - prev.ts < 2000) {
-      console.log("[BG] skip recently checked:", tab.url)
-      return
+        const qp = new URLSearchParams({
+          url: msg.url,
+          gambling_score: msg.gambling_score,
+          from_list: msg.from_list,
+        })
+        const blockedUrl = browser.runtime.getURL("/blocked.html") + "?" + qp
+        browser.tabs.update(tabId, { url: blockedUrl })
+      }
     }
-
-    console.log("[BG] redirecting to loading page:", tab.url)
-    recentlyChecked.set(tabId, { hostname: tabHostname, ts: now })
-    const params = new URLSearchParams({ url: tab.url })
-    const loadingUrl =
-      browser.runtime.getURL("/loading.html" as never) + "?" + params
-    browser.tabs.update(tabId, { url: loadingUrl })
-  })
+  )
 })

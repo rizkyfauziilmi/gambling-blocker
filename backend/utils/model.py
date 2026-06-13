@@ -297,17 +297,25 @@ def _capture_screenshot(url: str) -> tuple[bytes | None, str | None]:
 
             page.on("dialog", lambda d: d.dismiss())
 
-            page.route("**/*", lambda route: (
-                route.abort()
-                if any(d in route.request.url for d in BLOCKED_DOMAINS)
-                else route.continue_()
-            ))
+            page.route(
+                "**/*",
+                lambda route: (
+                    route.abort()
+                    if any(d in route.request.url for d in BLOCKED_DOMAINS)
+                    else route.continue_()
+                ),
+            )
 
             page.add_init_script(INIT_CSS)
 
             import time
+
             t0 = time.time()
-            resp = page.goto(url, timeout=7000, wait_until="domcontentloaded")
+            resp = page.goto(url, timeout=10000, wait_until="domcontentloaded")
+            try:
+                page.wait_for_load_state("load", timeout=5000)
+            except Exception:
+                pass
             t1 = time.time()
 
             try:
@@ -327,11 +335,11 @@ def _capture_screenshot(url: str) -> tuple[bytes | None, str | None]:
                 f"[SCREENSHOT] {url} "
                 f"status={http_status} "
                 f"title={title[:80]!r} "
-                f"goto={t1-t0:.1f}s "
-                f"ss={t2-t1:.1f}s "
+                f"goto={t1 - t0:.1f}s "
+                f"ss={t2 - t1:.1f}s "
                 f"size={buf_kb:.0f}KB "
-                f"threshold={NOISE_SIZE_LIMIT/1024:.0f}KB "
-                f"noise={buf_kb < NOISE_SIZE_LIMIT/1024}"
+                f"threshold={NOISE_SIZE_LIMIT / 1024:.0f}KB "
+                f"noise={buf_kb < NOISE_SIZE_LIMIT / 1024}"
             )
             browser.close()
         return buf, http_status
@@ -355,11 +363,11 @@ def _infer_multipage(url: str, prob_root: float) -> float:
     Agregasi: average subpaths (tanpa root).
     Fallback ke prob_root jika fetch gagal atau tak ada path.
     """
-    from collections import defaultdict
     import re
+    from collections import defaultdict
+    from urllib.parse import urljoin, urlparse
 
     import requests
-    from urllib.parse import urljoin, urlparse
 
     parsed = urlparse(url)
     if parsed.path not in ("", "/"):
@@ -444,7 +452,7 @@ def _infer_multipage(url: str, prob_root: float) -> float:
     avg = prod(max(s, 1e-8) for s in scores) ** (1 / len(scores))
     print(
         f"[MULTIPAGE] root={prob_root:.4f} sampled={sampled} "
-        f"scores={[round(s,4) for s in scores]} avg={avg:.4f}"
+        f"scores={[round(s, 4) for s in scores]} avg={avg:.4f}"
     )
     return avg
 
@@ -469,7 +477,7 @@ def infer_fused(url: str) -> dict[str, Any]:
         seq_tfidf.sort_indices()
         prob_text = float(_text_model.predict(seq_tfidf, verbose=0)[0][0])
 
-    # Skip screenshot jika text model sudah konklusif — hemat ~7s
+    # Skip screenshot jika text model sudah konklusif
     if prob_text >= 0.95 or prob_text <= 0.05:
         return {
             "url": url,
