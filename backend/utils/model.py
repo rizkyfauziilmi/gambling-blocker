@@ -332,10 +332,13 @@ def _http_status_label(status: str | None) -> str:
 
 
 def _infer_multipage(url: str, prob_root: float) -> float:
-    """Infer root URL + up to 5 internal paths, return average score.
+    """Infer root URL + internal subpaths untuk akurasi lebih baik.
     Hanya jalan untuk root domain (path kosong).
+    Sampling: path depth >= 2, stratified per directory, max 8.
+    Agregasi: average subpaths (tanpa root).
     Fallback ke prob_root jika fetch gagal atau tak ada path.
     """
+    from collections import defaultdict
     import re
 
     import requests
@@ -363,41 +366,67 @@ def _infer_multipage(url: str, prob_root: float) -> float:
         return prob_root
 
     seen: set[str] = set()
-    paths: list[str] = []
+    raw_paths: list[str] = []
     for href in re.findall(r'href="([^"]*)"', resp.text):
-        if href.startswith("/"):
-            p = urlparse(href).path
-        else:
-            p_url = urlparse(href)
-            if p_url.netloc and p_url.netloc != parsed.netloc:
-                continue
-            p = p_url.path
+        full = urljoin(url, href)
+        p_url = urlparse(full)
+        if p_url.netloc != parsed.netloc:
+            continue
+        p = p_url.path
         if not p or p == "/":
             continue
         if re.search(
-            r"\.(jpg|jpeg|png|gif|svg|webp|ico|css|js|woff2?|ttf|eot|pdf|zip|xml)$", p, re.I
+            r"\.(jpg|jpeg|png|gif|svg|webp|ico|css|js|woff2?|ttf|eot|pdf|zip|xml)$",
+            p,
+            re.I,
         ):
             continue
         if p not in seen:
             seen.add(p)
-            paths.append(p)
+            raw_paths.append(p)
 
-    if not paths:
+    if not raw_paths:
         print(f"[MULTIPAGE] no internal paths found for {url}")
         return prob_root
 
-    scores: list[float] = [prob_root]
-    for p in sorted(paths)[:5]:
+    # Pisahkan berdasarkan depth
+    deep = [p for p in raw_paths if len([s for s in p.strip("/").split("/") if s]) >= 2]
+    shallow = [p for p in raw_paths if p not in deep]
+
+    sampled: list[str] = []
+    if len(deep) >= 3:
+        # Stratified: max 2 per directory pertama
+        groups: defaultdict[str, list[str]] = defaultdict(list)
+        for p in deep:
+            first_dir = p.strip("/").split("/")[0]
+            groups[first_dir].append(p)
+        for g in sorted(groups):
+            sampled.extend(groups[g][:2])
+        sampled = sampled[:8]
+    else:
+        # Fallback: include depth 1 juga
+        sampled = (deep + shallow)[:8]
+
+    if not sampled:
+        print(f"[MULTIPAGE] no sampled paths for {url}")
+        return prob_root
+
+    scores: list[float] = []
+    for p in sampled:
         full = urljoin(url, p)
         cleaned = clean_url(full)
         seq = _vectorizer.transform([cleaned])
         seq.sort_indices()
         prob = float(_text_model.predict(seq, verbose=0)[0][0])
         scores.append(prob)
-        print(f"[MULTIPAGE] {p} → {prob:.4f}")
+        depth = len([s for s in p.strip("/").split("/") if s])
+        print(f"[MULTIPAGE] depth={depth} {p} → {prob:.4f}")
 
     avg = sum(scores) / len(scores)
-    print(f"[MULTIPAGE] root={prob_root:.4f} paths={[p for p in sorted(paths)[:5]]} scores={[round(s,4) for s in scores]} avg={avg:.4f}")
+    print(
+        f"[MULTIPAGE] root={prob_root:.4f} sampled={sampled} "
+        f"scores={[round(s,4) for s in scores]} avg={avg:.4f}"
+    )
     return avg
 
 
