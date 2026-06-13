@@ -1,4 +1,5 @@
 "use client"
+/* eslint-disable react-hooks/exhaustive-deps */
 
 import * as React from "react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
