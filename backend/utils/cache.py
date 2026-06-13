@@ -1,10 +1,8 @@
 import json
 import os
-from datetime import datetime
 
 import redis as redis_lib
 
-from .config import CACHE_TTL
 from .logger import log
 from .settings import get as get_settings
 from .storage import enrich_screenshot_url
@@ -52,15 +50,10 @@ def setex(key: str, value: str) -> None:
     if not _redis_available or _redis is None:
         return
     try:
-        expires_at = get_settings().get("cache_expires_at")
-        if expires_at:
-            ttl = int(
-                (datetime.fromisoformat(expires_at) - datetime.now()).total_seconds()
-            )
-            if ttl > 0:
-                _redis.setex(key, ttl, value)
-                return
-        _redis.setex(key, CACHE_TTL, value)
+        ttl_hours: int = get_settings().get("cache_ttl_hours", 24)
+        if ttl_hours < 1:
+            ttl_hours = 24
+        _redis.setex(key, ttl_hours * 3600, value)
     except Exception:
         pass
 

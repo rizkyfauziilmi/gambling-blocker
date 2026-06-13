@@ -1,34 +1,26 @@
-import { useMemo } from "react"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
-import { Separator } from "@/components/ui/separator"
-import { DateTimePicker } from "@/components/datetime-picker"
+import { Slider } from "@/components/ui/slider"
 import { useSettings } from "@/hooks/useSettings"
 import { Skeleton } from "@/components/ui/skeleton"
+import { LanguageSwitcher } from "@/components/LanguageSwitcher"
+import { ThemeSwitcher } from "@/components/ThemeSwitcher"
+import { useI18n } from "@/i18n/context"
+import { SlidersHorizontal, Database, Activity, Palette } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 
-function cacheExpiresAtToDate(value: string | null): Date | undefined {
-  if (!value) return undefined
-  const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? undefined : d
-}
-
-function dateToCacheExpiresAt(d: Date | undefined): string | null {
-  return d ? d.toISOString() : null
+function SectionHeading({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactNode }) {
+  return (
+    <h3 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+      <Icon className="h-4 w-4" />
+      {children}
+    </h3>
+  )
 }
 
 export function SettingsPanel() {
   const { data: settings, isLoading, update } = useSettings()
-
-  const cacheDate = useMemo(
-    () => cacheExpiresAtToDate(settings?.cache_expires_at ?? null),
-    [settings?.cache_expires_at]
-  )
+  const { t } = useI18n()
 
   if (isLoading) {
     return (
@@ -48,7 +40,7 @@ export function SettingsPanel() {
     return (
       <Card>
         <CardContent className="py-8 text-center text-sm text-muted-foreground">
-          Failed to load settings
+          {t("failed_load_settings")}
         </CardContent>
       </Card>
     )
@@ -57,84 +49,155 @@ export function SettingsPanel() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Settings</CardTitle>
+        <CardTitle>{t("settings_title")}</CardTitle>
         <CardDescription>
-          Configure feature flags and cache behavior
+          {t("settings_desc")}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div className="space-y-0.5">
-            <div className="text-sm font-medium">Skip Screenshot</div>
+      <CardContent className="space-y-4">
+        <section className="bg-muted/40 rounded-lg border border-border/50 p-4 space-y-4">
+          <SectionHeading icon={SlidersHorizontal}>{t("section_features")}</SectionHeading>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <div className="text-sm font-medium">{t("skip_screenshot")}</div>
+              <div className="text-sm text-muted-foreground">
+                {t("skip_screenshot_desc")}
+              </div>
+            </div>
+            <Switch
+              checked={settings.bypass_text_enabled}
+              onCheckedChange={(checked) =>
+                update.mutate({ bypass_text_enabled: checked })
+              }
+              disabled={update.isPending}
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <div className="text-sm font-medium">{t("multipage")}</div>
+              <div className="text-sm text-muted-foreground">
+                {t("multipage_desc")}
+              </div>
+            </div>
+            <Switch
+              checked={settings.multipage_enabled}
+              onCheckedChange={(checked) =>
+                update.mutate({ multipage_enabled: checked })
+              }
+              disabled={update.isPending}
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <div className="text-sm font-medium">{t("debug_logging")}</div>
+              <div className="text-sm text-muted-foreground">
+                {t("debug_logging_desc")}
+              </div>
+            </div>
+            <Switch
+              checked={settings.debug_logging_enabled}
+              onCheckedChange={(checked) =>
+                update.mutate({ debug_logging_enabled: checked })
+              }
+              disabled={update.isPending}
+            />
+          </div>
+        </section>
+
+        <section className="bg-muted/40 rounded-lg border border-border/50 p-4 space-y-4">
+          <SectionHeading icon={Database}>{t("section_cache")}</SectionHeading>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-4">
+              <Slider
+                value={[settings.cache_ttl_hours]}
+                onValueChange={([v]) => update.mutate({ cache_ttl_hours: v })}
+                min={1}
+                max={24}
+                step={1}
+                disabled={update.isPending}
+                className="flex-1"
+              />
+              <span className="min-w-[3rem] text-right text-sm font-medium tabular-nums">
+                {settings.cache_ttl_hours}h
+              </span>
+            </div>
             <div className="text-sm text-muted-foreground">
-              Skip screenshot capture when text model is already conclusive
-              (score &ge; 0.95 or &le; 0.05)
+              {t("cache_ttl_desc")}
             </div>
           </div>
-          <Switch
-            checked={settings.bypass_text_enabled}
-            onCheckedChange={(checked) =>
-              update.mutate({ bypass_text_enabled: checked })
-            }
-            disabled={update.isPending}
-          />
-        </div>
+        </section>
 
-        <Separator />
+        <section className="bg-muted/40 rounded-lg border border-border/50 p-4 space-y-4">
+          <SectionHeading icon={Activity}>{t("section_monitoring")}</SectionHeading>
 
-        <div className="flex items-center justify-between gap-4">
-          <div className="space-y-0.5">
-            <div className="text-sm font-medium">Multipage Inference</div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <div className="text-sm font-medium">{t("stale_threshold")}</div>
+              </div>
+              <span className="text-sm font-medium tabular-nums">
+                {settings.stale_hours}h
+              </span>
+            </div>
+            <Slider
+              value={[settings.stale_hours]}
+              onValueChange={([v]) => update.mutate({ stale_hours: v })}
+              min={1}
+              max={12}
+              step={1}
+              disabled={update.isPending}
+            />
             <div className="text-sm text-muted-foreground">
-              Run multi-page inference for root domain URLs
+              {t("stale_threshold_desc")}
             </div>
           </div>
-          <Switch
-            checked={settings.multipage_enabled}
-            onCheckedChange={(checked) =>
-              update.mutate({ multipage_enabled: checked })
-            }
-            disabled={update.isPending}
-          />
-        </div>
 
-        <Separator />
-
-        <div className="flex items-center justify-between gap-4">
-          <div className="space-y-0.5">
-            <div className="text-sm font-medium">Debug Logging</div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <div className="text-sm font-medium">{t("check_interval")}</div>
+              </div>
+              <span className="text-sm font-medium tabular-nums">
+                {settings.stale_check_interval_minutes}m
+              </span>
+            </div>
+            <Slider
+              value={[settings.stale_check_interval_minutes]}
+              onValueChange={([v]) => update.mutate({ stale_check_interval_minutes: v })}
+              min={5}
+              max={120}
+              step={5}
+              disabled={update.isPending}
+            />
             <div className="text-sm text-muted-foreground">
-              Show SCREENSHOT, MULTIPAGE, and DBG tags in logs
+              {t("check_interval_desc")}
             </div>
           </div>
-          <Switch
-            checked={settings.debug_logging_enabled}
-            onCheckedChange={(checked) =>
-              update.mutate({ debug_logging_enabled: checked })
-            }
-            disabled={update.isPending}
-          />
-        </div>
+        </section>
 
-        <Separator />
+        <section className="bg-muted/40 rounded-lg border border-border/50 p-4 space-y-4">
+          <SectionHeading icon={Palette}>{t("section_preferences")}</SectionHeading>
 
-        <div className="space-y-2">
-          <div className="space-y-0.5">
-            <div className="text-sm font-medium">Cache Expiration</div>
+          <div className="space-y-2">
+            <div className="text-sm font-medium">{t("language")}</div>
+            <LanguageSwitcher />
             <div className="text-sm text-muted-foreground">
-              Set a specific datetime for cache expiration (empty = default 24h
-              TTL)
+              {t("language_desc")}
             </div>
           </div>
-          <DateTimePicker
-            value={cacheDate}
-            onChange={(d) =>
-              update.mutate({ cache_expires_at: dateToCacheExpiresAt(d) })
-            }
-            clearable
-            disabled={update.isPending}
-          />
-        </div>
+
+          <div className="space-y-2">
+            <div className="text-sm font-medium">{t("theme_label")}</div>
+            <ThemeSwitcher />
+            <div className="text-sm text-muted-foreground">
+              {t("theme_desc")}
+            </div>
+          </div>
+        </section>
       </CardContent>
     </Card>
   )

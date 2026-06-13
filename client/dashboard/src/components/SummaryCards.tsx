@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useI18n } from "@/i18n/context"
 
 interface Stats {
   total: number
@@ -12,6 +13,8 @@ interface SummaryCardsProps {
 }
 
 export function SummaryCards({ stats }: SummaryCardsProps) {
+  const { t } = useI18n()
+
   if (!stats) {
     return (
       <div className="grid gap-4 sm:grid-cols-3">
@@ -30,9 +33,9 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
   }
 
   const cards = [
-    { label: "Total Reports", value: stats.total },
-    { label: "Reports Today", value: stats.today },
-    { label: "Unique Hostnames", value: stats.unique_hostnames },
+    { label: t("total_reports"), value: stats.total },
+    { label: t("reports_today"), value: stats.today },
+    { label: t("unique_hostnames"), value: stats.unique_hostnames },
   ]
 
   return (

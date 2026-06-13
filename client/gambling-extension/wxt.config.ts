@@ -14,7 +14,13 @@ export default defineConfig({
     name: "__MSG_extName__",
     description: "__MSG_extDescription__",
     default_locale: "en",
-    permissions: ["tabs", "storage"],
+    permissions: ["tabs", "storage", "alarms", "notifications"],
     host_permissions: ["http://127.0.0.1:8000/*"],
+    web_accessible_resources: [
+      {
+        matches: ["<all_urls>"],
+        resources: ["/extensions-blocked.html"],
+      },
+    ],
   },
 })

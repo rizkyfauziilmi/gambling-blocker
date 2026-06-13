@@ -5,7 +5,9 @@ export interface Settings {
   bypass_text_enabled: boolean
   multipage_enabled: boolean
   debug_logging_enabled: boolean
-  cache_expires_at: string | null
+  cache_ttl_hours: number
+  stale_hours: number
+  stale_check_interval_minutes: number
 }
 
 async function fetchSettings(): Promise<Settings> {

@@ -28,6 +28,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import type { GroupedReport } from "@/hooks/useReports"
+import { useI18n } from "@/i18n/context"
 
 interface ReportsTableProps {
   groups: GroupedReport[] | undefined
@@ -45,6 +46,7 @@ export function ReportsTable({
   isMutating,
 }: ReportsTableProps) {
   const [search, setSearch] = useState("")
+  const { t } = useI18n()
 
   const filtered = groups
     ? groups.filter((g) =>
@@ -55,7 +57,7 @@ export function ReportsTable({
   return (
     <div className="space-y-4">
       <Input
-        placeholder="Search by hostname..."
+        placeholder={t("search_hostname")}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="max-w-sm"
@@ -65,11 +67,11 @@ export function ReportsTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Hostname</TableHead>
-              <TableHead className="text-right">Reports</TableHead>
-              <TableHead className="text-right">Avg Score</TableHead>
-              <TableHead>Last Reported</TableHead>
-              <TableHead className="w-28">Actions</TableHead>
+              <TableHead>{t("hostname")}</TableHead>
+              <TableHead className="text-right">{t("reports")}</TableHead>
+              <TableHead className="text-right">{t("avg_score")}</TableHead>
+              <TableHead>{t("last_reported")}</TableHead>
+              <TableHead className="w-28">{t("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -90,8 +92,8 @@ export function ReportsTable({
                   className="py-8 text-center text-muted-foreground"
                 >
                   {groups.length === 0
-                    ? "No reports yet"
-                    : "No matching hostnames"}
+                    ? t("no_reports")
+                    : t("no_match")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -126,23 +128,23 @@ export function ReportsTable({
                               </Button>
                             </AlertDialogTrigger>
                           </TooltipTrigger>
-                          <TooltipContent>Add to whitelist</TooltipContent>
+                          <TooltipContent>{t("tooltip_whitelist")}</TooltipContent>
                         </Tooltip>
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>
-                              Whitelist {g.hostname}?
+                              {t("dialog_whitelist_title", { hostname: g.hostname })}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              Reports for this hostname will also be deleted.
+                              {t("dialog_whitelist_desc")}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => onWhitelist(g.hostname)}
                             >
-                              Continue
+                              {t("continue_")}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -162,23 +164,23 @@ export function ReportsTable({
                               </Button>
                             </AlertDialogTrigger>
                           </TooltipTrigger>
-                          <TooltipContent>Add to blacklist</TooltipContent>
+                          <TooltipContent>{t("tooltip_blacklist")}</TooltipContent>
                         </Tooltip>
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>
-                              Blacklist {g.hostname}?
+                              {t("dialog_blacklist_title", { hostname: g.hostname })}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              Reports for this hostname will also be deleted.
+                              {t("dialog_blacklist_desc")}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => onBlacklist(g.hostname)}
                             >
-                              Continue
+                              {t("continue_")}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -198,23 +200,23 @@ export function ReportsTable({
                               </Button>
                             </AlertDialogTrigger>
                           </TooltipTrigger>
-                          <TooltipContent>Delete all reports</TooltipContent>
+                          <TooltipContent>{t("tooltip_delete_reports")}</TooltipContent>
                         </Tooltip>
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>
-                              Delete all reports for {g.hostname}?
+                              {t("dialog_delete_title", { hostname: g.hostname })}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone.
+                              {t("dialog_delete_desc")}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => onDeleteByHostname(g.hostname)}
                             >
-                              Delete
+                              {t("delete")}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -230,7 +232,10 @@ export function ReportsTable({
 
       {groups && (
         <p className="text-sm text-muted-foreground">
-          {groups.length} hostname{groups.length !== 1 && "s"} reported
+          {t("hostname_reported", {
+            count: groups.length,
+            plural: groups.length !== 1 ? t("plural_s") : "",
+          })}
         </p>
       )}
     </div>

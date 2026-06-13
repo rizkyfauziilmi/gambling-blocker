@@ -39,12 +39,14 @@ import {
 import { useCache } from "@/hooks/useCache"
 import { useBlacklist, useWhitelist } from "@/hooks/useLists"
 import { hostnameFromUrl } from "@/utils/url"
+import { useI18n } from "@/i18n/context"
 
 export function CachePanel() {
   const { data, isLoading, remove, flush } = useCache()
   const { add: addBlacklist } = useBlacklist()
   const { add: addWhitelist } = useWhitelist()
   const [filter, setFilter] = useState("")
+  const { t } = useI18n()
 
   const isMutating =
     remove.isPending || addBlacklist.isPending || addWhitelist.isPending
@@ -72,7 +74,7 @@ export function CachePanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Recent classifications from Redis cache
+          {t("recent_classifications")}
         </p>
 
         {data?.entries.length ? (
@@ -83,22 +85,20 @@ export function CachePanel() {
                 size="sm"
                 disabled={flush.isPending}
               >
-                {flush.isPending ? "Deleting..." : "Delete All Cache"}
+                {flush.isPending ? t("deleting") : t("delete_all_cache")}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete all cache?</AlertDialogTitle>
+                <AlertDialogTitle>{t("delete_all_cache_confirm")}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will remove all {data.entries.length} cached
-                  classifications. URLs will be re-classified when visited
-                  again.
+                  {t("delete_all_cache_desc", { count: data.entries.length })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
                 <AlertDialogAction onClick={() => flush.mutate()}>
-                  Delete All
+                  {t("delete_all")}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -107,7 +107,7 @@ export function CachePanel() {
       </div>
 
       <Input
-        placeholder="Search by URL or hostname..."
+        placeholder={t("search_url_hostname")}
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         className="max-w-sm"
@@ -117,14 +117,14 @@ export function CachePanel() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>URL</TableHead>
-              <TableHead>Hostname</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead className="text-right">Fused Score</TableHead>
-              <TableHead className="text-right">Text</TableHead>
-              <TableHead className="text-right">Image</TableHead>
-              <TableHead>Screenshot</TableHead>
-              <TableHead className="w-36">Actions</TableHead>
+              <TableHead>{t("url")}</TableHead>
+              <TableHead>{t("hostname")}</TableHead>
+              <TableHead>{t("category")}</TableHead>
+              <TableHead className="text-right">{t("fused_score")}</TableHead>
+              <TableHead className="text-right">{t("text")}</TableHead>
+              <TableHead className="text-right">{t("image")}</TableHead>
+              <TableHead>{t("screenshot")}</TableHead>
+              <TableHead className="w-36">{t("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -164,27 +164,27 @@ export function CachePanel() {
                   className="py-8 text-center text-muted-foreground"
                 >
                   {filter && data?.entries.length
-                    ? "No matching entries"
-                    : "No cached classifications"}
+                    ? t("no_matching_entries")
+                    : t("no_cached")}
                 </TableCell>
               </TableRow>
             ) : (
               filtered.map((entry) => {
                 const hostname = hostnameFromUrl(entry.url)
                 const pct = (v: number | null | undefined) =>
-                  v != null ? (v * 100).toFixed(1) + "%" : "—"
+                  v != null ? (v * 100).toFixed(1) + "%" : "\u2014"
 
                 const screenshotLabel = (s: string | null | undefined) => {
                   if (!s) return null
                   if (s === "screenshot_ok")
                     return {
-                      label: "OK",
+                      label: t("screenshot_ok"),
                       icon: Camera,
                       variant: "success" as const,
                     }
                   if (s === "noise_screenshot")
                     return {
-                      label: "Noise",
+                      label: t("screenshot_noise"),
                       icon: CameraOff,
                       variant: "warning" as const,
                     }
@@ -194,7 +194,9 @@ export function CachePanel() {
                       .replace("_noise", "")
                     const isNoise = s.endsWith("_noise")
                     return {
-                      label: isNoise ? `Noise (HTTP ${code})` : `HTTP ${code}`,
+                      label: isNoise
+                        ? t("noise_http", { code })
+                        : t("http_label", { code }),
                       icon: CameraOff,
                       variant: isNoise
                         ? ("warning" as const)
@@ -208,22 +210,22 @@ export function CachePanel() {
                       variant: "default" | "destructive" | "warning" | "success"
                     }
                   > = {
-                    bypass_list: { label: "By List", variant: "default" },
-                    bypass_bare_ip: { label: "Bare IP", variant: "default" },
+                    bypass_list: { label: t("by_list"), variant: "default" },
+                    bypass_bare_ip: { label: t("bare_ip"), variant: "default" },
                     bypass_text_only: {
-                      label: "Text Only",
+                      label: t("text_only"),
                       variant: "default",
                     },
                     no_screenshot: {
-                      label: "No Screenshot",
+                      label: t("no_screenshot_status"),
                       variant: "default",
                     },
                     capture_failed: {
-                      label: "Capture Failed",
+                      label: t("capture_failed"),
                       variant: "destructive",
                     },
                     extraction_failed: {
-                      label: "Extraction Failed",
+                      label: t("extraction_failed"),
                       variant: "destructive",
                     },
                   }
@@ -281,7 +283,7 @@ export function CachePanel() {
                             </DialogTrigger>
                             <DialogContent className="max-w-3xl">
                               <DialogHeader>
-                                <DialogTitle>Screenshot</DialogTitle>
+                                <DialogTitle>{t("screenshot_dialog_title")}</DialogTitle>
                                 <DialogDescription>
                                   {hostname}
                                 </DialogDescription>
@@ -302,7 +304,7 @@ export function CachePanel() {
                           </span>
                         )
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-xs text-muted-foreground">{t("no_cached")}</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -321,23 +323,23 @@ export function CachePanel() {
                                 </Button>
                               </AlertDialogTrigger>
                             </TooltipTrigger>
-                            <TooltipContent>Add to whitelist</TooltipContent>
+                            <TooltipContent>{t("tooltip_whitelist")}</TooltipContent>
                           </Tooltip>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>
-                                Whitelist {hostname}?
+                                {t("dialog_whitelist_title", { hostname })}
                               </AlertDialogTitle>
                               <AlertDialogDescription>
-                                Reports for this hostname will also be deleted.
+                                {t("dialog_whitelist_desc")}
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => addWhitelist.mutate(entry.url)}
                               >
-                                Continue
+                                {t("continue_")}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -357,23 +359,23 @@ export function CachePanel() {
                                 </Button>
                               </AlertDialogTrigger>
                             </TooltipTrigger>
-                            <TooltipContent>Add to blacklist</TooltipContent>
+                            <TooltipContent>{t("tooltip_blacklist")}</TooltipContent>
                           </Tooltip>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>
-                                Blacklist {hostname}?
+                                {t("dialog_blacklist_title", { hostname })}
                               </AlertDialogTitle>
                               <AlertDialogDescription>
-                                Reports for this hostname will also be deleted.
+                                {t("dialog_blacklist_desc")}
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => addBlacklist.mutate(entry.url)}
                               >
-                                Continue
+                                {t("continue_")}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -391,7 +393,7 @@ export function CachePanel() {
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Delete cache entry</TooltipContent>
+                          <TooltipContent>{t("tooltip_delete_cache")}</TooltipContent>
                         </Tooltip>
                       </div>
                     </TableCell>
@@ -405,8 +407,10 @@ export function CachePanel() {
 
       {data?.entries && (
         <p className="text-sm text-muted-foreground">
-          {data.entries.length} cached entr
-          {data.entries.length === 1 ? "y" : "ies"}
+          {t("cached_entries", {
+            count: data.entries.length,
+            ies: data.entries.length === 1 ? "y" : "ies",
+          })}
         </p>
       )}
     </div>

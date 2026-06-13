@@ -9,7 +9,9 @@ DEFAULT: dict = {
     "bypass_text_enabled": True,
     "multipage_enabled": True,
     "debug_logging_enabled": False,
-    "cache_expires_at": None,
+    "cache_ttl_hours": 24,
+    "stale_hours": 2,
+    "stale_check_interval_minutes": 30,
 }
 
 

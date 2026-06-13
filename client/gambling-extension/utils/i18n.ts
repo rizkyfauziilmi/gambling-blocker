@@ -46,6 +46,36 @@ const messages: Record<string, Record<string, string>> = {
     popup_screenshot_ok: "Screenshot captured",
     popup_screenshot_failed: "Screenshot unavailable",
     popup_fusionInfo: "Fusion weight: {alpha}",
+    partner_setupTitle: "Set Accountability Partner",
+    partner_setupDesc:
+      "Enter your partner's email. A password will be sent to them. This password is required to access extension settings.",
+    partner_emailLabel: "Partner Email",
+    partner_emailPlaceholder: "partner@example.com",
+    partner_setupButton: "Send Password to Partner",
+    partner_setupSuccess:
+      "Password sent! Check with your partner. Save the password to access settings.",
+    partner_passwordTitle: "Partner Password Required",
+    partner_passwordDesc:
+      "Enter the password sent to your accountability partner.",
+    partner_passwordLabel: "Password",
+    partner_passwordPlaceholder: "Enter password",
+    partner_unlockButton: "Unlock Settings",
+    partner_wrongPassword:
+      "Wrong password. An alert has been sent to your partner.",
+    partner_alertSent: "Tamper alert sent to partner.",
+    partner_noPartner: "No accountability partner set.",
+    partner_setReminder: "Set one up in Settings for extra protection.",
+    partner_extBlockedTitle: "Access Blocked",
+    partner_extBlockedDesc:
+      "Extension settings are protected by your accountability partner.",
+    partner_extBlockedForm: "Enter partner password to continue",
+    partner_extBlockedSuccess: "Access granted! Redirecting...",
+    partner_popupBanner: "Set accountability partner for extra protection",
+    partner_popupBannerLate:
+      "Set accountability partner soon for extra protection",
+    partner_popupActive: "Protected by partner",
+    partner_graceDays: "{days} days left to set partner",
+    partner_daysOverdue: "Set your accountability partner!",
   },
   id: {
     extName: "Gambling Blocker",
@@ -92,6 +122,36 @@ const messages: Record<string, Record<string, string>> = {
     popup_screenshot_ok: "Screenshot berhasil",
     popup_screenshot_failed: "Screenshot tidak tersedia",
     popup_fusionInfo: "Bobot fusion: {alpha}",
+    partner_setupTitle: "Atur Partner Akuntabilitas",
+    partner_setupDesc:
+      "Masukkan email partner. Password akan dikirim ke mereka. Password ini diperlukan untuk mengakses pengaturan extension.",
+    partner_emailLabel: "Email Partner",
+    partner_emailPlaceholder: "partner@contoh.com",
+    partner_setupButton: "Kirim Password ke Partner",
+    partner_setupSuccess:
+      "Password terkirim! Cek dengan partner kamu. Simpan password untuk akses pengaturan.",
+    partner_passwordTitle: "Password Partner Diperlukan",
+    partner_passwordDesc:
+      "Masukkan password yang dikirim ke partner akuntabilitas kamu.",
+    partner_passwordLabel: "Password",
+    partner_passwordPlaceholder: "Masukkan password",
+    partner_unlockButton: "Buka Pengaturan",
+    partner_wrongPassword:
+      "Password salah. Peringatan telah dikirim ke partner kamu.",
+    partner_alertSent: "Peringatan dikirim ke partner.",
+    partner_noPartner: "Belum ada partner akuntabilitas.",
+    partner_setReminder: "Atur di Pengaturan untuk perlindungan ekstra.",
+    partner_extBlockedTitle: "Akses Diblokir",
+    partner_extBlockedDesc:
+      "Pengaturan extension dilindungi oleh partner akuntabilitas kamu.",
+    partner_extBlockedForm: "Masukkan password partner untuk melanjutkan",
+    partner_extBlockedSuccess: "Akses diberikan! Mengarahkan...",
+    partner_popupBanner: "Atur partner akuntabilitas untuk perlindungan ekstra",
+    partner_popupBannerLate:
+      "Segera atur partner akuntabilitas untuk perlindungan ekstra",
+    partner_popupActive: "Dilindungi oleh partner",
+    partner_graceDays: "{days} hari tersisa untuk atur partner",
+    partner_daysOverdue: "Atur partner akuntabilitas kamu!",
   },
 }
 

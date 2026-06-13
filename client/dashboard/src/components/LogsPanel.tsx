@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Trash2 } from "lucide-react"
 import { useLogs, type LogEntry } from "@/hooks/useLogs"
 import { format } from "date-fns"
+import { useI18n } from "@/i18n/context"
 
 const TAG_COLORS: Record<string, string> = {
   API: "bg-blue-500",
@@ -50,6 +51,7 @@ export function LogsPanel() {
   const [tagFilter, setTagFilter] = useState<string | undefined>(undefined)
   const { data, isLoading, clear } = useLogs(tagFilter)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const { t } = useI18n()
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -76,9 +78,9 @@ export function LogsPanel() {
     <Card>
       <CardHeader className="flex-row items-center justify-between">
         <div>
-          <CardTitle>API Logs</CardTitle>
+          <CardTitle>{t("api_logs")}</CardTitle>
           <CardDescription>
-            Recent backend logs (last 1000 entries)
+            {t("logs_desc")}
           </CardDescription>
         </div>
         <Button
@@ -88,7 +90,7 @@ export function LogsPanel() {
           disabled={clear.isPending || !data?.entries?.length}
         >
           <Trash2 className="mr-1 size-3" />
-          Clear
+          {t("clear")}
         </Button>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -98,7 +100,7 @@ export function LogsPanel() {
             className="cursor-pointer"
             onClick={() => setTagFilter(undefined)}
           >
-            All {data?.entries ? `(${data.entries.length})` : ""}
+            {t("all")} {data?.entries ? `(${data.entries.length})` : ""}
           </Badge>
           {allTags.map((tag) => (
             <Badge
@@ -114,20 +116,20 @@ export function LogsPanel() {
 
         {isLoading ? (
           <div className="py-8 text-center text-sm text-muted-foreground">
-            Loading logs...
+            {t("loading_logs")}
           </div>
         ) : !data?.entries?.length ? (
           <div className="py-8 text-center text-sm text-muted-foreground">
-            No logs yet
+            {t("no_logs")}
           </div>
         ) : (
           <ScrollArea className="h-[500px] rounded-md border">
             <table className="w-full table-fixed">
               <thead>
                 <tr className="border-b border-border text-xs text-muted-foreground">
-                  <th className="w-20 px-2 py-1 text-left font-medium">Time</th>
-                  <th className="w-24 px-2 py-1 text-left font-medium">Tag</th>
-                  <th className="px-2 py-1 text-left font-medium">Message</th>
+                  <th className="w-20 px-2 py-1 text-left font-medium">{t("time")}</th>
+                  <th className="w-24 px-2 py-1 text-left font-medium">{t("tag")}</th>
+                  <th className="px-2 py-1 text-left font-medium">{t("message")}</th>
                 </tr>
               </thead>
               <tbody>

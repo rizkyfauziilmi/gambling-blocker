@@ -23,11 +23,13 @@ import {
 } from "@/components/ui/table"
 import type { ListEntry } from "@/hooks/useLists"
 import { useWhitelist } from "@/hooks/useLists"
+import { useI18n } from "@/i18n/context"
 
 export function WhitelistPanel() {
   const { data, isLoading, add, remove } = useWhitelist()
   const [hostname, setHostname] = useState("")
   const [filter, setFilter] = useState("")
+  const { t } = useI18n()
 
   const handleAdd = () => {
     const h = hostname.trim().toLowerCase()
@@ -46,7 +48,7 @@ export function WhitelistPanel() {
     <div className="space-y-4">
       <div className="flex gap-2">
         <Input
-          placeholder="URL to whitelist..."
+          placeholder={t("url_to_whitelist")}
           value={hostname}
           onChange={(e) => setHostname(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
@@ -56,12 +58,12 @@ export function WhitelistPanel() {
           onClick={handleAdd}
           disabled={!hostname.trim() || add.isPending}
         >
-          {add.isPending ? "Adding..." : "Add"}
+          {add.isPending ? t("adding") : t("add")}
         </Button>
       </div>
 
       <Input
-        placeholder="Search by hostname..."
+        placeholder={t("search_hostname")}
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         className="max-w-sm"
@@ -71,8 +73,8 @@ export function WhitelistPanel() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Hostname</TableHead>
-              <TableHead>Added</TableHead>
+              <TableHead>{t("hostname")}</TableHead>
+              <TableHead>{t("added")}</TableHead>
               <TableHead className="w-20" />
             </TableRow>
           </TableHeader>
@@ -98,8 +100,8 @@ export function WhitelistPanel() {
                   className="py-8 text-center text-muted-foreground"
                 >
                   {filter && data?.entries.length
-                    ? "No matching hostnames"
-                    : "No whitelisted hosts"}
+                    ? t("no_match")
+                    : t("no_whitelisted_hosts")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -120,24 +122,24 @@ export function WhitelistPanel() {
                           disabled={remove.isPending}
                           className="text-red-600 hover:text-red-700"
                         >
-                          Delete
+                          {t("delete")}
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>
-                            Remove {entry.hostname} from whitelist?
+                            {t("remove_from_whitelist", { hostname: entry.hostname })}
                           </AlertDialogTitle>
                           <AlertDialogDescription>
-                            This hostname will no longer be allowed.
+                            {t("will_not_be_allowed")}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
                           <AlertDialogAction
                             onClick={() => remove.mutate(entry.id)}
                           >
-                            Delete
+                            {t("delete")}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -152,8 +154,10 @@ export function WhitelistPanel() {
 
       {data?.entries && (
         <p className="text-sm text-muted-foreground">
-          {data.entries.length} hostname{data.entries.length !== 1 && "s"}{" "}
-          whitelisted
+          {t("hostnames_whitelisted", {
+            count: data.entries.length,
+            plural: data.entries.length !== 1 ? t("plural_s") : "",
+          })}
         </p>
       )}
     </div>

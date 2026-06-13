@@ -1,5 +1,6 @@
 import json
 import os
+from contextlib import asynccontextmanager
 from typing import Any
 from urllib.parse import urlparse
 
@@ -15,6 +16,21 @@ from utils.cache import incr as cache_incr
 from utils.cache import is_available as cache_available
 from utils.cache import scan as cache_scan
 from utils.cache import setex as cache_setex
+from utils.email import (
+    send_heartbeat_stale_alert,
+    send_partner_password,
+    send_tamper_alert,
+)
+from utils.extensions import (
+    get_partner,
+    log_tamper,
+    record_heartbeat,
+    setup_partner,
+    verify_password,
+)
+from utils.extensions import (
+    get_status as ext_get_status,
+)
 from utils.helpers import cache_key, is_ip, parse_hostname
 from utils.lists import add_entry as list_add
 from utils.lists import check_hostname as list_check
@@ -32,7 +48,31 @@ from utils.settings import get as settings_get
 from utils.settings import save as settings_save
 from utils.storage import enrich_screenshot_url
 
-app: FastAPI = FastAPI()
+_scheduler: Any | None = None
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    global _scheduler
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+
+        interval = settings_get().get("stale_check_interval_minutes", 30)
+        _scheduler = BackgroundScheduler()
+        _scheduler.add_job(
+            _check_stale_heartbeats,
+            "interval",
+            minutes=interval,
+            id="heartbeat_monitor",
+        )
+        _scheduler.start()
+        log_msg("API", f"APScheduler started: heartbeat monitor every {interval}m")
+    except Exception as exc:
+        log_msg("WARN", f"APScheduler not available: {exc}")
+    yield
+
+
+app: FastAPI = FastAPI(lifespan=lifespan)
 
 
 app.add_middleware(
@@ -57,18 +97,142 @@ def root() -> dict[str, str]:
     return {"service": "url gambling classifier", "status": "running"}
 
 
+def _check_stale_heartbeats() -> None:
+    from utils.extensions import get_stale_extensions, mark_stale_alerted
+
+    hours = settings_get().get("stale_hours", 2)
+    stale = get_stale_extensions(hours)
+    if stale:
+        log_msg(
+            "HEARTBEAT", f"stale check: {len(stale)} extension(s) stale (> {hours}h)"
+        )
+    for ext in stale:
+        partner_email = ext.get("partner_email", "")
+        if partner_email:
+            send_heartbeat_stale_alert(partner_email, hours_since_last=hours)
+            mark_stale_alerted(ext["extension_id"])
+            log_msg(
+                "HEARTBEAT",
+                f"stale alert sent for {ext['extension_id']} → {partner_email}",
+            )
+    if not stale:
+        log_msg("HEARTBEAT", f"stale check: 0 stale (threshold={hours}h)")
+
+
+class ExtensionSetupBody(BaseModel):
+    extension_id: str
+    partner_email: str
+
+
+@app.post("/extension/setup")
+def extension_setup(body: ExtensionSetupBody) -> dict:
+    result = setup_partner(body.extension_id, body.partner_email)
+    record_heartbeat(body.extension_id)
+    log_msg("PARTNER",
+            f"partner set up for {body.extension_id} → {body.partner_email}")
+    log_msg("HEARTBEAT",
+            f"initial heartbeat recorded for {body.extension_id} (via partner setup)")
+    email_ok = send_partner_password(body.partner_email, result["password"])
+    if not email_ok:
+        log_msg("PARTNER", f"email FAILED to {body.partner_email}")
+        raise HTTPException(
+            status_code=502,
+            detail={"error": "email_failed", "message": "Failed to send partner email"},
+        )
+    log_msg("PARTNER", f"email sent to {body.partner_email}")
+    return {
+        "success": True,
+        "password_hash": result["password_hash"],
+        "password_salt": result["password_salt"],
+    }
+
+
+class ExtensionHeartbeatBody(BaseModel):
+    extension_id: str
+
+
+@app.post("/extension/heartbeat")
+def extension_heartbeat(body: ExtensionHeartbeatBody, request: Request) -> dict:
+    ip = request.client.host if request.client else None
+    record_heartbeat(body.extension_id, ip)
+    log_msg("HEARTBEAT", f"from {body.extension_id}" + (f" ({ip})" if ip else ""))
+    return {"ok": True}
+
+
+class ExtensionTamperBody(BaseModel):
+    extension_id: str
+    event_type: str
+    details: str = ""
+
+
+@app.post("/extension/tamper-alert")
+def extension_tamper_alert(body: ExtensionTamperBody) -> dict:
+    log_tamper(body.extension_id, body.event_type, body.details)
+    log_msg(
+        "TAMPER",
+        f"{body.event_type} from {body.extension_id}"
+        + (f": {body.details}" if body.details else ""),
+    )
+    partner = get_partner(body.extension_id)
+    if partner:
+        send_tamper_alert(
+            partner["partner_email"],
+            body.event_type,
+            details=body.details,
+        )
+    return {"ok": True}
+
+
+class ExtensionResetBody(BaseModel):
+    extension_id: str
+
+
+@app.post("/extension/reset-password")
+def extension_reset_password(body: ExtensionResetBody) -> dict:
+    partner = get_partner(body.extension_id)
+    if not partner:
+        raise HTTPException(status_code=404, detail="Extension not registered")
+    result = setup_partner(body.extension_id, partner["partner_email"])
+    log_msg("PARTNER", f"password reset for {body.extension_id}")
+    email_ok = send_partner_password(partner["partner_email"], result["password"])
+    if not email_ok:
+        log_msg("PARTNER", f"email FAILED on reset to {partner['partner_email']}")
+        raise HTTPException(status_code=502, detail="Failed to send email")
+    log_msg("PARTNER", f"new password emailed to {partner['partner_email']}")
+    return {"success": True}
+
+
+@app.get("/extension/status")
+def extension_status(
+    extension_id: str = Query(...),
+    _: None = Depends(require_auth),
+) -> dict:
+    return ext_get_status(extension_id)
+
+
+class ExtVerifyBody(BaseModel):
+    extension_id: str
+    password: str
+
+
+@app.post("/extension/verify")
+def extension_verify(body: ExtVerifyBody) -> dict:
+    ok = verify_password(body.extension_id, body.password)
+    log_msg(
+        "PARTNER", f"password verify for {body.extension_id}: {'ok' if ok else 'FAIL'}"
+    )
+    return {"valid": ok}
+
+
 @app.get("/classify/url-fused")
 def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
     url_str: str = str(url)
     hostname: str = parse_hostname(url_str)
 
-    log_msg("API", f"/classify/url-fused called | url={url_str} | hostname={hostname}")
-
     # Rate limit: 10req/min per hostname (cegah spam refresh loading page)
     if cache_available():
         rl_key: str = f"rate:fused:{hostname}"
         count = cache_incr(rl_key, ttl=60)
-        log_msg("API", f"rate limit count={count}")
         if count > 10:
             log_msg("API", f"RATE LIMITED hostname={hostname}")
             cached = cache_get(f"fused:{cache_key(hostname)}")
@@ -76,9 +240,6 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
                 result = json.loads(cached)
                 enrich_screenshot_url(result)
                 result["from_cache"] = True
-                log_msg(
-                    "API", f"served from fallback cache | result={json.dumps(result)}"
-                )
                 return result
             log_msg("API", "raising 429")
             raise HTTPException(
@@ -90,9 +251,7 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             )
 
     listed: str | None = list_check(hostname)
-    log_msg("API", f"list_check={listed}")
     if listed == "whitelist":
-        log_msg("API", "whitelist, returning safe")
         return {
             "url": url_str,
             "category": "non-gambling",
@@ -106,7 +265,6 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             "from_list": "whitelist",
         }
     if listed == "blacklist":
-        log_msg("API", "blacklist, returning gambling")
         return {
             "url": url_str,
             "category": "gambling",
@@ -128,13 +286,11 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             result = json.loads(cached)
             enrich_screenshot_url(result)
             result["from_cache"] = True
-            log_msg("API", f"served from fused cache | result={json.dumps(result)}")
             return result
 
     if is_ip(hostname):
         path: str = urlparse(url_str).path
         if not path or path == "/":
-            log_msg("API", "bare ip, returning safe")
             return {
                 "url": url_str,
                 "category": "bare-ip",
@@ -157,18 +313,14 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
             },
         )
 
-    log_msg("API", "running infer_fused...")
     result = infer_fused(url_str)
-    log_msg("API", f"infer_fused result={json.dumps(result)}")
 
     if cache_available():
-        log_msg("API", f"writing to cache key={key}")
         cached_result = dict(result)
         cached_result.pop("screenshot_url", None)
         cache_setex(key, json.dumps(cached_result))
 
     result["from_cache"] = False
-    log_msg("API", f"returning final result={json.dumps(result)}")
     return result
 
 
@@ -177,10 +329,7 @@ def classify_result(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
     url_str: str = str(url)
     hostname: str = parse_hostname(url_str)
 
-    log_msg("API", f"/classify/result called | url={url_str} | hostname={hostname}")
-
     listed: str | None = list_check(hostname)
-    log_msg("API", f"result list_check={listed}")
     if listed == "whitelist":
         return {
             "url": url_str,
@@ -213,7 +362,6 @@ def classify_result(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
     if cache_available():
         fused_key = f"fused:{cache_key(hostname)}"
         cached = cache_get(fused_key)
-        log_msg("API", f"result cache: fused={fused_key} found={cached is not None}")
         if cached:
             r = json.loads(cached)
             enrich_screenshot_url(r)
@@ -231,7 +379,6 @@ def classify_result(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
                 "from_cache": True,
             }
 
-    log_msg("API", "result: no cache found, returning not_classified")
     return {
         "url": url_str,
         "status": "not_classified",
@@ -258,6 +405,7 @@ def list_cache(
 @app.delete("/cache")
 def delete_all_cache(_: None = Depends(require_auth)) -> dict[str, object]:
     deleted: int = cache_flush()
+    log_msg("CACHE", f"flushed {deleted} entries")
     return {"status": "ok", "deleted": deleted}
 
 
@@ -267,6 +415,7 @@ def delete_cache_entry(
     _: None = Depends(require_auth),
 ) -> dict[str, object]:
     cache_delete(key)
+    log_msg("CACHE", f"deleted key={key}")
     return {"status": "ok"}
 
 
@@ -282,6 +431,7 @@ def report_false_positive(body: ReportBody, request: Request) -> dict[str, Any]:
 
     listed: str | None = list_check(hostname)
     if listed == "blacklist":
+        log_msg("REPORT", f"rejected (blacklisted) from {client_ip} | {body.url}")
         raise HTTPException(
             status_code=400,
             detail={
@@ -290,6 +440,7 @@ def report_false_positive(body: ReportBody, request: Request) -> dict[str, Any]:
             },
         )
     if listed == "whitelist":
+        log_msg("REPORT", f"rejected (whitelisted) from {client_ip} | {body.url}")
         raise HTTPException(
             status_code=400,
             detail={
@@ -299,6 +450,7 @@ def report_false_positive(body: ReportBody, request: Request) -> dict[str, Any]:
         )
 
     if not cache_available():
+        log_msg("REPORT", f"rejected (no cache) from {client_ip}")
         raise HTTPException(
             status_code=503,
             detail={
@@ -309,6 +461,7 @@ def report_false_positive(body: ReportBody, request: Request) -> dict[str, Any]:
 
     cached = cache_get(f"fused:{cache_key(hostname)}")
     if cached is None:
+        log_msg("REPORT", f"rejected (not classified) from {client_ip} | {body.url}")
         raise HTTPException(
             status_code=400,
             detail={
@@ -322,6 +475,7 @@ def report_false_positive(body: ReportBody, request: Request) -> dict[str, Any]:
 
     count: int = cache_incr(f"report:ip:{client_ip}", ttl=3600)
     if count > 5:
+        log_msg("REPORT", f"rate limited from {client_ip} (count={count})")
         raise HTTPException(
             status_code=429,
             detail={
@@ -332,6 +486,11 @@ def report_false_positive(body: ReportBody, request: Request) -> dict[str, Any]:
         )
 
     save_report(body.url, body.gambling_score, client_ip)
+    log_msg(
+        "REPORT",
+        f"false positive from {client_ip} | url={body.url}"
+        f" | score={body.gambling_score}",
+    )
     return {"status": "ok", "message": "Report saved"}
 
 
@@ -356,6 +515,7 @@ def delete_reports_by_hostname_endpoint(
 ) -> dict[str, object]:
     h = parse_hostname(hostname)
     reports_delete_by_host(h)
+    log_msg("REPORT", f"deleted by hostname={h}")
     return {"status": "ok"}
 
 
@@ -365,7 +525,9 @@ def delete_report_endpoint(
     _: None = Depends(require_auth),
 ) -> dict[str, object]:
     if not reports_delete(report_id):
+        log_msg("REPORT", f"delete failed: report_id={report_id} not found")
         raise HTTPException(status_code=404, detail="Report not found")
+    log_msg("REPORT", f"deleted report_id={report_id}")
     return {"status": "ok"}
 
 
@@ -382,11 +544,13 @@ def add_blacklist(
     hostname = parse_hostname(body.hostname)
     entry = list_add(hostname, "blacklist")
     if entry is None:
+        log_msg("LIST", f"blacklist conflict: {hostname}")
         raise HTTPException(
             status_code=409, detail="Hostname already in blacklist/whitelist"
         )
     cache_delete(f"fused:{cache_key(hostname)}")
     reports_delete_by_host(hostname)
+    log_msg("LIST", f"added blacklist: {hostname}")
     return {"entry": entry}
 
 
@@ -396,7 +560,9 @@ def delete_blacklist(
     _: None = Depends(require_auth),
 ) -> dict[str, object]:
     if not list_remove(entry_id):
+        log_msg("LIST", f"delete blacklist failed: id={entry_id} not found")
         raise HTTPException(status_code=404, detail="Entry not found")
+    log_msg("LIST", f"deleted blacklist id={entry_id}")
     return {"status": "ok"}
 
 
@@ -413,11 +579,13 @@ def add_whitelist(
     hostname = parse_hostname(body.hostname)
     entry = list_add(hostname, "whitelist")
     if entry is None:
+        log_msg("LIST", f"whitelist conflict: {hostname}")
         raise HTTPException(
             status_code=409, detail="Hostname already in whitelist/blacklist"
         )
     cache_delete(f"fused:{cache_key(hostname)}")
     reports_delete_by_host(hostname)
+    log_msg("LIST", f"added whitelist: {hostname}")
     return {"entry": entry}
 
 
@@ -427,7 +595,9 @@ def delete_whitelist(
     _: None = Depends(require_auth),
 ) -> dict[str, object]:
     if not list_remove(entry_id):
+        log_msg("LIST", f"delete whitelist failed: id={entry_id} not found")
         raise HTTPException(status_code=404, detail="Entry not found")
+    log_msg("LIST", f"deleted whitelist id={entry_id}")
     return {"status": "ok"}
 
 
@@ -442,6 +612,7 @@ def list_logs(
 @app.delete("/logs")
 def delete_logs(_: None = Depends(require_auth)) -> dict[str, object]:
     logs_clear()
+    log_msg("API", "logs cleared")
     return {"status": "ok"}
 
 
@@ -459,9 +630,22 @@ def update_settings(
         "bypass_text_enabled",
         "multipage_enabled",
         "debug_logging_enabled",
-        "cache_expires_at",
+        "cache_ttl_hours",
+        "stale_hours",
+        "stale_check_interval_minutes",
     }
     updates = {k: v for k, v in body.items() if k in allowed}
     if not updates:
         raise HTTPException(status_code=400, detail="No valid fields provided")
-    return settings_save(updates)
+    log_msg("SETTINGS", f"update: {json.dumps(updates)}")
+    result = settings_save(updates)
+    if "stale_check_interval_minutes" in updates and _scheduler is not None:
+        interval = updates["stale_check_interval_minutes"]
+        try:
+            _scheduler.reschedule_job(
+                "heartbeat_monitor", trigger="interval", minutes=interval
+            )
+            log_msg("SETTINGS", f"rescheduled heartbeat monitor to every {interval}m")
+        except Exception as exc:
+            log_msg("WARN", f"failed to reschedule: {exc}")
+    return result

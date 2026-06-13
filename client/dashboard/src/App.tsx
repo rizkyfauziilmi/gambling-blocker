@@ -8,6 +8,7 @@ import { ReportsContent } from "./components/ReportsContent"
 import { SettingsPanel } from "@/components/SettingsPanel"
 import { LogsPanel } from "@/components/LogsPanel"
 import { useState } from "react"
+import { useI18n } from "@/i18n/context"
 
 export function App() {
   type TabKey =
@@ -19,6 +20,7 @@ export function App() {
     | "logs"
 
   const [activeTabs, setActiveTabs] = useState<TabKey>("reports")
+  const { t } = useI18n()
 
   const tabMeta: Record<
     TabKey,
@@ -28,28 +30,28 @@ export function App() {
     }
   > = {
     reports: {
-      title: "Reports Management",
-      description: "False detection reports submitted by users",
+      title: t("tab_reports_title"),
+      description: t("tab_reports_desc"),
     },
     blacklist: {
-      title: "Blacklist Management",
-      description: "Manage blocked domains and URLs",
+      title: t("tab_blacklist_title"),
+      description: t("tab_blacklist_desc"),
     },
     whitelist: {
-      title: "Whitelist Management",
-      description: "Manage allowed domains and URLs",
+      title: t("tab_whitelist_title"),
+      description: t("tab_whitelist_desc"),
     },
     cache: {
-      title: "Cache Management",
-      description: "View and clear application cache",
+      title: t("tab_cache_title"),
+      description: t("tab_cache_desc"),
     },
     settings: {
-      title: "Settings",
-      description: "Application configuration and feature flags",
+      title: t("tab_settings_title"),
+      description: t("tab_settings_desc"),
     },
     logs: {
-      title: "Logs",
-      description: "Backend API logs (last 1000 entries)",
+      title: t("tab_logs_title"),
+      description: t("tab_logs_desc"),
     },
   }
 
@@ -70,12 +72,12 @@ export function App() {
           onValueChange={(value) => setActiveTabs(value as TabKey)}
         >
           <TabsList>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-            <TabsTrigger value="blacklist">Blacklist</TabsTrigger>
-            <TabsTrigger value="whitelist">Whitelist</TabsTrigger>
-            <TabsTrigger value="cache">Cache</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-            <TabsTrigger value="logs">Logs</TabsTrigger>
+            <TabsTrigger value="reports">{t("tab_reports")}</TabsTrigger>
+            <TabsTrigger value="blacklist">{t("tab_blacklist")}</TabsTrigger>
+            <TabsTrigger value="whitelist">{t("tab_whitelist")}</TabsTrigger>
+            <TabsTrigger value="cache">{t("tab_cache")}</TabsTrigger>
+            <TabsTrigger value="settings">{t("tab_settings")}</TabsTrigger>
+            <TabsTrigger value="logs">{t("tab_logs")}</TabsTrigger>
           </TabsList>
           <TabsContent value="reports" className="space-y-8">
             <ReportsContent />

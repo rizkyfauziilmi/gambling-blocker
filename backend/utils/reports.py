@@ -13,7 +13,7 @@ def _conn() -> sqlite3.Connection:
 
 def init_db() -> None:
     conn = _conn()
-    conn.execute("""
+    conn.executescript("""
         CREATE TABLE IF NOT EXISTS reports (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             url TEXT NOT NULL,
@@ -21,7 +21,30 @@ def init_db() -> None:
             gambling_score REAL NOT NULL,
             reporter_ip TEXT NOT NULL,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
-        )
+        );
+        CREATE TABLE IF NOT EXISTS partner_accounts (
+            extension_id TEXT PRIMARY KEY,
+            partner_email TEXT NOT NULL,
+            password_hash TEXT NOT NULL,
+            password_salt TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE TABLE IF NOT EXISTS heartbeats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            extension_id TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            ip_address TEXT,
+            FOREIGN KEY (extension_id) REFERENCES partner_accounts(extension_id)
+        );
+        CREATE TABLE IF NOT EXISTS tamper_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            extension_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            details TEXT,
+            timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+            FOREIGN KEY (extension_id) REFERENCES partner_accounts(extension_id)
+        );
     """)
     conn.commit()
     conn.close()

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   Camera,
   CameraOff,
@@ -12,8 +12,10 @@ import {
   ShieldCheck,
   ShieldX,
   TriangleAlert,
+  UserRoundCheck,
 } from "lucide-react"
 import { initLanguage, t } from "@/utils/i18n"
+import { getPartnerStatus } from "@/utils/password"
 
 const API_BASE = import.meta.env.WXT_API_BASE
 const EXT_URL = browser.runtime.getURL("")
@@ -99,10 +101,33 @@ function App() {
   const [reportState, setReportState] = useState<
     "idle" | "loading" | "done" | "rate_limited" | "not_classified" | "listed"
   >("idle")
+  const [partnerInfo, setPartnerInfo] = useState<{
+    hasPartner: boolean
+    daysSinceInstall: number
+  } | null>(null)
+  const [bypassRemaining, setBypassRemaining] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (bypassRemaining === null) return
+    if (bypassRemaining <= 0) return
+    const interval = setInterval(() => {
+      setBypassRemaining((prev) => (prev !== null ? prev - 1 : null))
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [bypassRemaining])
 
   useEffect(() => {
     ;(async () => {
       await initLanguage()
+      getPartnerStatus().then(setPartnerInfo)
+      const session = (await browser.storage.session.get([
+        "extensions_bypass",
+        "extensions_bypass_expires_at",
+      ])) as { extensions_bypass?: boolean; extensions_bypass_expires_at?: number }
+      const expiresAt = session.extensions_bypass_expires_at
+      if (session.extensions_bypass && expiresAt && expiresAt > Date.now()) {
+        setBypassRemaining(Math.round((expiresAt - Date.now()) / 1000))
+      }
 
       try {
         const [tab] = await browser.tabs.query({
@@ -149,6 +174,29 @@ function App() {
       }
     })()
   }, [])
+
+  async function handleLockNow() {
+    const tabs = await browser.tabs.query({})
+    for (const t of tabs) {
+      if (t.url && t.id) {
+        if (
+          t.url.startsWith("chrome://extensions") ||
+          t.url.startsWith("edge://extensions") ||
+          t.url.startsWith("brave://extensions") ||
+          t.url.startsWith("opera://extensions") ||
+          t.url.startsWith("vivaldi://extensions") ||
+          t.url.startsWith("about:addons")
+        ) {
+          await browser.tabs.remove(t.id)
+        }
+      }
+    }
+    await browser.storage.session.remove([
+      "extensions_bypass",
+      "extensions_bypass_expires_at",
+    ])
+    setBypassRemaining(null)
+  }
 
   async function handleReport() {
     setReportState("loading")
@@ -242,6 +290,79 @@ function App() {
         <p className="mb-1 text-xs text-gray-500">{t("popup_currentTab")}</p>
         <p className="truncate text-sm text-gray-700">{tabUrl || "—"}</p>
       </div>
+
+      {/* Partner status banner */}
+      {partnerInfo && (
+        <div
+          className={`mb-3 rounded-xl border p-3 ${
+            partnerInfo.hasPartner
+              ? "border-emerald-200 bg-emerald-50"
+              : partnerInfo.daysSinceInstall >= 7
+                ? "border-amber-200 bg-amber-50"
+                : "border-blue-200 bg-blue-50"
+          }`}
+        >
+          <p
+            className={`flex items-center gap-2 text-xs font-medium ${
+              partnerInfo.hasPartner
+                ? "text-emerald-700"
+                : partnerInfo.daysSinceInstall >= 7
+                  ? "text-amber-700"
+                  : "text-blue-700"
+            }`}
+          >
+            <UserRoundCheck className="size-3" />
+            {partnerInfo.hasPartner
+              ? t("partner_popupActive")
+              : partnerInfo.daysSinceInstall >= 7
+                ? t("partner_popupBannerLate")
+                : t("partner_popupBanner")}
+          </p>
+          {!partnerInfo.hasPartner && partnerInfo.daysSinceInstall < 7 && (
+            <p className="mt-0.5 text-[11px] text-blue-600/70">
+              {t("partner_graceDays").replace(
+                "{days}",
+                `${7 - partnerInfo.daysSinceInstall}`
+              )}
+            </p>
+          )}
+          {!partnerInfo.hasPartner && partnerInfo.daysSinceInstall >= 7 && (
+            <p className="mt-0.5 text-[11px] text-amber-600/70">
+              {t("partner_daysOverdue")}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Bypass countdown */}
+      {bypassRemaining !== null && bypassRemaining > 0 && (
+        <div className="mb-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3">
+          <p className="flex items-center gap-2 text-xs font-medium text-indigo-700">
+            <Shield className="size-3" />
+            {t("partner_popupActive")}
+          </p>
+          <p className="mt-0.5 text-[11px] text-indigo-600/70">
+            Bypass expires in{" "}
+            {Math.floor(bypassRemaining / 60)}:
+            {String(bypassRemaining % 60).padStart(2, "0")}
+          </p>
+        </div>
+      )}
+      {bypassRemaining !== null && bypassRemaining <= 0 && (
+        <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+          <p className="flex items-center gap-2 text-xs font-medium text-amber-700">
+            <ShieldX className="size-3" />
+            Bypass expired
+          </p>
+          <button
+            onClick={handleLockNow}
+            className="mt-2 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-700 transition-all hover:bg-amber-100"
+          >
+            <ShieldX className="size-3" />
+            Lock Now
+          </button>
+        </div>
+      )}
 
       {/* Loading state */}
       {status === "loading" && (

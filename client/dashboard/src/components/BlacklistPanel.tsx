@@ -22,11 +22,13 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useBlacklist } from "@/hooks/useLists"
+import { useI18n } from "@/i18n/context"
 
 export function BlacklistPanel() {
   const { data, isLoading, add, remove } = useBlacklist()
   const [hostname, setHostname] = useState("")
   const [filter, setFilter] = useState("")
+  const { t } = useI18n()
 
   const handleAdd = () => {
     const h = hostname.trim().toLowerCase()
@@ -45,7 +47,7 @@ export function BlacklistPanel() {
     <div className="space-y-4">
       <div className="flex gap-2">
         <Input
-          placeholder="URL to blacklist..."
+          placeholder={t("url_to_blacklist")}
           value={hostname}
           onChange={(e) => setHostname(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
@@ -55,12 +57,12 @@ export function BlacklistPanel() {
           onClick={handleAdd}
           disabled={!hostname.trim() || add.isPending}
         >
-          {add.isPending ? "Adding..." : "Add"}
+          {add.isPending ? t("adding") : t("add")}
         </Button>
       </div>
 
       <Input
-        placeholder="Search by hostname..."
+        placeholder={t("search_hostname")}
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         className="max-w-sm"
@@ -70,8 +72,8 @@ export function BlacklistPanel() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Hostname</TableHead>
-              <TableHead>Added</TableHead>
+              <TableHead>{t("hostname")}</TableHead>
+              <TableHead>{t("added")}</TableHead>
               <TableHead className="w-20" />
             </TableRow>
           </TableHeader>
@@ -97,8 +99,8 @@ export function BlacklistPanel() {
                   className="py-8 text-center text-muted-foreground"
                 >
                   {filter && data?.entries.length
-                    ? "No matching hostnames"
-                    : "No blacklisted hosts"}
+                    ? t("no_match")
+                    : t("no_blacklisted_hosts")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -119,24 +121,24 @@ export function BlacklistPanel() {
                           disabled={remove.isPending}
                           className="text-red-600 hover:text-red-700"
                         >
-                          Delete
+                          {t("delete")}
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>
-                            Remove {entry.hostname} from blacklist?
+                            {t("remove_from_blacklist", { hostname: entry.hostname })}
                           </AlertDialogTitle>
                           <AlertDialogDescription>
-                            This hostname will no longer be blocked.
+                            {t("will_not_be_blocked")}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
                           <AlertDialogAction
                             onClick={() => remove.mutate(entry.id)}
                           >
-                            Delete
+                            {t("delete")}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -151,8 +153,10 @@ export function BlacklistPanel() {
 
       {data?.entries && (
         <p className="text-sm text-muted-foreground">
-          {data.entries.length} hostname{data.entries.length !== 1 && "s"}{" "}
-          blacklisted
+          {t("hostnames_blacklisted", {
+            count: data.entries.length,
+            plural: data.entries.length !== 1 ? t("plural_s") : "",
+          })}
         </p>
       )}
     </div>
