@@ -1,7 +1,7 @@
 import json
 import os
 from contextlib import asynccontextmanager
-from typing import Any, Annotated
+from typing import Annotated, Any
 from urllib.parse import urlparse
 
 import dns.resolver
@@ -220,7 +220,10 @@ def extension_reset_password(body: ExtensionResetBody) -> dict:
     log_msg("PARTNER", f"password reset for {body.extension_id}")
     email_ok = send_reset_password(partner["partner_email"], result["password"])
     if not email_ok:
-        log_msg("PARTNER", f"email FAILED on reset to {partner['partner_email']}, rolling back")
+        log_msg(
+            "PARTNER",
+            f"email FAILED on reset to {partner['partner_email']}, rolling back",
+        )
         restore_partner(body.extension_id, old_hash, old_salt)
         raise HTTPException(status_code=502, detail="Failed to send email")
     log_msg("PARTNER", f"new password emailed to {partner['partner_email']}")

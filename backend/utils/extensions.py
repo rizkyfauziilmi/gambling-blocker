@@ -87,9 +87,7 @@ def restore_partner(extension_id: str, password_hash: str, password_salt: str) -
 
 def delete_partner(extension_id: str) -> None:
     conn = _conn()
-    conn.execute(
-        "DELETE FROM partner_accounts WHERE extension_id = ?", (extension_id,)
-    )
+    conn.execute("DELETE FROM partner_accounts WHERE extension_id = ?", (extension_id,))
     conn.commit()
     conn.close()
 

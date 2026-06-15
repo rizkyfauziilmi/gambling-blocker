@@ -80,7 +80,8 @@ const messages: Record<string, Record<string, string>> = {
     partner_resetSending: "Sending new password...",
     partner_resetSuccess: "New password sent to partner email!",
     partner_resetError: "Failed to send. Try again.",
-    partner_setupFailed: "Setup failed. Check your email address and try again.",
+    partner_setupFailed:
+      "Setup failed. Check your email address and try again.",
   },
   id: {
     extName: "Gambling Blocker",
