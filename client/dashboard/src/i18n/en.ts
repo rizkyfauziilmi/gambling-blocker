@@ -152,7 +152,7 @@ const en: Record<string, string> = {
   failed_load_settings: "Failed to load settings",
   auto_heartbeat: "Auto Heartbeat on Setup",
   auto_heartbeat_desc:
-    "Record heartbeat automatically when setting up a new partner",
+    "Record heartbeat automatically when setting up a new partner. Recommended: keep enabled in production to prevent false stale alerts.",
   trigger_stale_check: "Trigger Stale Check Now",
   trigger_stale_check_desc:
     "Manually check for stale heartbeats and send alerts",

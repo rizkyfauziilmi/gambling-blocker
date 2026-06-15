@@ -151,7 +151,8 @@ const id: Record<string, string> = {
   theme_system: "Sistem",
   failed_load_settings: "Gagal memuat pengaturan",
   auto_heartbeat: "Heartbeat Otomatis saat Setup",
-  auto_heartbeat_desc: "Rekam heartbeat otomatis saat mengatur partner baru",
+  auto_heartbeat_desc:
+    "Rekam heartbeat otomatis saat mengatur partner baru. Disarankan: aktifkan di production untuk mencegah peringatan stale palsu.",
   trigger_stale_check: "Jalankan Pengecekan Stale",
   trigger_stale_check_desc:
     "Periksa heartbeat tidak aktif secara manual dan kirim peringatan",
