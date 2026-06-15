@@ -42,6 +42,7 @@ src/
 │   └── datetime-picker.tsx    # Picker tanggal reusable
 ├── hooks/
 │   ├── useAdmin.ts            # POST /admin/trigger-stale-check
+│   ├── useHeartbeats.ts       # GET /extension/heartbeats, DELETE, POST /admin/trigger-heartbeat
 │   ├── useSettings.ts         # GET/PUT /settings
 │   ├── useExtensions.ts       # GET /extension/status
 │   ├── useReports.ts          # GET/DELETE /reports
@@ -66,6 +67,7 @@ src/
 | **Reports** | `ReportsContent` | Laporan false positive per hostname, cari, aksi whitelist/blacklist/hapus |
 | **Blacklist** | `BlacklistPanel` | Tambah/hapus/cari hostname di blacklist |
 | **Whitelist** | `WhitelistPanel` | Tambah/hapus/cari hostname di whitelist |
+| **Heartbeats** | `HeartbeatsPanel` | Tabel status heartbeat semua partner, trigger manual, hapus riwayat |
 | **Cache** | `CachePanel` | Lihat cache Redis, filter, preview screenshot, hapus/flush |
 | **Settings** | `SettingsPanel` | Toggle fitur, slider TTL/stale/interval, trigger stale check, bahasa, tema |
 | **Logs** | `LogsPanel` | Log backend real-time, filter tag, auto-scroll |
@@ -85,6 +87,9 @@ Semua data fetching menggunakan **TanStack React Query v5** dengan polling otoma
 
 | Hook | Endpoint | Polling | Mutation |
 |------|----------|---------|----------|
+| `useHeartbeats()` | `GET /extension/heartbeats` | 10s | — |
+| `useDeleteHeartbeats()` | `DELETE /extension/heartbeat/:id` | — | Hapus heartbeat |
+| `useTriggerHeartbeat()` | `POST /admin/trigger-heartbeat` | — | Trigger manual heartbeat |
 | `useSettings()` | `GET /settings` | 10s | `PUT /settings` |
 | `useExtensionStatus(id)` | `GET /extension/status` | 30s | — |
 | `useReports()` | `GET /reports` | 10s | `DELETE /reports/:id`, `DELETE /reports/by-hostname/:h` |
@@ -141,6 +146,7 @@ server: {
     "/logs":     "http://127.0.0.1:8000",
     "/report":   "http://127.0.0.1:8000",
     "/classify": "http://127.0.0.1:8000",
+    "/extension": { target: "http://127.0.0.1:8000", ...authProxy() },
     "/admin":    { target: "http://127.0.0.1:8000", ...authProxy() },
   },
 }

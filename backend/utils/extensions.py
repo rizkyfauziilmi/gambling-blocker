@@ -196,4 +196,36 @@ def get_status(extension_id: str) -> dict:
     }
 
 
+def get_all_heartbeat_status() -> list[dict]:
+    conn = _conn()
+    rows = conn.execute(
+        """SELECT p.extension_id, p.partner_email, p.stale_alerted_at,
+                  MAX(h.timestamp) as last_heartbeat_at,
+                  COUNT(h.id) as total_heartbeats
+           FROM partner_accounts p
+           LEFT JOIN heartbeats h ON h.extension_id = p.extension_id
+           GROUP BY p.extension_id
+           ORDER BY last_heartbeat_at DESC NULLS LAST"""
+    ).fetchall()
+    conn.close()
+    result = []
+    now = datetime.now(timezone.utc)
+    for r in rows:
+        d = dict(r)
+        if d["last_heartbeat_at"]:
+            last = datetime.fromisoformat(d["last_heartbeat_at"])
+            d["heartbeat_age_hours"] = int((now - last).total_seconds() // 3600)
+        else:
+            d["heartbeat_age_hours"] = None
+        result.append(d)
+    return result
+
+
+def delete_heartbeats(extension_id: str) -> None:
+    conn = _conn()
+    conn.execute("DELETE FROM heartbeats WHERE extension_id = ?", (extension_id,))
+    conn.commit()
+    conn.close()
+
+
 init_tables()

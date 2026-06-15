@@ -45,6 +45,40 @@ Base URL: `http://localhost:8000`
 
 **Validasi email:** Format (EmailStr) + MX record (dnspython). Jika gagal → **422**. Jika email gagal dikirim → rollback (`delete_partner`) → **502**.
 
+### Get All Heartbeats
+
+| Method | Path | Auth |
+|--------|------|------|
+| GET | `/extension/heartbeats` | Basic Auth |
+
+Mengembalikan semua partner dengan status heartbeat terbaru.
+
+**Response:**
+```json
+{
+  "heartbeats": [
+    {
+      "extension_id": "uuid-string",
+      "partner_email": "partner@email.com",
+      "stale_alerted_at": null,
+      "last_heartbeat_at": "2026-06-15T10:00:00",
+      "total_heartbeats": 42,
+      "heartbeat_age_hours": 2
+    }
+  ]
+}
+```
+
+### Delete Heartbeats
+
+| Method | Path | Auth |
+|--------|------|------|
+| DELETE | `/extension/heartbeat/{extension_id}` | Basic Auth |
+
+Menghapus semua rekaman heartbeat untuk extension tertentu.
+
+**Response:** `{ "success": true }`
+
 ### Heartbeat
 
 | Method | Path | Auth |
@@ -332,6 +366,29 @@ Menjalankan pengecekan heartbeat stale secara manual. Memanggil `_check_stale_he
 ```
 
 **Log tag:** `API`
+
+### Trigger Manual Heartbeat
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/admin/trigger-heartbeat` | Basic Auth |
+
+Mencatat heartbeat untuk extension tertentu secara manual. Berguna untuk testing tanpa menunggu alarm 30 menit.
+
+**Request Body:**
+```json
+{ "extension_id": "uuid-string" }
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "extension_id": "uuid-string"
+}
+```
+
+**Log tag:** `HEARTBEAT`
 
 ---
 

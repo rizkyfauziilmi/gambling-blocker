@@ -24,7 +24,11 @@ from utils.email import (
     send_tamper_alert,
 )
 from utils.extensions import (
+    delete_heartbeats as ext_delete_heartbeats,
+)
+from utils.extensions import (
     delete_partner,
+    get_all_heartbeat_status,
     get_partner,
     log_tamper,
     record_heartbeat,
@@ -240,6 +244,36 @@ def extension_status(
     _: None = Depends(require_auth),
 ) -> dict:
     return ext_get_status(extension_id)
+
+
+class TriggerHeartbeatBody(BaseModel):
+    extension_id: str
+
+
+@app.get("/extension/heartbeats")
+def extension_heartbeats(_: None = Depends(require_auth)) -> dict:
+    heartbeats = get_all_heartbeat_status()
+    return {"heartbeats": heartbeats}
+
+
+@app.delete("/extension/heartbeat/{extension_id}")
+def extension_heartbeat_delete(
+    extension_id: str,
+    _: None = Depends(require_auth),
+) -> dict:
+    ext_delete_heartbeats(extension_id)
+    log_msg("HEARTBEAT", f"heartbeats deleted for {extension_id} (admin)")
+    return {"success": True}
+
+
+@app.post("/admin/trigger-heartbeat")
+def admin_trigger_heartbeat(
+    body: TriggerHeartbeatBody,
+    _: None = Depends(require_auth),
+) -> dict:
+    record_heartbeat(body.extension_id)
+    log_msg("HEARTBEAT", f"manual heartbeat triggered for {body.extension_id} (admin)")
+    return {"success": True, "extension_id": body.extension_id}
 
 
 @app.get("/classify/url-fused")

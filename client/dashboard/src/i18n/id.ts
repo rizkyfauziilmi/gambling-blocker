@@ -6,6 +6,9 @@ const id: Record<string, string> = {
   tab_cache: "Cache",
   tab_settings: "Pengaturan",
   tab_logs: "Log",
+  tab_heartbeats: "Heartbeat",
+  tab_heartbeats_title: "Pemantau Heartbeat",
+  tab_heartbeats_desc: "Status heartbeat ekstensi partner secara real-time",
   tab_reports_title: "Manajemen Laporan",
   tab_reports_desc: "Laporan positif palsu yang dikirim pengguna",
   tab_blacklist_title: "Manajemen Daftar Hitam",
@@ -153,6 +156,14 @@ const id: Record<string, string> = {
   trigger_stale_check_desc:
     "Periksa heartbeat tidak aktif secara manual dan kirim peringatan",
   checking: "Memeriksa...",
+  no_heartbeats: "Belum ada partner terdaftar",
+  col_extension_id: "ID Ekstensi",
+  col_partner_email: "Email Partner",
+  col_last_heartbeat: "Heartbeat Terakhir",
+  col_age: "Usia",
+  col_total: "Total",
+  col_actions: "Aksi",
+  search_extension_id: "Cari berdasarkan ID ekstensi atau email...",
 }
 
 export default id

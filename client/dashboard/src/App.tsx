@@ -1,12 +1,13 @@
 import { Toaster } from "@/components/ui/sonner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { CachePanel } from "@/components/CachePanel"
 import { BlacklistPanel } from "@/components/BlacklistPanel"
-import { WhitelistPanel } from "@/components/WhitelistPanel"
+import { CachePanel } from "@/components/CachePanel"
+import { HeartbeatsPanel } from "@/components/HeartbeatsPanel"
+import { LogsPanel } from "@/components/LogsPanel"
 import { ReportsContent } from "./components/ReportsContent"
 import { SettingsPanel } from "@/components/SettingsPanel"
-import { LogsPanel } from "@/components/LogsPanel"
+import { WhitelistPanel } from "@/components/WhitelistPanel"
 import { useState } from "react"
 import { useI18n } from "@/i18n/context"
 
@@ -15,6 +16,7 @@ export function App() {
     | "reports"
     | "blacklist"
     | "whitelist"
+    | "heartbeats"
     | "cache"
     | "settings"
     | "logs"
@@ -40,6 +42,10 @@ export function App() {
     whitelist: {
       title: t("tab_whitelist_title"),
       description: t("tab_whitelist_desc"),
+    },
+    heartbeats: {
+      title: t("tab_heartbeats_title"),
+      description: t("tab_heartbeats_desc"),
     },
     cache: {
       title: t("tab_cache_title"),
@@ -75,6 +81,7 @@ export function App() {
             <TabsTrigger value="reports">{t("tab_reports")}</TabsTrigger>
             <TabsTrigger value="blacklist">{t("tab_blacklist")}</TabsTrigger>
             <TabsTrigger value="whitelist">{t("tab_whitelist")}</TabsTrigger>
+            <TabsTrigger value="heartbeats">{t("tab_heartbeats")}</TabsTrigger>
             <TabsTrigger value="cache">{t("tab_cache")}</TabsTrigger>
             <TabsTrigger value="settings">{t("tab_settings")}</TabsTrigger>
             <TabsTrigger value="logs">{t("tab_logs")}</TabsTrigger>
@@ -87,6 +94,9 @@ export function App() {
           </TabsContent>
           <TabsContent value="whitelist">
             <WhitelistPanel />
+          </TabsContent>
+          <TabsContent value="heartbeats">
+            <HeartbeatsPanel />
           </TabsContent>
           <TabsContent value="cache">
             <CachePanel />

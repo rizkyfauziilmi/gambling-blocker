@@ -243,6 +243,7 @@ flowchart LR
         S["Settings Tab<br/>(poll 10s)"]
         L["Logs Tab<br/>(poll 5s)"]
         P["Partner Panel<br/>(poll 30s)"]
+        H["Heartbeats Tab<br/>(poll 10s)"]
     end
     subgraph API["Backend API (Basic Auth)"]
         direction TB
@@ -253,6 +254,7 @@ flowchart LR
         SET["GET /settings<br/>PUT /settings"]
         LOG["GET /logs?tag=<br/>DELETE /logs"]
         STAT["GET /extension/status"]
+        HB["GET /extension/heartbeats<br/>DELETE /extension/heartbeat/:id<br/>POST /admin/trigger-heartbeat"]
     end
 
     R --> REP
@@ -262,4 +264,5 @@ flowchart LR
     S --> SET
     L --> LOG
     P --> STAT
+    H --> HB
 ```

@@ -6,6 +6,9 @@ const en: Record<string, string> = {
   tab_cache: "Cache",
   tab_settings: "Settings",
   tab_logs: "Logs",
+  tab_heartbeats: "Heartbeats",
+  tab_heartbeats_title: "Heartbeat Monitor",
+  tab_heartbeats_desc: "Real-time partner extension heartbeat status",
   tab_reports_title: "Reports Management",
   tab_reports_desc: "False detection reports submitted by users",
   tab_blacklist_title: "Blacklist Management",
@@ -154,6 +157,14 @@ const en: Record<string, string> = {
   trigger_stale_check_desc:
     "Manually check for stale heartbeats and send alerts",
   checking: "Checking...",
+  no_heartbeats: "No partners registered yet",
+  col_extension_id: "Extension ID",
+  col_partner_email: "Partner Email",
+  col_last_heartbeat: "Last Heartbeat",
+  col_age: "Age",
+  col_total: "Total",
+  col_actions: "Actions",
+  search_extension_id: "Search by extension ID or email...",
 }
 
 export default en

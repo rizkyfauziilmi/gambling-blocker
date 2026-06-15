@@ -54,7 +54,7 @@ backend/
 |-------|--------|
 | `model.py` | **Inti ML.** Inferensi teks (TF-IDF → Keras), inferensi gambar (Random Forest), fusion skor, multipage crawling, screenshot Playwright |
 | `cache.py` | **Redis.** Set/get dengan TTL dari settings, atomic increment untuk rate limiter, scan/flush |
-| `extensions.py` | **SQLite Partner.** `setup_partner()` (PBKDF2 SHA-256, 600K iterasi), `record_heartbeat()`, `log_tamper()`, `get_stale_extensions()`, `mark_stale_alerted()`, `restore_partner()` (rollback reset), `delete_partner()` (rollback setup) |
+| `extensions.py` | **SQLite Partner.** `setup_partner()` (PBKDF2 SHA-256, 600K iterasi), `record_heartbeat()`, `log_tamper()`, `get_stale_extensions()`, `mark_stale_alerted()`, `restore_partner()` (rollback reset), `delete_partner()` (rollback setup), `get_all_heartbeat_status()`, `delete_heartbeats()` |
 | `email.py` | **SMTP.** Empat template: password akun partner, tamper alert, reset password, heartbeat stale alert |
 | `lists.py` | **SQLite Blacklist/Whitelist.** Tambah, hapus, cek hostname |
 | `reports.py` | **SQLite Reports.** CRUD false positive reports, grouped by hostname, stats |
@@ -74,6 +74,8 @@ backend/
 | POST | `/extension/tamper-alert` | ✗ | Log tamper + email partner |
 | POST | `/extension/reset-password` | ✗ | Reset password + email ulang |
 | GET | `/extension/status` | Basic | Status ekstensi (heartbeat age, tamper count) |
+| GET | `/extension/heartbeats` | Basic | Semua partner + heartbeat terakhir |
+| DELETE | `/extension/heartbeat/{extension_id}` | Basic | Hapus heartbeat untuk extension |
 
 ### Klasifikasi
 
@@ -92,6 +94,7 @@ backend/
 | GET/DELETE/DELETE | `/cache` | Manajemen cache Redis |
 | GET/PUT | `/settings` | Baca/ubah pengaturan runtime |
 | POST | `/admin/trigger-stale-check` | Trigger manual pengecekan heartbeat stale |
+| POST | `/admin/trigger-heartbeat` | Trigger manual heartbeat untuk extension tertentu |
 | GET/DELETE | `/logs` | Baca/hapus log |
 
 ## Cara Menjalankan
