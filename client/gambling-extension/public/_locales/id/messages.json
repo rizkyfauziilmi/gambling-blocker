@@ -118,5 +118,89 @@
     },
     "popup_fusionInfo": {
         "message": "Bobot fusion: {alpha}"
+    },
+    "partner_setupTitle": {
+        "message": "Atur Partner Akuntabilitas"
+    },
+    "partner_setupDesc": {
+        "message": "Masukkan email partner. Password akan dikirim ke mereka. Password ini diperlukan untuk mengakses pengaturan extension."
+    },
+    "partner_emailLabel": {
+        "message": "Email Partner"
+    },
+    "partner_emailPlaceholder": {
+        "message": "partner@contoh.com"
+    },
+    "partner_setupButton": {
+        "message": "Kirim Password ke Partner"
+    },
+    "partner_setupSuccess": {
+        "message": "Password terkirim! Cek dengan partner kamu. Simpan password untuk akses pengaturan."
+    },
+    "partner_passwordTitle": {
+        "message": "Password Partner Diperlukan"
+    },
+    "partner_passwordDesc": {
+        "message": "Masukkan password yang dikirim ke partner akuntabilitas kamu."
+    },
+    "partner_passwordLabel": {
+        "message": "Password"
+    },
+    "partner_passwordPlaceholder": {
+        "message": "Masukkan password"
+    },
+    "partner_unlockButton": {
+        "message": "Buka Pengaturan"
+    },
+    "partner_wrongPassword": {
+        "message": "Password salah. Peringatan telah dikirim ke partner kamu."
+    },
+    "partner_alertSent": {
+        "message": "Peringatan dikirim ke partner."
+    },
+    "partner_noPartner": {
+        "message": "Belum ada partner akuntabilitas."
+    },
+    "partner_setReminder": {
+        "message": "Atur di Pengaturan untuk perlindungan ekstra."
+    },
+    "partner_extBlockedTitle": {
+        "message": "Akses Diblokir"
+    },
+    "partner_extBlockedDesc": {
+        "message": "Pengaturan extension dilindungi oleh partner akuntabilitas kamu."
+    },
+    "partner_extBlockedForm": {
+        "message": "Masukkan password partner untuk melanjutkan"
+    },
+    "partner_extBlockedSuccess": {
+        "message": "Akses diberikan! Mengarahkan..."
+    },
+    "partner_popupBanner": {
+        "message": "Atur partner akuntabilitas untuk perlindungan ekstra"
+    },
+    "partner_popupBannerLate": {
+        "message": "Segera atur partner akuntabilitas untuk perlindungan ekstra"
+    },
+    "partner_popupActive": {
+        "message": "Dilindungi oleh partner"
+    },
+    "partner_graceDays": {
+        "message": "{days} hari tersisa untuk atur partner"
+    },
+    "partner_daysOverdue": {
+        "message": "Atur partner akuntabilitas kamu!"
+    },
+    "partner_forgotPassword": {
+        "message": "Lupa password?"
+    },
+    "partner_resetSending": {
+        "message": "Mengirim password baru..."
+    },
+    "partner_resetSuccess": {
+        "message": "Password baru terkirim ke email partner!"
+    },
+    "partner_resetError": {
+        "message": "Gagal mengirim. Coba lagi."
     }
 }

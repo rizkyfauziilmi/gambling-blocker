@@ -123,14 +123,6 @@ def get_partner(extension_id: str) -> dict | None:
     return dict(row)
 
 
-def verify_password(extension_id: str, password: str) -> bool:
-    partner = get_partner(extension_id)
-    if partner is None:
-        return False
-    h, _ = _hash_password(password, partner["password_salt"])
-    return h == partner["password_hash"]
-
-
 def get_tamper_count(extension_id: str, hours: int = 1) -> int:
     conn = _conn()
     row = conn.execute(

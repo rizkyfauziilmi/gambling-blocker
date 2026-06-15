@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   KeyRound,
   Lock,
+  RefreshCw,
   Shield,
   ShieldCheck,
   TriangleAlert,
@@ -17,9 +18,30 @@ function App() {
   const [state, setState] = useState<"idle" | "checking" | "success" | "error">(
     "idle"
   )
+  const [resetState, setResetState] = useState<
+    "idle" | "sending" | "success" | "error"
+  >("idle")
 
   useEffect(() => {
     initLanguage().then(() => setReady(true))
+  }, [])
+
+  const handleResetPassword = useCallback(async () => {
+    setResetState("sending")
+    try {
+      const extensionId = await getOrCreateExtensionId()
+      const res = await fetch(`${API_BASE}/extension/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ extension_id: extensionId }),
+      })
+      if (!res.ok) throw new Error("reset failed")
+      setResetState("success")
+      setTimeout(() => setResetState("idle"), 4000)
+    } catch {
+      setResetState("error")
+      setTimeout(() => setResetState("idle"), 3000)
+    }
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -103,6 +125,20 @@ function App() {
                 </div>
               )}
 
+              {resetState === "success" && (
+                <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                  <RefreshCw className="size-4 shrink-0" />
+                  <span>{t("partner_resetSuccess")}</span>
+                </div>
+              )}
+
+              {resetState === "error" && (
+                <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <TriangleAlert className="size-4 shrink-0" />
+                  <span>{t("partner_resetError")}</span>
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={state === "checking" || !password}
@@ -112,6 +148,20 @@ function App() {
                 {state === "checking"
                   ? "Checking..."
                   : t("partner_unlockButton")}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetPassword}
+                disabled={resetState === "sending"}
+                className="flex w-full cursor-pointer items-center justify-center gap-2 text-sm text-gray-500 transition-all hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <RefreshCw
+                  className={`size-3 ${resetState === "sending" ? "animate-spin" : ""}`}
+                />
+                {resetState === "sending"
+                  ? t("partner_resetSending")
+                  : t("partner_forgotPassword")}
               </button>
             </form>
           )}

@@ -110,14 +110,11 @@ sequenceDiagram
     else Bypass tidak ada / expired
         Ext->>User: Minta password
         User->>Ext: Masukkan password
-        Ext->>API: POST /extension/verify
-        API->>API: Verifikasi PBKDF2
+        Ext->>Ext: Verifikasi PBKDF2 lokal
         alt Password benar
-            API-->>Ext: {valid: true}
             Ext->>Ext: Set session bypass (5 menit)
             Ext->>User: Izinkan akses
         else Password salah
-            API-->>Ext: {valid: false}
             Ext->>API: POST /extension/tamper-alert
             API->>Partner: Email alert
             Ext->>User: Tampilkan error (1 kesempatan)

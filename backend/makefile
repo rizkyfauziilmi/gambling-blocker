@@ -1,4 +1,4 @@
-.PHONY: help jupyter
+.PHONY: help jupyter reset
 
 .DEFAULT_GOAL := help
 
@@ -38,6 +38,11 @@ minio-reset: ## Wipe MinIO data and stop
 storage-up: redis-up minio-up ## Start all storage services
 
 storage-down: redis-down minio-down ## Stop all storage services
+
+reset: ## Reset semua data (Redis, MinIO, SQLite)
+	docker compose down -v
+	rm -f reports.db
+	docker compose up -d
 
 help: ## Show help
 	@echo "Usage:"

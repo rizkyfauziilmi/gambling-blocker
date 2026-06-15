@@ -58,19 +58,6 @@ Base URL: `http://localhost:8000`
 
 **Log tag:** `HEARTBEAT` (tidak dicatat jika hanya heartbeat dari extension tanpa partner).
 
-### Verify Password
-
-| Method | Path | Auth |
-|--------|------|------|
-| POST | `/extension/verify` | ✗ |
-
-**Request Body:**
-```json
-{ "extension_id": "uuid-string", "password": "plain-text-password" }
-```
-
-**Response:** `{ "valid": true }`
-
 ### Tamper Alert
 
 | Method | Path | Auth |

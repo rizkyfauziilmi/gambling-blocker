@@ -118,5 +118,89 @@
     },
     "popup_fusionInfo": {
         "message": "Fusion weight: {alpha}"
+    },
+    "partner_setupTitle": {
+        "message": "Set Accountability Partner"
+    },
+    "partner_setupDesc": {
+        "message": "Enter your partner's email. A password will be sent to them. This password is required to access extension settings."
+    },
+    "partner_emailLabel": {
+        "message": "Partner Email"
+    },
+    "partner_emailPlaceholder": {
+        "message": "partner@example.com"
+    },
+    "partner_setupButton": {
+        "message": "Send Password to Partner"
+    },
+    "partner_setupSuccess": {
+        "message": "Password sent! Check with your partner. Save the password to access settings."
+    },
+    "partner_passwordTitle": {
+        "message": "Partner Password Required"
+    },
+    "partner_passwordDesc": {
+        "message": "Enter the password sent to your accountability partner."
+    },
+    "partner_passwordLabel": {
+        "message": "Password"
+    },
+    "partner_passwordPlaceholder": {
+        "message": "Enter password"
+    },
+    "partner_unlockButton": {
+        "message": "Unlock Settings"
+    },
+    "partner_wrongPassword": {
+        "message": "Wrong password. An alert has been sent to your partner."
+    },
+    "partner_alertSent": {
+        "message": "Tamper alert sent to partner."
+    },
+    "partner_noPartner": {
+        "message": "No accountability partner set."
+    },
+    "partner_setReminder": {
+        "message": "Set one up in Settings for extra protection."
+    },
+    "partner_extBlockedTitle": {
+        "message": "Access Blocked"
+    },
+    "partner_extBlockedDesc": {
+        "message": "Extension settings are protected by your accountability partner."
+    },
+    "partner_extBlockedForm": {
+        "message": "Enter partner password to continue"
+    },
+    "partner_extBlockedSuccess": {
+        "message": "Access granted! Redirecting..."
+    },
+    "partner_popupBanner": {
+        "message": "Set accountability partner for extra protection"
+    },
+    "partner_popupBannerLate": {
+        "message": "Set accountability partner soon for extra protection"
+    },
+    "partner_popupActive": {
+        "message": "Protected by partner"
+    },
+    "partner_graceDays": {
+        "message": "{days} days left to set partner"
+    },
+    "partner_daysOverdue": {
+        "message": "Set your accountability partner!"
+    },
+    "partner_forgotPassword": {
+        "message": "Forgot password?"
+    },
+    "partner_resetSending": {
+        "message": "Sending new password..."
+    },
+    "partner_resetSuccess": {
+        "message": "New password sent to partner email!"
+    },
+    "partner_resetError": {
+        "message": "Failed to send. Try again."
     }
 }

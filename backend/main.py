@@ -26,7 +26,6 @@ from utils.extensions import (
     log_tamper,
     record_heartbeat,
     setup_partner,
-    verify_password,
 )
 from utils.extensions import (
     get_status as ext_get_status,
@@ -209,20 +208,6 @@ def extension_status(
     _: None = Depends(require_auth),
 ) -> dict:
     return ext_get_status(extension_id)
-
-
-class ExtVerifyBody(BaseModel):
-    extension_id: str
-    password: str
-
-
-@app.post("/extension/verify")
-def extension_verify(body: ExtVerifyBody) -> dict:
-    ok = verify_password(body.extension_id, body.password)
-    log_msg(
-        "PARTNER", f"password verify for {body.extension_id}: {'ok' if ok else 'FAIL'}"
-    )
-    return {"valid": ok}
 
 
 @app.get("/classify/url-fused")

@@ -76,6 +76,10 @@ const messages: Record<string, Record<string, string>> = {
     partner_popupActive: "Protected by partner",
     partner_graceDays: "{days} days left to set partner",
     partner_daysOverdue: "Set your accountability partner!",
+    partner_forgotPassword: "Forgot password?",
+    partner_resetSending: "Sending new password...",
+    partner_resetSuccess: "New password sent to partner email!",
+    partner_resetError: "Failed to send. Try again.",
   },
   id: {
     extName: "Gambling Blocker",
@@ -152,6 +156,10 @@ const messages: Record<string, Record<string, string>> = {
     partner_popupActive: "Dilindungi oleh partner",
     partner_graceDays: "{days} hari tersisa untuk atur partner",
     partner_daysOverdue: "Atur partner akuntabilitas kamu!",
+    partner_forgotPassword: "Lupa password?",
+    partner_resetSending: "Mengirim password baru...",
+    partner_resetSuccess: "Password baru terkirim ke email partner!",
+    partner_resetError: "Gagal mengirim. Coba lagi.",
   },
 }
 
