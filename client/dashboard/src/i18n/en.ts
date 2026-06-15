@@ -147,6 +147,13 @@ const en: Record<string, string> = {
   theme_dark: "Dark",
   theme_system: "System",
   failed_load_settings: "Failed to load settings",
+  auto_heartbeat: "Auto Heartbeat on Setup",
+  auto_heartbeat_desc:
+    "Record heartbeat automatically when setting up a new partner",
+  trigger_stale_check: "Trigger Stale Check Now",
+  trigger_stale_check_desc:
+    "Manually check for stale heartbeats and send alerts",
+  checking: "Checking...",
 }
 
 export default en

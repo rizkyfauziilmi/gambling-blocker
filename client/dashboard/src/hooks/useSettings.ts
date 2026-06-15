@@ -8,6 +8,7 @@ export interface Settings {
   cache_ttl_hours: number
   stale_hours: number
   stale_check_interval_minutes: number
+  auto_heartbeat_on_setup: boolean
 }
 
 async function fetchSettings(): Promise<Settings> {

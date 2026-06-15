@@ -6,13 +6,23 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
+import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { useSettings } from "@/hooks/useSettings"
+import { useTriggerStaleCheck } from "@/hooks/useAdmin"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { ThemeSwitcher } from "@/components/ThemeSwitcher"
 import { useI18n } from "@/i18n/context"
-import { SlidersHorizontal, Database, Activity, Palette } from "lucide-react"
+import {
+  Activity,
+  Database,
+  Heart,
+  Loader2,
+  Palette,
+  RefreshCw,
+  SlidersHorizontal,
+} from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 function SectionHeading({
@@ -32,6 +42,7 @@ function SectionHeading({
 
 export function SettingsPanel() {
   const { data: settings, isLoading, update } = useSettings()
+  const triggerStale = useTriggerStaleCheck()
   const { t } = useI18n()
 
   if (isLoading) {
@@ -117,6 +128,25 @@ export function SettingsPanel() {
               disabled={update.isPending}
             />
           </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Heart className="size-3.5 text-muted-foreground" />
+                {t("auto_heartbeat")}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {t("auto_heartbeat_desc")}
+              </div>
+            </div>
+            <Switch
+              checked={settings.auto_heartbeat_on_setup}
+              onCheckedChange={(checked) =>
+                update.mutate({ auto_heartbeat_on_setup: checked })
+              }
+              disabled={update.isPending}
+            />
+          </div>
         </section>
 
         <section className="space-y-4 rounded-lg border border-border/50 bg-muted/40 p-4">
@@ -194,6 +224,32 @@ export function SettingsPanel() {
             <div className="text-sm text-muted-foreground">
               {t("check_interval_desc")}
             </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-border/50 bg-background p-3">
+            <div className="space-y-0.5">
+              <div className="text-sm font-medium">
+                {t("trigger_stale_check")}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {t("trigger_stale_check_desc")}
+              </div>
+            </div>
+            <Button
+              onClick={() => triggerStale.mutate()}
+              disabled={triggerStale.isPending}
+              variant="outline"
+              size="sm"
+            >
+              {triggerStale.isPending ? (
+                <Loader2 className="mr-1 size-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-1 size-3.5" />
+              )}
+              {triggerStale.isPending
+                ? t("checking")
+                : t("trigger_stale_check")}
+            </Button>
           </div>
         </section>
 

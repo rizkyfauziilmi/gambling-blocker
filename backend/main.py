@@ -1,13 +1,14 @@
 import json
 import os
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, Annotated
 from urllib.parse import urlparse
 
+import dns.resolver
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from pydantic import AnyHttpUrl, BaseModel
+from pydantic import AfterValidator, AnyHttpUrl, BaseModel, EmailStr
 
 from utils.cache import delete as cache_delete
 from utils.cache import flush_cache as cache_flush
@@ -19,12 +20,15 @@ from utils.cache import setex as cache_setex
 from utils.email import (
     send_heartbeat_stale_alert,
     send_partner_password,
+    send_reset_password,
     send_tamper_alert,
 )
 from utils.extensions import (
+    delete_partner,
     get_partner,
     log_tamper,
     record_heartbeat,
+    restore_partner,
     setup_partner,
 )
 from utils.extensions import (
@@ -118,23 +122,41 @@ def _check_stale_heartbeats() -> None:
         log_msg("HEARTBEAT", f"stale check: 0 stale (threshold={hours}h)")
 
 
+def check_email_mx(v: str) -> str:
+    domain = v.split("@")[1]
+    try:
+        dns.resolver.resolve(domain, "MX", lifetime=5)
+    except dns.resolver.LifetimeTimeout:
+        raise ValueError(f"DNS timeout checking domain {domain}")
+    except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN):
+        raise ValueError(f"Domain {domain} does not accept email (no MX record)")
+    return v
+
+
 class ExtensionSetupBody(BaseModel):
     extension_id: str
-    partner_email: str
+    partner_email: Annotated[EmailStr, AfterValidator(check_email_mx)]
 
 
 @app.post("/extension/setup")
 def extension_setup(body: ExtensionSetupBody) -> dict:
     result = setup_partner(body.extension_id, body.partner_email)
-    record_heartbeat(body.extension_id)
+    if settings_get().get("auto_heartbeat_on_setup", True):
+        record_heartbeat(body.extension_id)
+        log_msg(
+            "HEARTBEAT",
+            f"initial heartbeat recorded for {body.extension_id} (via partner setup)",
+        )
+    else:
+        log_msg(
+            "HEARTBEAT",
+            f"initial heartbeat SKIPPED for {body.extension_id} (auto_heartbeat_on_setup=false)",  # noqa: E501
+        )
     log_msg("PARTNER", f"partner set up for {body.extension_id} → {body.partner_email}")
-    log_msg(
-        "HEARTBEAT",
-        f"initial heartbeat recorded for {body.extension_id} (via partner setup)",
-    )
     email_ok = send_partner_password(body.partner_email, result["password"])
     if not email_ok:
-        log_msg("PARTNER", f"email FAILED to {body.partner_email}")
+        log_msg("PARTNER", f"email FAILED to {body.partner_email}, rolling back")
+        delete_partner(body.extension_id)
         raise HTTPException(
             status_code=502,
             detail={"error": "email_failed", "message": "Failed to send partner email"},
@@ -192,14 +214,21 @@ def extension_reset_password(body: ExtensionResetBody) -> dict:
     partner = get_partner(body.extension_id)
     if not partner:
         raise HTTPException(status_code=404, detail="Extension not registered")
+    old_hash = partner["password_hash"]
+    old_salt = partner["password_salt"]
     result = setup_partner(body.extension_id, partner["partner_email"])
     log_msg("PARTNER", f"password reset for {body.extension_id}")
-    email_ok = send_partner_password(partner["partner_email"], result["password"])
+    email_ok = send_reset_password(partner["partner_email"], result["password"])
     if not email_ok:
-        log_msg("PARTNER", f"email FAILED on reset to {partner['partner_email']}")
+        log_msg("PARTNER", f"email FAILED on reset to {partner['partner_email']}, rolling back")
+        restore_partner(body.extension_id, old_hash, old_salt)
         raise HTTPException(status_code=502, detail="Failed to send email")
     log_msg("PARTNER", f"new password emailed to {partner['partner_email']}")
-    return {"success": True}
+    return {
+        "success": True,
+        "password_hash": result["password_hash"],
+        "password_salt": result["password_salt"],
+    }
 
 
 @app.get("/extension/status")
@@ -619,6 +648,7 @@ def update_settings(
         "cache_ttl_hours",
         "stale_hours",
         "stale_check_interval_minutes",
+        "auto_heartbeat_on_setup",
     }
     updates = {k: v for k, v in body.items() if k in allowed}
     if not updates:
@@ -635,3 +665,15 @@ def update_settings(
         except Exception as exc:
             log_msg("WARN", f"failed to reschedule: {exc}")
     return result
+
+
+@app.post("/admin/trigger-stale-check")
+def admin_trigger_stale_check(_: None = Depends(require_auth)) -> dict:
+    from utils.extensions import get_stale_extensions
+
+    hours = settings_get().get("stale_hours", 2)
+    stale = get_stale_extensions(hours)
+    count = len(stale)
+    log_msg("API", f"admin trigger stale check: {count} stale (threshold={hours}h)")
+    _check_stale_heartbeats()
+    return {"success": True, "stale_count": count, "alerts_sent": count}

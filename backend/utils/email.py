@@ -108,6 +108,33 @@ def send_tamper_alert(
     )
 
 
+def send_reset_password(
+    partner_email: str,
+    password: str,
+    *,
+    user_email: str = "",
+) -> bool:
+    html = f"""<html>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+<h2 style="color:#e67e22;">Gambling Blocker — Password Reset</h2>
+<p>Hi,</p>
+<p>The accountability password for <strong>{user_email or "your account"}</strong> has been reset.</p>
+<p>Here is the new password:</p>
+<table style="background:#fef3e2;padding:16px;border-radius:8px;margin:16px 0;width:100%;">
+<tr><td style="font-weight:bold;padding-right:12px;">New Password:</td>
+<td style="font-family:monospace;font-size:18px;letter-spacing:2px;">{password}</td></tr>
+</table>
+<p style="color:#666;font-size:13px;">If you did not request this change, someone may be trying to tamper with the extension.</p>
+<hr style="border:none;border-top:1px solid #eee;margin:16px 0;">
+<p style="color:#999;font-size:11px;">Automated message from Gambling Blocker</p>
+</body></html>"""
+    return send_email(
+        to_email=partner_email,
+        subject="Gambling Blocker — Password Reset",
+        html_body=html,
+    )
+
+
 def send_heartbeat_stale_alert(
     partner_email: str,
     hours_since_last: int,

@@ -68,12 +68,13 @@ Ditampilkan saat mencoba akses `chrome://extensions`:
 - **1 percobaan gagal** → kirim tamper alert ke backend + email ke partner
 - Jika berhasil → set session bypass (5 menit) → buka chrome://extensions
 - Tidak ada retry — password sekali salah langsung dilaporkan
+- **"Forgot password?"** — reset password: backend generate password baru + hash+salt, simpan di local storage, email ke partner
 
 ### `options/App.tsx` — Halaman Pengaturan
 
 Tiga halaman alur:
-1. **Setup Partner** — input email partner → POST /extension/setup
-2. **Password Gate** — verifikasi password untuk akses settings
+1. **Setup Partner** — input email partner → POST /extension/setup (validasi email format + MX, rollback jika email gagal)
+2. **Password Gate** — verifikasi password untuk akses settings, dengan link **"Forgot password?"** untuk reset
 3. **Settings** — status partner, pemilih bahasa (EN/ID)
 
 ### `popup/App.tsx` — Popup
@@ -92,11 +93,12 @@ Tiga halaman alur:
 - Klasifikasi via backend dengan fused ML model (teks + gambar)
 
 ### Accountability Partner
-- Password 16 karakter random dikirim ke email partner
+- Password 12 karakter random dikirim ke email partner
 - Password hash (PBKDF2 SHA-256, 600K iterasi) disimpan lokal
 - Akses ke `chrome://extensions` dan settings butuh password
 - 1 gagal = tamper alert + email ke partner
 - **Bypass 5 menit** setelah password benar (session storage, hilang saat browser restart)
+- **"Forgot password?"** — reset password via `POST /extension/reset-password`, hash+salt baru dikembalikan dan disimpan di local storage
 
 ### Heartbeat
 - Alarm 30 menit → POST `/extension/heartbeat`

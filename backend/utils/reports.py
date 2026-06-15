@@ -2,7 +2,7 @@ import sqlite3
 from pathlib import Path
 from urllib.parse import urlparse
 
-DB_PATH: Path = Path(__file__).parent.parent / "reports.db"
+DB_PATH: Path = Path(__file__).parent.parent / "app.db"
 
 
 def _conn() -> sqlite3.Connection:

@@ -36,6 +36,13 @@ function App() {
         body: JSON.stringify({ extension_id: extensionId }),
       })
       if (!res.ok) throw new Error("reset failed")
+      const data = await res.json()
+      await browser.storage.local.set({
+        partner_password: {
+          hash: data.password_hash,
+          salt: data.password_salt,
+        },
+      })
       setResetState("success")
       setTimeout(() => setResetState("idle"), 4000)
     } catch {

@@ -41,7 +41,7 @@ storage-down: redis-down minio-down ## Stop all storage services
 
 reset: ## Reset semua data (Redis, MinIO, SQLite)
 	docker compose down -v
-	rm -f reports.db
+	rm -f app.db
 	docker compose up -d
 
 help: ## Show help

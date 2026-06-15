@@ -7,7 +7,7 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-DB_PATH: Path = Path(__file__).parent.parent / "reports.db"
+DB_PATH: Path = Path(__file__).parent.parent / "app.db"
 
 
 def _conn() -> sqlite3.Connection:
@@ -73,6 +73,25 @@ def setup_partner(extension_id: str, partner_email: str) -> dict:
     conn.commit()
     conn.close()
     return {"password": password, "password_hash": pw_hash, "password_salt": salt}
+
+
+def restore_partner(extension_id: str, password_hash: str, password_salt: str) -> None:
+    conn = _conn()
+    conn.execute(
+        "UPDATE partner_accounts SET password_hash = ?, password_salt = ? WHERE extension_id = ?",
+        (password_hash, password_salt, extension_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_partner(extension_id: str) -> None:
+    conn = _conn()
+    conn.execute(
+        "DELETE FROM partner_accounts WHERE extension_id = ?", (extension_id,)
+    )
+    conn.commit()
+    conn.close()
 
 
 def record_heartbeat(extension_id: str, ip_address: str | None = None) -> None:

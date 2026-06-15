@@ -79,19 +79,32 @@ Untuk URL domain root (path kosong atau "/"), sistem melakukan crawling internal
 sequenceDiagram
     participant User
     participant Options as Options Page
-    participant BG as Background
     participant API as Backend API
     participant Partner as Email Partner
 
     User->>Options: Masukkan email partner
-    Options->>BG: Kirim extension_id + email
-    BG->>API: POST /extension/setup
-    API->>API: Generate password (16 char random)
-    API->>API: PBKDF2 hash (SHA-256, 600K iter)
-    API->>API: record_heartbeat()
-    API->>Partner: Email password
-    API-->>Options: {password_hash, password_salt}
-    Options->>User: Simpan hash + salt di storage.local
+    Options->>API: POST /extension/setup
+    API->>API: Validasi email (format + MX)
+    alt Email tidak valid
+        API-->>Options: 422 validation error
+        Options->>User: Tampilkan "Gagal. Periksa email"
+    else Email valid
+        API->>API: Generate password (12 char random)
+        API->>API: PBKDF2 hash (SHA-256, 600K iter)
+        API->>API: INSERT OR REPLACE partner_accounts
+        opt auto_heartbeat_on_setup=true
+            API->>API: record_heartbeat()
+        end
+        API->>Partner: Email password
+        alt Email gagal
+            API->>API: delete_partner() rollback
+            API-->>Options: 502 email_failed
+            Options->>User: Tampilkan error
+        else Email sukses
+            API-->>Options: {password_hash, password_salt}
+            Options->>User: Simpan hash + salt di storage.local
+        end
+    end
 ```
 
 ### Password Gate & Bypass
@@ -119,6 +132,32 @@ sequenceDiagram
             API->>Partner: Email alert
             Ext->>User: Tampilkan error (1 kesempatan)
         end
+    end
+```
+
+### Reset Password
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Page as Options / extensions-blocked
+    participant API as Backend API
+    participant Partner as Email Partner
+
+    User->>Page: Klik "Forgot password?"
+    Page->>API: POST /extension/reset-password
+    API->>API: Simpan old_hash, old_salt
+    API->>API: Generate password baru
+    API->>API: PBKDF2 hash baru (INSERT OR REPLACE)
+    API->>Partner: Email password baru
+    alt Email gagal
+        API->>API: restore_partner(old_hash, old_salt) rollback
+        API-->>Page: 502 error
+        Page->>User: Tampilkan error
+    else Email sukses
+        API-->>Page: {password_hash, password_salt}
+        Page->>Page: Simpan hash + salt baru di storage.local
+        Page->>User: Tampilkan "New password sent to partner email"
     end
 ```
 
@@ -171,7 +210,7 @@ Dua listener di `background.ts`:
 | Hari 7+ | Warn: notifikasi proteksi terkompromi, akses extensions diizinkan |
 | Setelah partner di-set | Block: redirect ke halaman password |
 
-## Database SQLite (`reports.db`)
+## Database SQLite (`app.db`)
 
 | Tabel | Isi |
 |-------|-----|
@@ -188,8 +227,8 @@ Dua listener di `background.ts`:
 | `background.ts` | Service worker: routing message, guard extensions, heartbeat alarm |
 | `content.ts` | Content script: overlay, klasifikasi, redirect |
 | `blocked/App.tsx` | Halaman blokir: skor, report false positive |
-| `extensions-blocked/App.tsx` | Halaman password gate untuk extensions page |
-| `options/App.tsx` | Halaman pengaturan: setup partner, ganti bahasa |
+| `extensions-blocked/App.tsx` | Halaman password gate + "Forgot password?" (reset) untuk extensions page |
+| `options/App.tsx` | Halaman pengaturan: setup partner, password gate dengan "Forgot password?", ganti bahasa |
 | `popup/App.tsx` | Popup: status, breakdown, bypass countdown, report |
 
 ## Aliran Data Dashboard

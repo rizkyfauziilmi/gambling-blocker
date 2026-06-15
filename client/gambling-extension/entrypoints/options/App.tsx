@@ -91,7 +91,7 @@ function App() {
         }),
       })
       const data = await res.json()
-      if (!data.success) throw new Error("setup failed")
+      if (!res.ok) throw new Error(data?.detail || "Setup failed")
       setSetupState("success")
       await browser.storage.local.set({
         partner_password: {
@@ -144,6 +144,13 @@ function App() {
         body: JSON.stringify({ extension_id: extensionId }),
       })
       if (!res.ok) throw new Error("reset failed")
+      const data = await res.json()
+      await browser.storage.local.set({
+        partner_password: {
+          hash: data.password_hash,
+          salt: data.password_salt,
+        },
+      })
       setResetState("success")
       setTimeout(() => setResetState("idle"), 4000)
     } catch {
@@ -216,7 +223,7 @@ function App() {
 
               {setupState === "error" && (
                 <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {t("partner_alertSent")}
+                  {t("partner_setupFailed")}
                 </div>
               )}
 

@@ -12,6 +12,7 @@ DEFAULT: dict = {
     "cache_ttl_hours": 24,
     "stale_hours": 2,
     "stale_check_interval_minutes": 30,
+    "auto_heartbeat_on_setup": True,
 }
 
 

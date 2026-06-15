@@ -28,7 +28,7 @@ backend/
 ├── .env.example            # Template env vars
 ├── docker-compose.yml      # Redis 7 + MinIO
 ├── makefile                # Shortcut commands
-├── reports.db              # SQLite (partners, heartbeats, reports, lists)
+├── app.db                  # SQLite (partners, heartbeats, tamper logs, reports, lists)
 ├── settings.json           # Dynamic runtime settings
 ├── utils/
 │   ├── cache.py            # Redis: get, setex, delete, flush, scan, rate limit
@@ -54,8 +54,8 @@ backend/
 |-------|--------|
 | `model.py` | **Inti ML.** Inferensi teks (TF-IDF → Keras), inferensi gambar (Random Forest), fusion skor, multipage crawling, screenshot Playwright |
 | `cache.py` | **Redis.** Set/get dengan TTL dari settings, atomic increment untuk rate limiter, scan/flush |
-| `extensions.py` | **SQLite Partner.** `setup_partner()` (PBKDF2 SHA-256, 600K iterasi), `record_heartbeat()`, `log_tamper()`, `get_stale_extensions()`, `mark_stale_alerted()` |
-| `email.py` | **SMTP.** Tiga template: password akun partner, tamper alert, heartbeat stale alert |
+| `extensions.py` | **SQLite Partner.** `setup_partner()` (PBKDF2 SHA-256, 600K iterasi), `record_heartbeat()`, `log_tamper()`, `get_stale_extensions()`, `mark_stale_alerted()`, `restore_partner()` (rollback reset), `delete_partner()` (rollback setup) |
+| `email.py` | **SMTP.** Empat template: password akun partner, tamper alert, reset password, heartbeat stale alert |
 | `lists.py` | **SQLite Blacklist/Whitelist.** Tambah, hapus, cek hostname |
 | `reports.py` | **SQLite Reports.** CRUD false positive reports, grouped by hostname, stats |
 | `settings.py` | **JSON.** `get()` / `save()` runtime settings, reload tanpa restart |
@@ -91,6 +91,7 @@ backend/
 | GET/POST/DELETE | `/reports` | Manajemen laporan false positive |
 | GET/DELETE/DELETE | `/cache` | Manajemen cache Redis |
 | GET/PUT | `/settings` | Baca/ubah pengaturan runtime |
+| POST | `/admin/trigger-stale-check` | Trigger manual pengecekan heartbeat stale |
 | GET/DELETE | `/logs` | Baca/hapus log |
 
 ## Cara Menjalankan
@@ -140,3 +141,4 @@ URL masuk → cek whitelist/blacklist (SQLite)
 - **Ring buffer log** maksimal 1000 entry, hilang saat server restart.
 - **APScheduler** untuk stale check: interval bisa diubah via `PUT /settings` tanpa restart.
 - **Model** terlatih disimpan di `model/bin/`. Jika tidak ada, endpoint klasifikasi return 503.
+- **Validasi email:** Format (EmailStr) + MX record (dnspython). Jika gagal → 422. Jika email gagal dikirim → DB di-rollback (`delete_partner` di setup, `restore_partner` di reset) → 502.

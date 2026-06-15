@@ -202,5 +202,8 @@
     },
     "partner_resetError": {
         "message": "Gagal mengirim. Coba lagi."
+    },
+    "partner_setupFailed": {
+        "message": "Gagal. Periksa alamat email dan coba lagi."
     }
 }

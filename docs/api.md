@@ -41,7 +41,9 @@ Base URL: `http://localhost:8000`
 }
 ```
 
-**Log tag:** `PARTNER` | **Records heartbeat** setelah setup.
+**Log tag:** `PARTNER` | **Records heartbeat** setelah setup (kecuali `auto_heartbeat_on_setup=false`).
+
+**Validasi email:** Format (EmailStr) + MX record (dnspython). Jika gagal → **422**. Jika email gagal dikirim → rollback (`delete_partner`) → **502**.
 
 ### Heartbeat
 
@@ -84,7 +86,16 @@ Base URL: `http://localhost:8000`
 { "extension_id": "uuid-string" }
 ```
 
-**Response:** `{ "success": true }`
+**Response:**
+```json
+{
+  "success": true,
+  "password_hash": "pbkdf2-hash",
+  "password_salt": "random-salt"
+}
+```
+
+Jika email gagal dikirim → rollback (`restore_partner` mengembalikan hash+salt lama) → **502**.
 
 ### Status Ekstensi
 
@@ -282,7 +293,8 @@ Hanya cek whitelist/blacklist dan cache. Tidak menjalankan inferensi.
   "debug_logging_enabled": false,
   "cache_ttl_hours": 24,
   "stale_hours": 2,
-  "stale_check_interval_minutes": 30
+  "stale_check_interval_minutes": 30,
+  "auto_heartbeat_on_setup": true
 }
 ```
 
@@ -291,11 +303,35 @@ Hanya cek whitelist/blacklist dan cache. Tidak menjalankan inferensi.
 {
   "bypass_text_enabled": false,
   "stale_hours": 4,
-  "stale_check_interval_minutes": 60
+  "stale_check_interval_minutes": 60,
+  "auto_heartbeat_on_setup": false
 }
 ```
 
 **Log tag:** `SETTINGS` | Jika `stale_check_interval_minutes` diubah, scheduler di-reschedule tanpa restart.
+
+---
+
+## Admin
+
+### Trigger Stale Check
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/admin/trigger-stale-check` | Basic Auth |
+
+Menjalankan pengecekan heartbeat stale secara manual. Memanggil `_check_stale_heartbeats()` dan mengirim email alert ke partner jika ada extension yang stale.
+
+**Response:**
+```json
+{
+  "success": true,
+  "stale_count": 2,
+  "alerts_sent": 2
+}
+```
+
+**Log tag:** `API`
 
 ---
 

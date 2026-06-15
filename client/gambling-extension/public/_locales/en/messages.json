@@ -202,5 +202,8 @@
     },
     "partner_resetError": {
         "message": "Failed to send. Try again."
+    },
+    "partner_setupFailed": {
+        "message": "Setup failed. Check your email address and try again."
     }
 }

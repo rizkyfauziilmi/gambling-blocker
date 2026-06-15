@@ -41,6 +41,7 @@ src/
 │   ├── LogsPanel.tsx          # Viewer log real-time
 │   └── datetime-picker.tsx    # Picker tanggal reusable
 ├── hooks/
+│   ├── useAdmin.ts            # POST /admin/trigger-stale-check
 │   ├── useSettings.ts         # GET/PUT /settings
 │   ├── useExtensions.ts       # GET /extension/status
 │   ├── useReports.ts          # GET/DELETE /reports
@@ -66,16 +67,16 @@ src/
 | **Blacklist** | `BlacklistPanel` | Tambah/hapus/cari hostname di blacklist |
 | **Whitelist** | `WhitelistPanel` | Tambah/hapus/cari hostname di whitelist |
 | **Cache** | `CachePanel` | Lihat cache Redis, filter, preview screenshot, hapus/flush |
-| **Settings** | `SettingsPanel` | Toggle fitur, slider TTL/stale/interval, bahasa, tema |
+| **Settings** | `SettingsPanel` | Toggle fitur, slider TTL/stale/interval, trigger stale check, bahasa, tema |
 | **Logs** | `LogsPanel` | Log backend real-time, filter tag, auto-scroll |
 
 ### Fitur Settings
 
 | Bagian | Pengaturan |
 |--------|-----------|
-| **Features** | Skip screenshot (bypass teks), Multipage inference, Debug logging |
+| **Features** | Skip screenshot (bypass teks), Multipage inference, Debug logging, Auto Heartbeat on Setup |
 | **Cache** | Cache TTL (1–24 jam) |
-| **Monitoring** | Stale threshold (1–12 jam), Check interval (5–120 menit) |
+| **Monitoring** | Stale threshold (1–12 jam), Check interval (5–120 menit), Trigger Stale Check Now |
 | **Preferences** | Bahasa (EN/ID), Tema (Light/Dark/System) |
 
 ## Data Fetching
@@ -91,6 +92,7 @@ Semua data fetching menggunakan **TanStack React Query v5** dengan polling otoma
 | `useCache()` | `GET /cache` | 10s | `DELETE /cache/:key`, `DELETE /cache` |
 | `useBlacklist()` | `GET /blacklist` | 10s | `POST /blacklist`, `DELETE /blacklist/:id` |
 | `useWhitelist()` | `GET /whitelist` | 10s | `POST /whitelist`, `DELETE /whitelist/:id` |
+| `useTriggerStaleCheck()` | `POST /admin/trigger-stale-check` | — | Trigger manual stale check |
 
 Mutation sukses → invalidate query terkait → UI ter-update otomatis.
 
@@ -139,6 +141,7 @@ server: {
     "/logs":     "http://127.0.0.1:8000",
     "/report":   "http://127.0.0.1:8000",
     "/classify": "http://127.0.0.1:8000",
+    "/admin":    { target: "http://127.0.0.1:8000", ...authProxy() },
   },
 }
 ```
