@@ -111,7 +111,7 @@ export function ReportsTable({
                     {g.avg_score.toFixed(4)}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {format(parseISO(g.last_reported), "PPpp", {
+                    {format(parseISO(g.last_reported), "PPp", {
                       locale: dateLocale,
                     })}
                   </TableCell>

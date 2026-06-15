@@ -97,7 +97,7 @@ export function HeartbeatsPanel() {
                 <TableCell className="text-sm">{hb.partner_email}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {hb.last_heartbeat_at
-                    ? format(parseISO(hb.last_heartbeat_at), "PPpp", {
+                    ? format(parseISO(hb.last_heartbeat_at), "PPp", {
                         locale: dateLocale,
                       })
                     : "-"}

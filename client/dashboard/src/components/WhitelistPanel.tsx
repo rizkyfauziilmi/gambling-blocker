@@ -114,7 +114,7 @@ export function WhitelistPanel() {
                     {entry.hostname}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {format(parseISO(entry.created_at), "PPpp", {
+                    {format(parseISO(entry.created_at), "PPp", {
                       locale: dateLocale,
                     })}
                   </TableCell>
