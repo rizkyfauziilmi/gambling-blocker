@@ -120,28 +120,28 @@
         "message": "Fusion weight: {alpha}"
     },
     "partner_setupTitle": {
-        "message": "Set Accountability Partner"
+        "message": "Set Up Protection"
     },
     "partner_setupDesc": {
-        "message": "Enter your partner's email. A password will be sent to them. This password is required to access extension settings."
+        "message": "Enter an email to receive a setup password. This password is required to access extension settings."
     },
     "partner_emailLabel": {
-        "message": "Partner Email"
+        "message": "Email"
     },
     "partner_emailPlaceholder": {
-        "message": "partner@example.com"
+        "message": "email@example.com"
     },
     "partner_setupButton": {
-        "message": "Send Password to Partner"
+        "message": "Send Setup Password"
     },
     "partner_setupSuccess": {
-        "message": "Password sent! Check with your partner. Save the password to access settings."
+        "message": "Password sent! Check the email for the password. Save it to access settings."
     },
     "partner_passwordTitle": {
-        "message": "Partner Password Required"
+        "message": "Password Required"
     },
     "partner_passwordDesc": {
-        "message": "Enter the password sent to your accountability partner."
+        "message": "Enter the password sent during setup."
     },
     "partner_passwordLabel": {
         "message": "Password"
@@ -153,13 +153,13 @@
         "message": "Unlock Settings"
     },
     "partner_wrongPassword": {
-        "message": "Wrong password. An alert has been sent to your partner."
+        "message": "Wrong password."
     },
     "partner_alertSent": {
-        "message": "Tamper alert sent to partner."
+        "message": "Tamper alert sent."
     },
     "partner_noPartner": {
-        "message": "No accountability partner set."
+        "message": "No protection setup found."
     },
     "partner_setReminder": {
         "message": "Set one up in Settings for extra protection."
@@ -168,28 +168,28 @@
         "message": "Access Blocked"
     },
     "partner_extBlockedDesc": {
-        "message": "Extension settings are protected by your accountability partner."
+        "message": "Extension settings are password-protected."
     },
     "partner_extBlockedForm": {
-        "message": "Enter partner password to continue"
+        "message": "Enter password to continue"
     },
     "partner_extBlockedSuccess": {
         "message": "Access granted! Redirecting..."
     },
     "partner_popupBanner": {
-        "message": "Set accountability partner for extra protection"
+        "message": "Set up for extra protection"
     },
     "partner_popupBannerLate": {
-        "message": "Set accountability partner soon for extra protection"
+        "message": "Set up soon for extra protection"
     },
     "partner_popupActive": {
-        "message": "Protected by partner"
+        "message": "Protected mode"
     },
     "partner_graceDays": {
-        "message": "{days} days left to set partner"
+        "message": "{days} days left to complete setup"
     },
     "partner_daysOverdue": {
-        "message": "Set your accountability partner!"
+        "message": "Complete your setup!"
     },
     "partner_forgotPassword": {
         "message": "Forgot password?"
@@ -198,7 +198,7 @@
         "message": "Sending new password..."
     },
     "partner_resetSuccess": {
-        "message": "New password sent to partner email!"
+        "message": "New password sent to email!"
     },
     "partner_resetError": {
         "message": "Failed to send. Try again."

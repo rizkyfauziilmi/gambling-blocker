@@ -32,6 +32,8 @@ src/
 │   ├── ThemeSwitcher.tsx      # Toggle tema
 │   ├── SettingsPanel.tsx      # Tab Settings
 │   ├── PartnerPanel.tsx       # Kartu status partner
+│   ├── HeartbeatsPanel.tsx    # Tabel status heartbeat semua partner
+│   ├── TriggerStaleCheckButton.tsx  # Tombol trigger + countdown stale check
 │   ├── SummaryCards.tsx       # Kartu statistik reports
 │   ├── ReportsTable.tsx       # Tabel laporan false positive
 │   ├── ReportsContent.tsx     # Gabungan SummaryCards + ReportsTable
@@ -41,7 +43,8 @@ src/
 │   ├── LogsPanel.tsx          # Viewer log real-time
 │   └── datetime-picker.tsx    # Picker tanggal reusable
 ├── hooks/
-│   ├── useAdmin.ts            # POST /admin/trigger-stale-check
+│   ├── useAdmin.ts            # POST /admin/trigger-stale-check, GET /admin/next-stale-check
+├── useDateLocale.ts       # Map dashboard locale → date-fns locale
 │   ├── useHeartbeats.ts       # GET /extension/heartbeats, DELETE, POST /admin/trigger-heartbeat
 │   ├── useSettings.ts         # GET/PUT /settings
 │   ├── useExtensions.ts       # GET /extension/status
@@ -97,6 +100,7 @@ Semua data fetching menggunakan **TanStack React Query v5** dengan polling otoma
 | `useCache()` | `GET /cache` | 10s | `DELETE /cache/:key`, `DELETE /cache` |
 | `useBlacklist()` | `GET /blacklist` | 10s | `POST /blacklist`, `DELETE /blacklist/:id` |
 | `useWhitelist()` | `GET /whitelist` | 10s | `POST /whitelist`, `DELETE /whitelist/:id` |
+| `useNextStaleCheck()` | `GET /admin/next-stale-check` | 10s | Countdown jadwal stale check berikutnya |
 | `useTriggerStaleCheck()` | `POST /admin/trigger-stale-check` | — | Trigger manual stale check |
 
 Mutation sukses → invalidate query terkait → UI ter-update otomatis.

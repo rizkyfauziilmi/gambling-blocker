@@ -65,17 +65,6 @@ def save_report(url: str, gambling_score: float, reporter_ip: str) -> None:
     conn.close()
 
 
-def get_all_reports(limit: int = 100, offset: int = 0) -> list[dict[str, object]]:
-    init_db()
-    conn = _conn()
-    rows = conn.execute(
-        "SELECT * FROM reports ORDER BY created_at DESC LIMIT ? OFFSET ?",
-        (limit, offset),
-    ).fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
-
-
 def delete_reports_by_hostname(hostname: str) -> None:
     init_db()
     conn = _conn()

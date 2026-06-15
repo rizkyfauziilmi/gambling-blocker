@@ -152,20 +152,6 @@ def get_tamper_count(extension_id: str, hours: int = 1) -> int:
     return row[0] if row else 0
 
 
-def get_heartbeat_age(extension_id: str) -> int | None:
-    conn = _conn()
-    row = conn.execute(
-        "SELECT MAX(timestamp) FROM heartbeats WHERE extension_id = ?",
-        (extension_id,),
-    ).fetchone()
-    conn.close()
-    if row is None or row[0] is None:
-        return None
-    last = datetime.fromisoformat(row[0])
-    now = datetime.now(timezone.utc)
-    return int((now - last).total_seconds() // 3600)
-
-
 def get_stale_extensions(hours: int = 24) -> list[dict]:
     conn = _conn()
     rows = conn.execute(

@@ -89,8 +89,7 @@ async function handleExtensionsAccess(tabId: number) {
         type: "basic",
         iconUrl: "/icon/128.png",
         title: "Gambling Blocker",
-        message:
-          "You still haven't set an accountability partner. Protection may be compromised.",
+        message: "Security setup not complete. Protection may be compromised.",
       })
     } catch {}
     return
@@ -107,7 +106,7 @@ async function handleExtensionsAccess(tabId: number) {
         type: "basic",
         iconUrl: "/icon/128.png",
         title: "Gambling Blocker",
-        message: `Set an accountability partner within ${remaining} day(s) to enable full protection.`,
+        message: `Complete security setup within ${remaining} day(s) to enable full protection.`,
       })
     } catch {}
   }

@@ -26,7 +26,7 @@ flowchart TB
         PW --> IMG
     end
     subgraph DASH["Dashboard (Vite + React 19 + shadcn/ui)"]
-        TABS["Reports | Blacklist | Whitelist | Cache | Settings | Logs"]
+        TABS["Reports | Blacklist | Whitelist | Heartbeats | Cache | Settings | Logs"]
     end
 
     CS -->|"classify message"| BG

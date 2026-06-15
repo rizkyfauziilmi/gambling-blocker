@@ -32,10 +32,6 @@ export async function verifyPassword(password: string): Promise<boolean> {
   return hash === data.hash
 }
 
-export async function clearPassword(): Promise<void> {
-  await browser.storage.local.remove(STORAGE_KEY)
-}
-
 export async function getOrCreateExtensionId(): Promise<string> {
   try {
     const data = (await browser.storage.local.get(EXTENSION_ID_KEY)) as {
@@ -56,15 +52,6 @@ export async function getInstalledAt(): Promise<string | null> {
     return data[INSTALLED_AT_KEY] || null
   } catch {
     return null
-  }
-}
-
-export async function setInstalledAt(): Promise<void> {
-  const existing = await getInstalledAt()
-  if (!existing) {
-    await browser.storage.local.set({
-      [INSTALLED_AT_KEY]: new Date().toISOString(),
-    })
   }
 }
 
