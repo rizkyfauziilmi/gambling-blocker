@@ -164,6 +164,7 @@ const id: Record<string, string> = {
   col_total: "Total",
   col_actions: "Aksi",
   search_extension_id: "Cari berdasarkan ID ekstensi atau email...",
+  next_check_in: "Pemeriksaan berikutnya dalam {time}",
 }
 
 export default id

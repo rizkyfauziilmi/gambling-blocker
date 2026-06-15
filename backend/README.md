@@ -95,6 +95,7 @@ backend/
 | GET/PUT | `/settings` | Baca/ubah pengaturan runtime |
 | POST | `/admin/trigger-stale-check` | Trigger manual pengecekan heartbeat stale |
 | POST | `/admin/trigger-heartbeat` | Trigger manual heartbeat untuk extension tertentu |
+| GET | `/admin/next-stale-check` | Jadwal pengecekan stale berikutnya |
 | GET/DELETE | `/logs` | Baca/hapus log |
 
 ## Cara Menjalankan

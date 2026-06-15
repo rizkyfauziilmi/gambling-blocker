@@ -276,6 +276,16 @@ def admin_trigger_heartbeat(
     return {"success": True, "extension_id": body.extension_id}
 
 
+@app.get("/admin/next-stale-check")
+def admin_next_stale_check(_: None = Depends(require_auth)) -> dict:
+    if _scheduler is None:
+        return {"next_run": None}
+    job = _scheduler.get_job("heartbeat_monitor")
+    if job is None or job.next_run_time is None:
+        return {"next_run": None}
+    return {"next_run": job.next_run_time.isoformat()}
+
+
 @app.get("/classify/url-fused")
 def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict[str, Any]:
     url_str: str = str(url)

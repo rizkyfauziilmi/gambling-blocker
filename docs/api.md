@@ -390,6 +390,23 @@ Mencatat heartbeat untuk extension tertentu secara manual. Berguna untuk testing
 
 **Log tag:** `HEARTBEAT`
 
+### Next Stale Check Countdown
+
+| Method | Path | Auth |
+|--------|------|------|
+| GET | `/admin/next-stale-check` | Basic Auth |
+
+Mengembalikan jadwal eksekusi `_check_stale_heartbeats` berikutnya.
+
+**Response:**
+```json
+{
+  "next_run": "2026-06-15T12:30:00"
+}
+```
+
+Jika scheduler tidak aktif: `{ "next_run": null }`.
+
 ---
 
 ## Logs

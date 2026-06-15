@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 interface TriggerResult {
@@ -27,5 +27,20 @@ export function useTriggerStaleCheck() {
       }
     },
     onError: () => toast.error("Failed to trigger stale check"),
+  })
+}
+
+async function fetchNextStaleCheck(): Promise<{ next_run: string | null }> {
+  const base = import.meta.env.VITE_API_BASE ?? ""
+  const res = await fetch(`${base}/admin/next-stale-check`)
+  if (!res.ok) throw new Error("Failed to fetch next stale check")
+  return res.json()
+}
+
+export function useNextStaleCheck() {
+  return useQuery({
+    queryKey: ["next-stale-check"],
+    queryFn: fetchNextStaleCheck,
+    refetchInterval: 10_000,
   })
 }

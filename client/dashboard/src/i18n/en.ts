@@ -165,6 +165,7 @@ const en: Record<string, string> = {
   col_total: "Total",
   col_actions: "Actions",
   search_extension_id: "Search by extension ID or email...",
+  next_check_in: "Next check in {time}",
 }
 
 export default en
