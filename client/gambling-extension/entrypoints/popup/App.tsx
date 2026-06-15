@@ -345,8 +345,9 @@ function App() {
             {t("partner_popupActive")}
           </p>
           <p className="mt-0.5 text-[11px] text-indigo-600/70">
-            Bypass expires in {Math.floor(bypassRemaining / 60)}:
-            {String(bypassRemaining % 60).padStart(2, "0")}
+            {t("bypass_expires_in")
+              .replace("{m}", String(Math.floor(bypassRemaining / 60)))
+              .replace("{s}", String(bypassRemaining % 60).padStart(2, "0"))}
           </p>
           <button
             onClick={handleLockNow}

@@ -1,4 +1,6 @@
+import { format, parseISO } from "date-fns"
 import { useState } from "react"
+import { useDateLocale } from "@/hooks/useDateLocale"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +31,7 @@ export function BlacklistPanel() {
   const [hostname, setHostname] = useState("")
   const [filter, setFilter] = useState("")
   const { t } = useI18n()
+  const dateLocale = useDateLocale()
 
   const handleAdd = () => {
     const h = hostname.trim().toLowerCase()
@@ -110,7 +113,9 @@ export function BlacklistPanel() {
                     {entry.hostname}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {new Date(entry.created_at + "Z").toLocaleString()}
+                    {format(parseISO(entry.created_at), "PPpp", {
+                      locale: dateLocale,
+                    })}
                   </TableCell>
                   <TableCell>
                     <AlertDialog>

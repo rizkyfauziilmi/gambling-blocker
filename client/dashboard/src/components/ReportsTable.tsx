@@ -28,7 +28,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import type { GroupedReport } from "@/hooks/useReports"
+import { useDateLocale } from "@/hooks/useDateLocale"
 import { useI18n } from "@/i18n/context"
+import { format, parseISO } from "date-fns"
 
 interface ReportsTableProps {
   groups: GroupedReport[] | undefined
@@ -47,6 +49,7 @@ export function ReportsTable({
 }: ReportsTableProps) {
   const [search, setSearch] = useState("")
   const { t } = useI18n()
+  const dateLocale = useDateLocale()
 
   const filtered = groups
     ? groups.filter((g) =>
@@ -108,7 +111,9 @@ export function ReportsTable({
                     {g.avg_score.toFixed(4)}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {new Date(g.last_reported + "Z").toLocaleString()}
+                    {format(parseISO(g.last_reported), "PPpp", {
+                      locale: dateLocale,
+                    })}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-0.5">

@@ -82,6 +82,7 @@ const messages: Record<string, Record<string, string>> = {
     partner_resetError: "Failed to send. Try again.",
     partner_setupFailed:
       "Setup failed. Check your email address and try again.",
+    bypass_expires_in: "Bypass expires in {m}:{s}",
   },
   id: {
     extName: "Gambling Blocker",
@@ -163,6 +164,7 @@ const messages: Record<string, Record<string, string>> = {
     partner_resetSuccess: "Password baru terkirim ke email partner!",
     partner_resetError: "Gagal mengirim. Coba lagi.",
     partner_setupFailed: "Gagal. Periksa alamat email dan coba lagi.",
+    bypass_expires_in: "Bypass kedaluwarsa dalam {m}:{s}",
   },
 }
 

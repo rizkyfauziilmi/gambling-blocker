@@ -15,7 +15,9 @@ import {
   useDeleteHeartbeats,
   useTriggerHeartbeat,
 } from "@/hooks/useHeartbeats"
+import { useDateLocale } from "@/hooks/useDateLocale"
 import { useI18n } from "@/i18n/context"
+import { format, parseISO } from "date-fns"
 import { Activity, Loader2, Search, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { TriggerStaleCheckButton } from "@/components/TriggerStaleCheckButton"
@@ -25,6 +27,7 @@ export function HeartbeatsPanel() {
   const deleteHb = useDeleteHeartbeats()
   const triggerHb = useTriggerHeartbeat()
   const { t } = useI18n()
+  const dateLocale = useDateLocale()
   const [search, setSearch] = useState("")
 
   if (isLoading) {
@@ -94,7 +97,9 @@ export function HeartbeatsPanel() {
                 <TableCell className="text-sm">{hb.partner_email}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {hb.last_heartbeat_at
-                    ? new Date(hb.last_heartbeat_at).toLocaleString()
+                    ? format(parseISO(hb.last_heartbeat_at), "PPpp", {
+                        locale: dateLocale,
+                      })
                     : "-"}
                 </TableCell>
                 <TableCell>{ageBadge(hb.heartbeat_age_hours)}</TableCell>
