@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: format format-check lint dev dev-backend dev-dashboard dev-extension help
+.PHONY: format format-check lint dev dev-backend dev-dashboard dev-extension reset-data help
 
 format:
 	cd backend && uv run ruff format && uv run ruff check --fix
@@ -20,6 +20,9 @@ dev-dashboard: ## Start dashboard dev server
 
 dev-extension: ## Start extension dev server
 	cd client/gambling-extension && pnpm run dev
+
+reset-data: ## Reset all data (Redis, MinIO, SQLite) for fresh dev start
+	cd backend && $(MAKE) reset
 
 dev: ## Start all development servers
 	@echo "Starting all services (Redis, Backend, Dashboard, Extension)..."
