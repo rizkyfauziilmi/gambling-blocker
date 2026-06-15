@@ -229,7 +229,7 @@ Dua listener di `background.ts`:
 | `blocked/App.tsx` | Halaman blokir: skor, report false positive |
 | `extensions-blocked/App.tsx` | Halaman password gate + "Forgot password?" (reset) untuk extensions page |
 | `options/App.tsx` | Halaman pengaturan: setup partner, password gate dengan "Forgot password?", ganti bahasa |
-| `popup/App.tsx` | Popup: status, breakdown, bypass countdown, report |
+| `popup/App.tsx` | Popup: status, breakdown, bypass countdown + Lock Now, report |
 
 ## Aliran Data Dashboard
 

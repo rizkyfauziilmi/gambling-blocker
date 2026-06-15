@@ -348,6 +348,13 @@ function App() {
             Bypass expires in {Math.floor(bypassRemaining / 60)}:
             {String(bypassRemaining % 60).padStart(2, "0")}
           </p>
+          <button
+            onClick={handleLockNow}
+            className="mt-2 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-indigo-300 bg-white px-3 py-1.5 text-xs font-medium text-indigo-700 transition-all hover:bg-indigo-100"
+          >
+            <ShieldX className="size-3" />
+            Lock Now
+          </button>
         </div>
       )}
       {bypassRemaining !== null && bypassRemaining <= 0 && (
