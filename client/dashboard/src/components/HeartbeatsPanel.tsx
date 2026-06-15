@@ -15,10 +15,10 @@ import {
   useDeleteHeartbeats,
   useTriggerHeartbeat,
 } from "@/hooks/useHeartbeats"
-import { useTriggerStaleCheck } from "@/hooks/useAdmin"
 import { useI18n } from "@/i18n/context"
-import { Activity, Loader2, Search, ShieldAlert, Trash2 } from "lucide-react"
+import { Activity, Loader2, Search, Trash2 } from "lucide-react"
 import { useState } from "react"
+import { TriggerStaleCheckButton } from "@/components/TriggerStaleCheckButton"
 
 export function HeartbeatsPanel() {
   const { data, isLoading } = useHeartbeats()
@@ -26,7 +26,6 @@ export function HeartbeatsPanel() {
   const triggerHb = useTriggerHeartbeat()
   const { t } = useI18n()
   const [search, setSearch] = useState("")
-  const staleCheck = useTriggerStaleCheck()
 
   if (isLoading) {
     return (
@@ -64,20 +63,7 @@ export function HeartbeatsPanel() {
 
   return (
     <div className="space-y-3">
-      <Button
-        onClick={() => staleCheck.mutate()}
-        disabled={staleCheck.isPending}
-        variant="outline"
-        size="sm"
-        className="gap-2"
-      >
-        {staleCheck.isPending ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <ShieldAlert className="size-4" />
-        )}
-        {t("trigger_stale_check")}
-      </Button>
+      <TriggerStaleCheckButton />
       <div className="relative">
         <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
         <Input

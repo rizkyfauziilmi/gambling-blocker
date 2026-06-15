@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { useSettings } from "@/hooks/useSettings"
-import { useTriggerStaleCheck } from "@/hooks/useAdmin"
+import { TriggerStaleCheckButton } from "@/components/TriggerStaleCheckButton"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { ThemeSwitcher } from "@/components/ThemeSwitcher"
@@ -18,7 +18,6 @@ import {
   Activity,
   Database,
   Heart,
-  Loader2,
   Palette,
   RefreshCw,
   SlidersHorizontal,
@@ -42,7 +41,6 @@ function SectionHeading({
 
 export function SettingsPanel() {
   const { data: settings, isLoading, update } = useSettings()
-  const triggerStale = useTriggerStaleCheck()
   const { t } = useI18n()
 
   if (isLoading) {
@@ -235,21 +233,7 @@ export function SettingsPanel() {
                 {t("trigger_stale_check_desc")}
               </div>
             </div>
-            <Button
-              onClick={() => triggerStale.mutate()}
-              disabled={triggerStale.isPending}
-              variant="outline"
-              size="sm"
-            >
-              {triggerStale.isPending ? (
-                <Loader2 className="mr-1 size-3.5 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-1 size-3.5" />
-              )}
-              {triggerStale.isPending
-                ? t("checking")
-                : t("trigger_stale_check")}
-            </Button>
+            <TriggerStaleCheckButton icon={RefreshCw} showLoadingText />
           </div>
         </section>
 
