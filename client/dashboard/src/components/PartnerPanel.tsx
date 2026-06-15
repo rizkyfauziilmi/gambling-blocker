@@ -2,7 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useExtensionStatus } from "@/hooks/useExtensions"
 import { Badge } from "@/components/ui/badge"
+import { useDateLocale } from "@/hooks/useDateLocale"
 import { useI18n } from "@/i18n/context"
+import { formatDistanceToNow, parseISO } from "date-fns"
 
 interface PartnerPanelProps {
   extensionId: string
@@ -11,6 +13,7 @@ interface PartnerPanelProps {
 export function PartnerPanel({ extensionId }: PartnerPanelProps) {
   const { data, isLoading, isError } = useExtensionStatus(extensionId)
   const { t } = useI18n()
+  const dateLocale = useDateLocale()
 
   if (isLoading) {
     return (
@@ -63,8 +66,11 @@ export function PartnerPanel({ extensionId }: PartnerPanelProps) {
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">{t("last_heartbeat")}</span>
           <span className="font-medium">
-            {age !== null && age !== undefined
-              ? t("hours_ago", { age })
+            {data.last_heartbeat_at
+              ? formatDistanceToNow(parseISO(data.last_heartbeat_at), {
+                  locale: dateLocale,
+                  addSuffix: true,
+                })
               : t("never")}
           </span>
         </div>

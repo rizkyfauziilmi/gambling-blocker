@@ -17,7 +17,7 @@ import {
 } from "@/hooks/useHeartbeats"
 import { useDateLocale } from "@/hooks/useDateLocale"
 import { useI18n } from "@/i18n/context"
-import { format, parseISO } from "date-fns"
+import { format, formatDistanceToNow, parseISO } from "date-fns"
 import { Activity, Loader2, Search, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { TriggerStaleCheckButton } from "@/components/TriggerStaleCheckButton"
@@ -55,13 +55,17 @@ export function HeartbeatsPanel() {
       hb.partner_email.toLowerCase().includes(search.toLowerCase())
   )
 
-  function ageBadge(hours: number | null) {
+  function ageBadge(lastAt: string | null, hours: number | null) {
     if (hours === null) return <Badge variant="destructive">{t("never")}</Badge>
-    if (hours < 2)
-      return <Badge variant="default">{t("hours_ago", { age: hours })}</Badge>
-    if (hours < 24)
-      return <Badge variant="secondary">{t("hours_ago", { age: hours })}</Badge>
-    return <Badge variant="destructive">{t("hours_ago", { age: hours })}</Badge>
+    const label = lastAt
+      ? formatDistanceToNow(parseISO(lastAt), {
+          locale: dateLocale,
+          addSuffix: true,
+        })
+      : t("hours_ago", { age: hours })
+    if (hours < 2) return <Badge variant="default">{label}</Badge>
+    if (hours < 24) return <Badge variant="secondary">{label}</Badge>
+    return <Badge variant="destructive">{label}</Badge>
   }
 
   return (
@@ -102,7 +106,9 @@ export function HeartbeatsPanel() {
                       })
                     : "-"}
                 </TableCell>
-                <TableCell>{ageBadge(hb.heartbeat_age_hours)}</TableCell>
+                <TableCell>
+                  {ageBadge(hb.last_heartbeat_at, hb.heartbeat_age_hours)}
+                </TableCell>
                 <TableCell className="text-right text-sm">
                   {hb.total_heartbeats}
                 </TableCell>

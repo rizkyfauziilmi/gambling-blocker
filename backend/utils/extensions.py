@@ -186,11 +186,22 @@ def get_status(extension_id: str) -> dict:
     partner = get_partner(extension_id)
     if partner is None:
         return {"exists": False}
-    age = get_heartbeat_age(extension_id)
+    conn = _conn()
+    row = conn.execute(
+        "SELECT MAX(timestamp) FROM heartbeats WHERE extension_id = ?",
+        (extension_id,),
+    ).fetchone()
+    conn.close()
+    last_heartbeat_at: str | None = row[0] if row and row[0] else None
+    age: int | None = None
+    if last_heartbeat_at:
+        last = datetime.fromisoformat(last_heartbeat_at)
+        age = int((datetime.now(timezone.utc) - last).total_seconds() // 3600)
     tamper_count = get_tamper_count(extension_id, 1)
     return {
         "exists": True,
         "partner_email": partner["partner_email"],
+        "last_heartbeat_at": last_heartbeat_at,
         "heartbeat_age_hours": age,
         "tamper_count_1h": tamper_count,
     }

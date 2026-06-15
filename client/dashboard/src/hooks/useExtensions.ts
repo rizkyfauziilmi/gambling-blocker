@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 export interface ExtensionStatus {
   exists: boolean
   partner_email?: string
+  last_heartbeat_at?: string | null
   heartbeat_age_hours?: number | null
   tamper_count_1h?: number
 }
