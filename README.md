@@ -30,7 +30,9 @@ flowchart TB
     end
 
     CS -->|"classify message"| BG
+    CS -->|"gambling_alert"| BG
     BG -->|"GET /classify/url-fused"| FC
+    BG -->|"POST /extension/gambling-alert"| EM
     DASH -->|"Basic Auth"| API
     FC --> RD
     FC --> MQ
