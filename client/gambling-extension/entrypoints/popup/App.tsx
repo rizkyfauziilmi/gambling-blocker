@@ -264,6 +264,8 @@ function App() {
         extraction_failed: "Extraction Failed",
         noise_screenshot: "Noise",
         no_screenshot: "No Screenshot",
+        blocked: "Blocked",
+        blank_screenshot: "Blank",
       }
       label = labels[s] ?? s
     }
