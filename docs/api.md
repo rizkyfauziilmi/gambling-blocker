@@ -186,16 +186,15 @@ Melakukan klasifikasi penuh: cek list → cache → inferensi teks → (opsional
   "gambling_score": 0.02,
   "text_score": 0.01,
   "image_score": 0.05,
-  "fusion_alpha": 0.6,
+  "fusion_alpha": 0.5,
   "screenshot_url": "https://minio/presigned/...",
-  "screenshot_status": "success",
-  "from_cache": false,
-  "from_list": null,
-  "response_time_ms": 3420
+  "screenshot_object_key": "abc123def456.png",
+  "screenshot_status": "screenshot_ok",
+  "from_cache": false
 }
 ```
 
-**Screenshot status:** `success`, `error`, `blocked`, `not_taken`
+**Screenshot status** (12+ nilai): `screenshot_ok`, `capture_failed`, `blocked`, `blank_screenshot`, `http_error_{code}`, `bypass_list`, `bypass_bare_ip`, `bypass_text_only`, `no_screenshot`, `noise_screenshot`, `extraction_failed`, dll.
 
 ### Lightweight Classification (Cache + List Only)
 
@@ -258,7 +257,7 @@ Hanya cek whitelist/blacklist dan cache. Tidak menjalankan inferensi.
 { "url": "https://example.com", "gambling_score": 0.95 }
 ```
 
-**Response:** `{ "success": true }`
+**Response:** `{ "status": "ok", "message": "Report saved" }`
 
 **Log tag:** `REPORT`
 
@@ -274,11 +273,9 @@ Hanya cek whitelist/blacklist dan cache. Tidak menjalankan inferensi.
   "groups": [
     {
       "hostname": "example.com",
-      "count": 3,
+      "report_count": 3,
       "avg_score": 0.85,
-      "first_reported": "2026-01-01T00:00:00",
-      "last_reported": "2026-01-02T00:00:00",
-      "reports": [ ... ]
+      "last_reported": "2026-01-02T00:00:00"
     }
   ],
   "stats": {

@@ -81,7 +81,7 @@ Model terlatih sudah tersedia di `model/bin/`. Jika ingin melatih ulang:
 ```bash
 make jupyter
 # Buka notebook di model/:
-# - url_classification.ipynb (model teks)
+# - url_classfication.ipynb (model teks)
 # - image_classification.ipynb (model gambar)
 # - fusion_weight_search.ipynb (bobot fusion)
 ```

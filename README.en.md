@@ -17,7 +17,7 @@ flowchart TB
         TXT["Text ML (TF-IDF + Keras)"]
         IMG["Image ML (Random Forest)"]
         RD[("Redis (cache + rate limiter)")]
-        MQ[("MinIO (screenshots)")]
+        MINIO[("MinIO (screenshots)")]
         PW["Playwright (headless Chromium)"]
         SQ[("SQLite (partners, reports)")]
         EM["Email (Gmail SMTP)"]
@@ -35,7 +35,7 @@ flowchart TB
     BG -->|"POST /extension/gambling-alert"| EM
     DASH -->|"Basic Auth"| API
     FC --> RD
-    FC --> MQ
+    FC --> MINIO
     FC --> SQ
     FC --> EM
 ```

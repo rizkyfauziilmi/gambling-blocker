@@ -13,7 +13,7 @@ sequenceDiagram
     participant TXT as Text ML (TF-IDF + Keras)
     participant PW as Playwright
     participant IMG as Image ML (Random Forest)
-    participant MQ as MinIO
+    participant MINIO as MinIO
 
     User->>CS: Buka website
     CS->>CS: Inject overlay<br/>(block scroll, touch, Escape)
@@ -37,7 +37,7 @@ sequenceDiagram
                 PW-->>API: image bytes
                 API->>IMG: Inferensi gambar
                 IMG-->>API: image_score
-                API->>MQ: Upload screenshot
+                API->>MINIO: Upload screenshot
             end
             API->>API: Fusion: alpha×text + (1-alpha)×image
             API->>Redis: Simpan cache
@@ -61,20 +61,139 @@ sequenceDiagram
 Skor akhir = `fusion_alpha * text_score + (1 - fusion_alpha) * image_score`
 
 - `text_score`: Probabilitas dari *neural network* (TF-IDF → Keras) pada URL yang sudah dibersihkan
-- `image_score`: Probabilitas dari *Random Forest* pada ~1500 fitur gambar (histogram warna, edge detection, warm-color ratio, grid cell variance, dll.)
-- `fusion_alpha`: Bobot optimal ditemukan via *grid search* pada validation set
+- `image_score`: Probabilitas dari *Random Forest* + *StandardScaler* pada **69 fitur** gambar:
+  - **Patch features (60)**: Mean & std dari 10 acak patch 16×16 pada 3 kanal warna
+  - **Edge density (3)**: Rata-rata, std, dan proporsi piksel di atas threshold gradient magnitude (Sobel)
+  - **Color variance 4×4 grid (3)**: Std dari rata-rata warna per kanal pada grid 4×4
+  - **Colorfulness index (1)**: Metrik Hasler & Süstrunk (rg/yb)
+  - **Brightness distribution (2)**: Rasio piksel gelap (V<0.2) dan terang (V>0.8) di HSV
+- `fusion_alpha`: Bobot dari `image_fusion_alpha.json`, ditemukan via *grid search* (alpha=0.5, threshold=0.48, F1=0.9798)
 - **Bypass teks**: Jika `bypass_text_enabled=true` dan skor teks >= 0.95 atau <= 0.05, gambar dilewati untuk menghemat resource
+- **Threshold akhir**: Menggunakan threshold dari fusion config (0.48) untuk semua keputusan kategori
 
 ### Multipage Inference
 
-Untuk URL domain root (path kosong atau "/"), sistem melakukan crawling internal:
+Untuk URL domain root (path kosong atau "/"), sistem melakukan crawling internal jika `multipage_enabled=true`:
 
-1. Ambil halaman root
-2. Ekstrak semua link internal (domain yang sama)
-3. Filter path dengan kedalaman ≤ 3, panjang ≥ 10 karakter
-4. Sample hingga 8 subpath
-5. Jalankan inferensi teks pada setiap subpath
-6. Agregasi via **geometric mean** untuk akurasi lebih baik
+1. Fetch halaman root via HTTP (requests)
+2. Parse semua `<a href="...">` — filter same-domain + buang ekstensi file (jpg, png, css, js, pdf, dll.)
+3. Filter path depth ≥ 2
+4. Stratified sampling: max 2 subpath per direktori pertama, total max 8
+5. Jika tidak cukup path depth ≥ 2, fallback include depth 1
+6. Jalankan inferensi teks pada setiap subpath
+7. Agregasi via **geometric mean** — **hanya subpath** (root score sebagai fallback jika fetch/subpath gagal)
+
+### Tahapan Rinci
+
+Berikut adalah penjelasan langkah demi langkah dari alur klasifikasi URL:
+
+#### A. Injection & Overlay (Content Script)
+
+1. Content script berjalan di `document_start` pada semua URL (`*://*/*`)
+2. `shouldSkip()`: Lewati jika protocol `chrome-extension://` / `moz-extension://` atau host `127.0.0.1` / `localhost` / `[::1]` / `0.0.0.0`
+3. Inject elemen `<style>` + `<div id="gb-overlay">` dengan:
+   - Posisi `fixed; inset: 0; z-index: 2147483647`, background putih, spinner animasi
+   - Blokir interaksi: `overflow: hidden`, prevent `Escape` (capture), `wheel`, `touchmove`
+4. Kirim `browser.runtime.sendMessage({ type: "classify", url })` ke background script
+
+#### B. Messaging ke Background
+
+1. Background script menerima message `"classify"` dari content script
+2. Ekstrak URL, panggil `GET /classify/url-fused?url=<encoded>`
+3. Respons JSON dikembalikan ke content script via promise
+
+#### C. Rate Limiting
+
+1. Backend membuat key Redis `rate:fused:{hostname}` via atomic increment (`cache_incr`)
+2. TTL 60 detik, batas 10 permintaan per menit per hostname
+3. Jika rate limit terlampaui: coba ambil dari cache dulu, jika tidak ada → return **429**
+
+#### D. Pengecekan Site List (SQLite)
+
+1. Query tabel `site_lists` untuk `hostname` yang diminta
+2. Jika ditemukan sebagai `"whitelist"`:
+   - Return segera: `category: "non-gambling"`, `gambling_score: 0.0`, `from_list: "whitelist"`
+3. Jika ditemukan sebagai `"blacklist"`:
+   - Return segera: `category: "gambling"`, `gambling_score: 1.0`, `from_list: "blacklist"`
+4. Jika tidak ada di list: lanjut ke tahap berikutnya
+
+#### E. Bare IP Handling
+
+1. Jika `hostname` adalah IP address (deteksi via `ipaddress.ip_address()`)
+2. Dan URL path kosong atau hanya `"/"`:
+   - Return: `category: "bare-ip"`, `gambling_score: 0.0`, `screenshot_status: "bypass_bare_ip"`
+3. Path yang tidak kosong tetap diproses normal
+
+#### F. Cache Lookup (Redis)
+
+1. Key: `fused:domain:{hostname}`
+2. Jika cache ada (`cache_get`): return hasil dengan `from_cache: true`, perbarui `screenshot_url` via presigned MinIO URL
+3. TTL cache dari settings (default 24 jam, minimal 1 jam)
+
+#### G. Text Inference
+
+1. **URL Cleaning** (`clean_url`):
+   - Ekstrak `netloc + path` → URL-decode → lowercase
+   - Hapus prefix `http://` / `https://`
+   - Ganti `-`, `_`, `/` dengan spasi
+   - Hapus semua non-alfanumerik/non-spasi
+   - Sisipkan spasi antara digit-huruf
+   - Collapse spasi ganda
+2. **TF-IDF Vectorization**: Transformasi menggunakan `TfidfVectorizer` terlatih dari `text_tfidf_vectorizer.pkl`
+3. **Keras Neural Network**: `text_classifier.keras` → output probabilitas sigmoid → `text_score`
+4. Threshold teks: 0.66 (dari `text_best_threshold.json`)
+
+#### H. Multipage Inference (Root Domain)
+
+1. Hanya berjalan jika `multipage_enabled=true` dan path adalah root (`""` atau `"/"`)
+2. Detail implementasi ada di sub-section **Multipage Inference** di atas
+3. Hasil aggregasi menggantikan `text_score` untuk tahap selanjutnya
+
+#### I. Screenshot & Image Inference
+
+1. **Bypass logic**: Jika `bypass_text_enabled=true` DAN (`text_score >= 0.95` ATAU `text_score <= 0.05`) → skip screenshot, `screenshot_status: "bypass_text_only"`, `gambling_score = text_score`
+2. **Screenshot** (Playwright):
+   - Headless Chromium, viewport 1280×720, user-agent Chrome 125, locale `id-ID`, timezone `Asia/Jakarta`
+   - Bypass CSP, ignore HTTPS errors
+   - Stealth mode (`playwright_stealth`)
+   - Timeout 30s navigasi + 15s networkidle
+   - Hapus overlay/modal/cookie popup via JavaScript injection
+   - Deteksi halaman terblokir (Cloudflare, 403, akses ditolak, dll.) → `screenshot_status: "blocked"`
+   - Screenshot ukuran < 1024 bytes → `screenshot_status: "blank_screenshot"`
+   - Screenshot > 100KB dianggap noise → `screenshot_status: "noise_screenshot"`
+3. **Feature Extraction** (69 fitur):
+   - Resize ke 64×64 (LANCZOS), normalize [0,1]
+   - **Patch features (60)**: 10 patch acak 16×16 → mean & std per kanal RGB
+   - **Edge density (3)**: Gradient magnitude via Sobel → mean/max, std/max, proporsi > threshold
+   - **Color variance 4×4 grid (3)**: Std dari rata-rata warna 16 cell per kanal
+   - **Colorfulness index (1)**: `sqrt(rg.std² + yb.std²) + 0.3×sqrt(rg.mean² + yb.mean²)` (Hasler & Süstrunk)
+   - **Brightness distribution (2)**: Rasio piksel gelap (V<0.2) dan terang (V>0.8) di HSV
+4. **Random Forest Prediction**:
+   - Fitur di-scale dengan `StandardScaler` dari `image_scaler.pkl`
+   - Prediksi probabilitas kelas gambling via `image_classifier.pkl`
+   - Output: `image_score` (float 0–1)
+5. **Upload**: Screenshot diupload ke MinIO, `screenshot_url` adalah presigned URL (expired 1 jam)
+
+#### J. Fusion, Caching, & Response
+
+1. **Fusion score**:
+   ```
+   gambling_score = fusion_alpha × text_score + (1 - fusion_alpha) × image_score
+   ```
+   - `fusion_alpha`: 0.5 (dari `image_fusion_alpha.json`)
+   - Jika image tidak tersedia (bypass/gagal): `gambling_score = text_score`
+2. **Kategori**:
+   - `gambling_score > fusion_threshold (0.48)` → `category: "gambling"`
+   - Selainnya → `category: "non-gambling"`
+3. **Cache**: Simpan hasil ke Redis key `fused:domain:{hostname}` dengan TTL dari settings
+4. **Response ke background script**: JSON lengkap termasuk semua skor, status screenshot, URL screenshot
+5. **Tindakan akhir** (di content script):
+   - Jika `category: "gambling"`:
+     - Kirim `gambling_alert` (fire-and-forget) → background → `POST /extension/gambling-alert` → email partner (jika terdaftar)
+     - Kirim `redirect` → background → `browser.tabs.update()` ke `blocked.html?url=...&score=...&from_list=...`
+     - Fallback: navigasi langsung via `window.location.href`
+   - Jika `category: "non-gambling"`:
+     - `cleanup()`: hapus overlay, restore scroll, remove event listeners
 
 ## Sistem Partner Accountability
 
@@ -247,7 +366,6 @@ flowchart LR
         C["Cache Tab<br/>(poll 10s)"]
         S["Settings Tab<br/>(poll 10s)"]
         L["Logs Tab<br/>(poll 5s)"]
-        P["Partner Panel<br/>(poll 30s)"]
         H["Heartbeats Tab<br/>(poll 10s)"]
     end
     subgraph API["Backend API (Basic Auth)"]
@@ -258,8 +376,10 @@ flowchart LR
         CACHE["GET /cache<br/>DELETE /cache/:key<br/>DELETE /cache"]
         SET["GET /settings<br/>PUT /settings"]
         LOG["GET /logs?tag=<br/>DELETE /logs"]
-        STAT["GET /extension/status"]
+        STAT["GET /extension/status?extension_id="]
         HB["GET /extension/heartbeats<br/>DELETE /extension/heartbeat/:id<br/>POST /admin/trigger-heartbeat"]
+        SC["GET /admin/next-stale-check"]
+        STALE["POST /admin/trigger-stale-check"]
     end
 
     R --> REP
@@ -268,6 +388,12 @@ flowchart LR
     C --> CACHE
     S --> SET
     L --> LOG
-    P --> STAT
     H --> HB
+    H -.-> STALE
+    S -.-> SC
+    S -.-> STALE
 ```
+
+> **Catatan:** `PartnerPanel` (poll 30s via `GET /extension/status?extension_id=`) adalah komponen yang dirancang untuk digunakan di halaman options/popup ekstensi, **bukan** tab dashboard. Komponen ini ada di `src/components/PartnerPanel.tsx` tapi tidak dirender di `App.tsx`.
+>
+> Endpoint admin `POST /admin/trigger-stale-check` dan `GET /admin/next-stale-check` digunakan oleh `TriggerStaleCheckButton` di Settings & Heartbeats tab.

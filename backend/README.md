@@ -73,7 +73,7 @@ backend/
 | POST | `/extension/heartbeat` | ✗ | Rekam heartbeat |
 | POST | `/extension/tamper-alert` | ✗ | Log tamper + email partner |
 | POST | `/extension/reset-password` | ✗ | Reset password + email ulang |
-| GET | `/extension/status` | Basic | Status ekstensi (heartbeat age, tamper count) |
+| GET | `/extension/status?extension_id=xxx` | Basic | Status ekstensi (heartbeat age, tamper count) |
 | GET | `/extension/heartbeats` | Basic | Semua partner + heartbeat terakhir |
 | DELETE | `/extension/heartbeat/{extension_id}` | Basic | Hapus heartbeat untuk extension |
 
@@ -128,12 +128,14 @@ uv run fastapi run
 ## Alur Klasifikasi
 
 ```
-URL masuk → cek whitelist/blacklist (SQLite)
+URL masuk → rate limiting (10 req/menit per hostname via Redis)
+         → cek whitelist/blacklist (SQLite)
+         → [jika bare IP + root path] return "bare-ip"
          → cek cache (Redis)
          → inferensi teks (TF-IDF → Keras)
-         → [jika root domain] multipage crawling + geometric mean
-         → [jika bypass teks tidak aktif] screenshot (Playwright)
-         → inferensi gambar (Random Forest)
+         → [jika root domain + multipage_enabled] crawling internal links → stratified sampling → geometric mean subpath
+         → [jika bypass_text_enabled=false ATAU skor teks tidak konklusif] screenshot (Playwright)
+         → inferensi gambar (Random Forest, 69 fitur)
          → fusion: alpha * text + (1-alpha) * image
          → simpan cache (Redis) + screenshot (MinIO)
          → return JSON

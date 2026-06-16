@@ -65,9 +65,8 @@ Ditampilkan saat situs gambling diblokir:
 Ditampilkan saat mencoba akses `chrome://extensions`:
 
 - Form input password partner
-- **1 percobaan gagal** → kirim tamper alert ke backend + email ke partner
+- Setiap percobaan gagal → kirim tamper alert ke backend + email ke partner
 - Jika berhasil → set session bypass (5 menit) → buka chrome://extensions
-- Tidak ada retry — password sekali salah langsung dilaporkan
 - **"Forgot password?"** — reset password: backend generate password baru + hash+salt, simpan di local storage, email ke partner
 
 ### `options/App.tsx` — Halaman Pengaturan
