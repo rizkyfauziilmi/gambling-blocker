@@ -109,6 +109,23 @@ Menghapus semua rekaman heartbeat untuk extension tertentu.
 
 **Log tag:** `TAMPER` | Mengirim email ke partner.
 
+### Gambling Alert
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/extension/gambling-alert` | ✗ |
+
+Mengirim notifikasi ke partner saat user mengunjungi website yang terindikasi judi. Dipanggil oleh content script via background setelah klasifikasi `gambling`.
+
+**Request Body:**
+```json
+{ "extension_id": "uuid-string", "url": "https://example.com", "gambling_score": 0.95 }
+```
+
+**Response:** `{ "ok": true }`
+
+**Log tag:** `GAMBLING` | Hanya mengirim email jika partner terdaftar (tidak log ke `tamper_logs`).
+
 ### Reset Password
 
 | Method | Path | Auth |
@@ -443,7 +460,7 @@ Jika scheduler tidak aktif: `{ "next_run": null }`.
 }
 ```
 
-**Log tags:** `API`, `PARTNER`, `HEARTBEAT`, `TAMPER`, `CACHE`, `REPORT`, `LIST`, `SETTINGS`, `SCREENSHOT` (debug only), `MULTIPAGE` (debug only), `DBG` (debug only)
+**Log tags:** `API`, `PARTNER`, `HEARTBEAT`, `TAMPER`, `GAMBLING`, `CACHE`, `REPORT`, `LIST`, `SETTINGS`, `SCREENSHOT` (debug only), `MULTIPAGE` (debug only), `DBG` (debug only)
 
 ---
 

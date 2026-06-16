@@ -45,6 +45,11 @@ sequenceDiagram
     end
     API-->>BG: JSON {category, gambling_score, ...}
     alt category = "gambling"
+        CS->>BG: gambling_alert message (fire-and-forget)
+        BG->>API: POST /extension/gambling-alert
+        alt Partner terdaftar
+            API->>Partner: Email gambling alert
+        end
         BG->>User: Redirect ke blocked.html
     else category = "non-gambling"
         BG->>CS: Hapus overlay
@@ -224,8 +229,8 @@ Dua listener di `background.ts`:
 
 | Entrypoint | Fungsi |
 |------------|--------|
-| `background.ts` | Service worker: routing message, guard extensions, heartbeat alarm |
-| `content.ts` | Content script: overlay, klasifikasi, redirect |
+| `background.ts` | Service worker: routing message (classify, redirect, **gambling_alert**), guard extensions, heartbeat alarm |
+| `content.ts` | Content script: overlay, klasifikasi, redirect, kirim **gambling_alert** ke background jika gambling |
 | `blocked/App.tsx` | Halaman blokir: skor, report false positive |
 | `extensions-blocked/App.tsx` | Halaman password gate + "Forgot password?" (reset) untuk extensions page |
 | `options/App.tsx` | Halaman pengaturan: setup partner, password gate dengan "Forgot password?", ganti bahasa |

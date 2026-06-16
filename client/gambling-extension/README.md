@@ -35,7 +35,7 @@ entrypoints/
 
 Mengatur semua logika latar belakang:
 
-- **Message routing**: Meneruskan pesan `classify` ke backend, dan `redirect` untuk navigasi ke halaman blokir
+- **Message routing**: Meneruskan pesan `classify` ke backend, `gambling_alert` ke backend (notifikasi partner), dan `redirect` untuk navigasi ke halaman blokir
 - **Extensions page guard**: Mendeteksi akses ke `chrome://extensions` (dan browser lain) → redirect ke halaman password
 - **Heartbeat alarm**: Periodic alarm setiap **30 menit** untuk lapor ke backend (hanya jika partner sudah di-set)
 - **Session bypass**: Mengelola bypass 5 menit setelah password berhasil dimasukkan
@@ -48,7 +48,7 @@ Disuntikkan di `document_start` pada semua halaman:
 - Inject **overlay full-screen** dengan spinner dan teks "Memeriksa..."
 - Blokir semua interaksi (scroll, touch, Escape)
 - Kirim URL ke background untuk klasifikasi
-- Jika gambling → redirect ke `blocked.html`
+- Jika gambling → kirim `gambling_alert` ke background (notifikasi partner), lalu redirect ke `blocked.html`
 - Jika safe → hapus overlay, kembalikan scroll
 
 ### `blocked/App.tsx` — Halaman Blokir
@@ -99,6 +99,12 @@ Tiga halaman alur:
 - 1 gagal = tamper alert + email ke partner
 - **Bypass 5 menit** setelah password benar (session storage, hilang saat browser restart)
 - **"Forgot password?"** — reset password via `POST /extension/reset-password`, hash+salt baru dikembalikan dan disimpan di local storage
+
+### Gambling Visit Alert
+- Saat user membuka website terindikasi judi, content script kirim `gambling_alert` ke background
+- Background cek apakah partner terdaftar (`hasPassword()`)
+- Jika ya → `POST /extension/gambling-alert` → email notifikasi ke partner (URL + gambling score)
+- Fire-and-forget: tidak memblokir redirect, tetap berjalan meskipun redirect message gagal
 
 ### Heartbeat
 - Alarm 30 menit → POST `/extension/heartbeat`
