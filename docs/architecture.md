@@ -96,17 +96,46 @@ Berikut adalah penjelasan langkah demi langkah dari alur klasifikasi URL:
    - Blokir interaksi: `overflow: hidden`, prevent `Escape` (capture), `wheel`, `touchmove`
 4. Kirim `browser.runtime.sendMessage({ type: "classify", url })` ke background script
 
+```mermaid
+flowchart TD
+    A["User buka website"] --> B{shouldSkip?}
+    B -->|"chrome-extension://,<br/>moz-extension://,<br/>localhost, 127.0.0.1"| C["Skip: no overlay"]
+    B -->|"Target URL"| D["Inject overlay + blokir input"]
+    D --> E["sendMessage({type:'classify', url})"]
+```
+
 #### B. Messaging ke Background
 
 1. Background script menerima message `"classify"` dari content script
 2. Ekstrak URL, panggil `GET /classify/url-fused?url=<encoded>`
 3. Respons JSON dikembalikan ke content script via promise
 
+```mermaid
+sequenceDiagram
+    participant CS as Content Script
+    participant BG as Background Script
+    participant API as Backend API
+    CS->>BG: runtime.sendMessage({type:"classify", url})
+    BG->>API: GET /classify/url-fused?url=...
+    API-->>BG: JSON result
+    BG-->>CS: Promise resolved
+```
+
 #### C. Rate Limiting
 
 1. Backend membuat key Redis `rate:fused:{hostname}` via atomic increment (`cache_incr`)
 2. TTL 60 detik, batas 10 permintaan per menit per hostname
 3. Jika rate limit terlampaui: coba ambil dari cache dulu, jika tidak ada → return **429**
+
+```mermaid
+flowchart TD
+    A["Request masuk"] --> B["cache_incr(rate:fused:{host})"]
+    B --> C{"count > 10 / menit?"}
+    C -->|"Ya"| D{"Cache ada?"}
+    D -->|"Ya"| E["Return cached result"]
+    D -->|"Tidak"| F["Return 429 rate_limited"]
+    C -->|"Tidak"| G["Lanjut ke site list"]
+```
 
 #### D. Pengecekan Site List (SQLite)
 
@@ -117,6 +146,14 @@ Berikut adalah penjelasan langkah demi langkah dari alur klasifikasi URL:
    - Return segera: `category: "gambling"`, `gambling_score: 1.0`, `from_list: "blacklist"`
 4. Jika tidak ada di list: lanjut ke tahap berikutnya
 
+```mermaid
+flowchart TD
+    A["check_hostname(host)"] --> B{"Ditemukan?"}
+    B -->|"whitelist"| C["Return: non-gambling<br/>score=0 | from_list=whitelist"]
+    B -->|"blacklist"| D["Return: gambling<br/>score=1 | from_list=blacklist"]
+    B -->|"None"| E["Lanjut ke bare IP check"]
+```
+
 #### E. Bare IP Handling
 
 1. Jika `hostname` adalah IP address (deteksi via `ipaddress.ip_address()`)
@@ -124,11 +161,26 @@ Berikut adalah penjelasan langkah demi langkah dari alur klasifikasi URL:
    - Return: `category: "bare-ip"`, `gambling_score: 0.0`, `screenshot_status: "bypass_bare_ip"`
 3. Path yang tidak kosong tetap diproses normal
 
+```mermaid
+flowchart TD
+    A["is_ip(host)"] -->|"Ya"| B{"Path kosong<br/>atau '/'?"}
+    B -->|"Ya"| C["Return: bare-ip<br/>score=0 | bypass_bare_ip"]
+    B -->|"Tidak"| D["Lanjut ke cache"]
+    A -->|"Tidak"| D
+```
+
 #### F. Cache Lookup (Redis)
 
 1. Key: `fused:domain:{hostname}`
 2. Jika cache ada (`cache_get`): return hasil dengan `from_cache: true`, perbarui `screenshot_url` via presigned MinIO URL
 3. TTL cache dari settings (default 24 jam, minimal 1 jam)
+
+```mermaid
+flowchart TD
+    A["cache_get(fused:domain:{host})"] --> B{"Cache ada?"}
+    B -->|"Ya"| C["Return cached result<br/>from_cache=true"]
+    B -->|"Tidak"| D["Lanjut ke text inference"]
+```
 
 #### G. Text Inference
 
@@ -143,11 +195,35 @@ Berikut adalah penjelasan langkah demi langkah dari alur klasifikasi URL:
 3. **Keras Neural Network**: `text_classifier.keras` → output probabilitas sigmoid → `text_score`
 4. Threshold teks: 0.66 (dari `text_best_threshold.json`)
 
+```mermaid
+flowchart LR
+    A["Raw URL"] --> B["clean_url()"]
+    B --> C["TF-IDF Vectorizer<br/>(text_tfidf_vectorizer.pkl)"]
+    C --> D["Keras Neural Network<br/>(text_classifier.keras)"]
+    D --> E["text_score"]
+```
+
 #### H. Multipage Inference (Root Domain)
 
 1. Hanya berjalan jika `multipage_enabled=true` dan path adalah root (`""` atau `"/"`)
 2. Detail implementasi ada di sub-section **Multipage Inference** di atas
 3. Hasil aggregasi menggantikan `text_score` untuk tahap selanjutnya
+
+```mermaid
+sequenceDiagram
+    participant API as Backend API
+    participant HTTP as External HTTP
+    participant TXT as Text ML
+    API->>API: Root domain detected
+    API->>HTTP: GET root page HTML
+    HTTP-->>API: HTML
+    API->>API: Parse href → same-domain<br/>buang ekstensi file<br/>stratified by dir (max 2/dir, max 8)
+    loop For each sampled subpath
+        API->>TXT: predict_text(subpath_url)
+        TXT-->>API: subpath_score
+    end
+    API->>API: Geometric mean subpath<br/>(root score sebagai fallback)
+```
 
 #### I. Screenshot & Image Inference
 
@@ -174,6 +250,26 @@ Berikut adalah penjelasan langkah demi langkah dari alur klasifikasi URL:
    - Output: `image_score` (float 0–1)
 5. **Upload**: Screenshot diupload ke MinIO, `screenshot_url` adalah presigned URL (expired 1 jam)
 
+```mermaid
+flowchart TD
+    A{"bypass_text_enabled &&<br/>(text >= 0.95 || <= 0.05)"}
+    A -->|"Ya"| B["Skip screenshot<br/>screenshot_status = bypass_text_only<br/>gambling_score = text_score"]
+    A -->|"Tidak"| C["Playwright: headless Chromium<br/>screenshot halaman"]
+    C --> D{"Screenshot OK?"}
+    D -->|"blocked"| E["screenshot_status = blocked"]
+    D -->|"blank (< 1KB)"| F["screenshot_status = blank_screenshot"]
+    D -->|"noise (> 100KB)"| G["screenshot_status = noise_screenshot"]
+    D -->|"OK"| H["Extract 69 fitur:<br/>patch(60) edge(3) colorVar(3)<br/>colorfulness(1) brightness(2)"]
+    H --> I["StandardScaler<br/>(image_scaler.pkl)"]
+    I --> J["Random Forest<br/>(image_classifier.pkl)"]
+    J --> K["image_score"]
+    D -->|"gagal"| L["screenshot_status = capture_failed<br/>image_score = null"]
+    K --> M["Upload ke MinIO"]
+    E --> M
+    F --> M
+    G --> M
+```
+
 #### J. Fusion, Caching, & Response
 
 1. **Fusion score**:
@@ -192,8 +288,20 @@ Berikut adalah penjelasan langkah demi langkah dari alur klasifikasi URL:
      - Kirim `gambling_alert` (fire-and-forget) → background → `POST /extension/gambling-alert` → email partner (jika terdaftar)
      - Kirim `redirect` → background → `browser.tabs.update()` ke `blocked.html?url=...&score=...&from_list=...`
      - Fallback: navigasi langsung via `window.location.href`
-   - Jika `category: "non-gambling"`:
-     - `cleanup()`: hapus overlay, restore scroll, remove event listeners
+    - Jika `category: "non-gambling"`:
+      - `cleanup()`: hapus overlay, restore scroll, remove event listeners
+
+```mermaid
+flowchart TD
+    X["gambling_score =<br/>alpha × text + (1-alpha) × image"] --> Y{"> 0.48?"}
+    Y -->|"Ya"| Z["category = gambling"]
+    Y -->|"Tidak"| AA["category = non-gambling"]
+    Z --> AB["Cache ke Redis"]
+    Z --> AC["Kirim gambling_alert<br/>(fire-and-forget)"]
+    Z --> AD["Redirect ke blocked.html"]
+    AA --> AE["Cache ke Redis"]
+    AA --> AF["cleanup: hapus overlay<br/>restore scroll"]
+```
 
 ## Sistem Partner Accountability
 
