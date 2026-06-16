@@ -188,23 +188,41 @@ Melakukan klasifikasi penuh: cek list → cache → inferensi teks → (opsional
 
 Hanya cek whitelist/blacklist dan cache. Tidak menjalankan inferensi.
 
-**Response:**
+**Response (cache hit):**
 ```json
 {
   "url": "https://example.com",
-  "status": "cached",
+  "status": "classified",
   "category": "non-gambling",
   "gambling_score": 0.02,
   "text_score": 0.01,
   "image_score": 0.05,
+  "fusion_alpha": 0.6,
   "screenshot_url": null,
   "screenshot_status": null,
-  "from_list": null,
+  "from_list": "",
   "from_cache": true
 }
 ```
 
-**Status values:** `cached`, `blacklisted`, `whitelisted`, `not_classified`
+**Response (from whitelist/blacklist):**
+```json
+{
+  "url": "https://example.com",
+  "status": "classified",
+  "category": "non-gambling",
+  "gambling_score": 0.0,
+  "text_score": 0.0,
+  "image_score": null,
+  "fusion_alpha": null,
+  "screenshot_url": null,
+  "screenshot_status": null,
+  "from_list": "whitelist",
+  "from_cache": false
+}
+```
+
+**Status:** `classified` (cek `from_cache`, `from_list`), `not_classified`
 
 ---
 

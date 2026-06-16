@@ -45,6 +45,7 @@ Edit `.env` — isi variabel berikut:
 | `SMTP_USER` | Email Gmail pengirim | (isi) |
 | `SMTP_PASSWORD` | App Password Gmail | (isi) |
 | `SMTP_FROM_NAME` | Nama pengirim | `Gambling Blocker` |
+| `SMTP_FROM_EMAIL` | Email pengirim (default = SMTP_USER) | (isi) |
 
 > **SMTP**: Gunakan **App Password** (bukan password biasa). Buat di https://myaccount.google.com/apppasswords
 

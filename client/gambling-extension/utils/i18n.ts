@@ -24,10 +24,6 @@ const messages: Record<string, Record<string, string>> = {
     popup_allowedByAdminDesc:
       "This site was added to the whitelist by an administrator.",
     reportListed: "Cannot report \u2014 managed by admin",
-    reportListedBlacklistDesc:
-      "This URL is on the blacklist. Contact the administrator.",
-    reportListedWhitelistDesc:
-      "This URL is on the whitelist. Contact the administrator.",
     blocked_title: "This Site Has Been Blocked",
     blocked_description: "Detected as a gambling site",
     blocked_url: "URL",
@@ -45,6 +41,8 @@ const messages: Record<string, Record<string, string>> = {
     popup_imageScore: "Image Analysis",
     popup_screenshot_ok: "Screenshot captured",
     popup_screenshot_failed: "Screenshot unavailable",
+    popup_screenshot_blocked: "Blocked",
+    popup_screenshot_blank: "Blank",
     popup_fusionInfo: "Fusion weight: {alpha}",
     partner_setupTitle: "Set Up Protection",
     partner_setupDesc:
@@ -60,9 +58,6 @@ const messages: Record<string, Record<string, string>> = {
     partner_passwordPlaceholder: "Enter password",
     partner_unlockButton: "Unlock Settings",
     partner_wrongPassword: "Wrong password.",
-    partner_alertSent: "Tamper alert sent.",
-    partner_noPartner: "No protection setup found.",
-    partner_setReminder: "Set one up in Settings for extra protection.",
     partner_extBlockedTitle: "Access Blocked",
     partner_extBlockedDesc: "Extension settings are password-protected.",
     partner_extBlockedForm: "Enter password to continue",
@@ -103,10 +98,6 @@ const messages: Record<string, Record<string, string>> = {
     popup_allowedByAdminDesc:
       "Situs ini ditambahkan ke daftar putih oleh administrator.",
     reportListed: "Tidak bisa melapor \u2014 dikelola admin",
-    reportListedBlacklistDesc:
-      "URL ini ada di daftar hitam. Hubungi administrator.",
-    reportListedWhitelistDesc:
-      "URL ini ada di daftar putih. Hubungi administrator.",
     blocked_title: "Situs Ini Diblokir",
     blocked_description: "Terdeteksi sebagai situs perjudian",
     blocked_url: "URL",
@@ -124,6 +115,8 @@ const messages: Record<string, Record<string, string>> = {
     popup_imageScore: "Analisis Gambar",
     popup_screenshot_ok: "Screenshot berhasil",
     popup_screenshot_failed: "Screenshot tidak tersedia",
+    popup_screenshot_blocked: "Diblokir",
+    popup_screenshot_blank: "Kosong",
     popup_fusionInfo: "Bobot fusion: {alpha}",
     partner_setupTitle: "Atur Perlindungan",
     partner_setupDesc:
@@ -139,9 +132,6 @@ const messages: Record<string, Record<string, string>> = {
     partner_passwordPlaceholder: "Masukkan password",
     partner_unlockButton: "Buka Pengaturan",
     partner_wrongPassword: "Password salah.",
-    partner_alertSent: "Peringatan terkirim.",
-    partner_noPartner: "Belum ada pengaturan perlindungan.",
-    partner_setReminder: "Atur di Pengaturan untuk perlindungan ekstra.",
     partner_extBlockedTitle: "Akses Diblokir",
     partner_extBlockedDesc: "Pengaturan extension dilindungi password.",
     partner_extBlockedForm: "Masukkan password untuk melanjutkan",

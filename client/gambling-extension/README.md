@@ -116,6 +116,9 @@ Chrome, Edge, Brave, Opera, Vivaldi, Firefox (`about:addons`)
 
 ### i18n (Internasionalisasi)
 - Bahasa: **English** (default) dan **Bahasa Indonesia**
+- Dua sistem i18n:
+  - `public/_locales/*/messages.json` (54 keys) — untuk manifest fields (`__MSG_*`)
+  - `utils/i18n.ts` (84 keys) — runtime UI, dipakai seluruh entrypoints
 - Preferensi disimpan di `browser.storage.sync`
 - Implementasi custom tanpa library tambahan
 

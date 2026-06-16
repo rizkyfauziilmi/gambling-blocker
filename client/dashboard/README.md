@@ -105,6 +105,8 @@ Semua data fetching menggunakan **TanStack React Query v5** dengan polling otoma
 
 Mutation sukses → invalidate query terkait → UI ter-update otomatis.
 
+**Global React Query defaults** (di `src/lib/query.tsx`): `refetchInterval: 10s`, `staleTime: 5s`, `retry: 1`.
+
 ## i18n — Internasionalisasi
 
 Implementasi custom via React context + `localStorage`:

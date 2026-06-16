@@ -123,6 +123,7 @@ uv run fastapi run
 | `MINIO_*` | `localhost:9000`, `minioadmin` | Ya |
 | `SMTP_HOST` / `SMTP_PORT` | `smtp.gmail.com:587` | Hanya untuk fitur email |
 | `SMTP_USER` / `SMTP_PASSWORD` | - | Hanya untuk fitur email |
+| `SMTP_FROM_NAME` / `SMTP_FROM_EMAIL` | `Gambling Blocker` / `=SMTP_USER` | Hanya untuk fitur email |
 
 ## Alur Klasifikasi
 
