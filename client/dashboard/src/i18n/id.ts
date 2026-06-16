@@ -92,6 +92,8 @@ const id: Record<string, string> = {
   bare_ip: "IP Langsung",
   text_only: "Hanya Teks",
   no_screenshot_status: "Tanpa Tangkapan Layar",
+  screenshot_blocked: "Diblokir",
+  screenshot_blank: "Kosong",
   capture_failed: "Gagal Tangkap",
   extraction_failed: "Gagal Ekstrak",
   screenshot_dialog_title: "Tangkapan Layar",

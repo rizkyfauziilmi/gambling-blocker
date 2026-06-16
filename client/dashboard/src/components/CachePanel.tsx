@@ -222,6 +222,14 @@ export function CachePanel() {
                       label: t("no_screenshot_status"),
                       variant: "default",
                     },
+                    blocked: {
+                      label: t("screenshot_blocked"),
+                      variant: "destructive",
+                    },
+                    blank_screenshot: {
+                      label: t("screenshot_blank"),
+                      variant: "warning",
+                    },
                     capture_failed: {
                       label: t("capture_failed"),
                       variant: "destructive",

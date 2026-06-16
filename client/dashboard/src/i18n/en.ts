@@ -92,6 +92,8 @@ const en: Record<string, string> = {
   bare_ip: "Bare IP",
   text_only: "Text Only",
   no_screenshot_status: "No Screenshot",
+  screenshot_blocked: "Blocked",
+  screenshot_blank: "Blank",
   capture_failed: "Capture Failed",
   extraction_failed: "Extraction Failed",
   screenshot_dialog_title: "Screenshot",
