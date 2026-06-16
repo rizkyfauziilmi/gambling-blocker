@@ -33,9 +33,8 @@ _image_threshold: float = 0.5
 _image_alpha: float = 0.4
 
 PATCH_SIZE: tuple[int, int] = (16, 16)
-MAX_PATCHES: int = 50
+MAX_PATCHES: int = 10
 RESIZE: tuple[int, int] = (64, 64)
-N_HIST_BINS: int = 32
 
 
 def load() -> bool:
@@ -104,29 +103,16 @@ def _extract_features(img_bytes: bytes) -> np.ndarray:
     img = Image.open(BytesIO(img_bytes)).convert("RGB")
     img_resized = img.resize(RESIZE, Image.LANCZOS)
     arr = np.array(img_resized, dtype=np.uint8)
-
-    patches = extract_patches_2d(arr, patch_size=PATCH_SIZE, max_patches=MAX_PATCHES)
-    patch_feat: list[float] = []
-    for p in patches:
-        for c in range(3):
-            patch_feat.append(float(p[:, :, c].mean()))
-            patch_feat.append(float(p[:, :, c].std()))
-
-    hist_feat: list[float] = []
-    for c in range(3):
-        h = img.histogram()[c * 256 : (c + 1) * 256]
-        bin_sz = 256 // N_HIST_BINS
-        binned = [sum(h[j * bin_sz : (j + 1) * bin_sz]) for j in range(N_HIST_BINS)]
-        total = sum(binned) + 1e-8
-        hist_feat.extend(b / total for b in binned)
-
     arr_float = arr / 255.0
-    hsv = rgb_to_hsv(arr_float)
-    h_ch, s_ch = hsv[:, :, 0], hsv[:, :, 1]
-    h_hist, _ = np.histogram(h_ch, bins=N_HIST_BINS, range=(0, 360), density=True)
-    s_hist, _ = np.histogram(s_ch, bins=N_HIST_BINS, range=(0, 1), density=True)
-    hsv_feat = np.concatenate([h_hist, s_hist])
 
+    # 1. Patch features (10 patches x 3 channel x 2 stats = 60 dim)
+    patches = extract_patches_2d(arr, patch_size=PATCH_SIZE, max_patches=MAX_PATCHES)
+    patch_feat = np.array(
+        [float(p[:, :, c].mean()) for p in patches for c in range(3)]
+        + [float(p[:, :, c].std()) for p in patches for c in range(3)]
+    )
+
+    # 2. Edge density (3 dim)
     gray = np.array(img_resized.convert("L"), dtype=np.float64)
     edges_x = sobel(gray, axis=1)
     edges_y = sobel(gray, axis=0)
@@ -143,9 +129,7 @@ def _extract_features(img_bytes: bytes) -> np.ndarray:
     else:
         edge_feat = np.zeros(3)
 
-    warm_mask = ((h_ch >= 0) & (h_ch <= 60)) | ((h_ch >= 330) & (h_ch <= 360))
-    warm_ratio = np.array([warm_mask.sum() / h_ch.size])
-
+    # 3. Color variance 4x4 grid (3 dim)
     h_cells, w_cells = 4, 4
     cell_h, cell_w = arr.shape[0] // h_cells, arr.shape[1] // w_cells
     cell_means = np.zeros((h_cells * w_cells, 3))
@@ -157,115 +141,120 @@ def _extract_features(img_bytes: bytes) -> np.ndarray:
             idx += 1
     color_var = cell_means.std(axis=0)
 
-    return np.concatenate(
-        [patch_feat, hist_feat, hsv_feat, edge_feat, warm_ratio, color_var]
+    # 4. Colorfulness index Hasler & Susstrunk (1 dim)
+    r, g, b = (
+        arr[:, :, 0].astype(float),
+        arr[:, :, 1].astype(float),
+        arr[:, :, 2].astype(float),
     )
+    rg = r - g
+    yb = 0.5 * (r + g) - b
+    colorfulness = np.array(
+        [
+            np.sqrt(rg.std() ** 2 + yb.std() ** 2)
+            + 0.3 * np.sqrt(rg.mean() ** 2 + yb.mean() ** 2)
+        ]
+    )
+
+    # 5. Brightness distribution: dark_ratio, bright_ratio (2 dim)
+    hsv = rgb_to_hsv(arr_float)
+    v_ch = hsv[:, :, 2]
+    dark_ratio = (v_ch < 0.2).sum() / v_ch.size
+    bright_ratio = (v_ch > 0.8).sum() / v_ch.size
+    brightness_dist = np.array([dark_ratio, bright_ratio])
+
+    return np.concatenate(
+        [
+            patch_feat,
+            edge_feat,
+            color_var,
+            colorfulness,
+            brightness_dist,
+        ]
+    )
+
+
+def _is_blocked(page) -> tuple[bool, str]:
+    title = page.title().strip()
+    if title.lower() in _BLOCKED_TITLES:
+        return True, f"blocked_title: {title[:60]}"
+    try:
+        body = page.text_content("body")
+    except Exception:
+        return True, "no_body"
+    if body:
+        body_lower = body.lower()
+        for frag in _BLOCKED_BODY_FRAGMENTS:
+            if frag in body_lower:
+                return True, f"blocked_body: {frag}"
+    return False, ""
+
+
+_BLOCKED_TITLES: set[str] = {
+    "just a moment",
+    "attention required",
+    "access denied",
+    "403 forbidden",
+    "access denied.",
+    "blocked",
+    "please wait...",
+    "please wait",
+    "checking your browser",
+    "akses ditolak",
+    "halaman tidak ditemukan",
+    "terjadi kesalahan",
+    "situs ini diblokir",
+    "access to this site is blocked",
+    "website ini diblokir",
+}
+
+_BLOCKED_BODY_FRAGMENTS: set[str] = {
+    "checking your browser",
+    "ddos protection",
+    "please enable cookies",
+    "cf-browser-verification",
+    "cloudflare",
+    "attention required",
+    "access denied",
+    "403 forbidden",
+    "your request has been blocked",
+    "sorry, you have been blocked",
+    "akses ditolak",
+    "situs ini diblokir",
+    "website ini diblokir",
+    "halaman ini diblokir",
+    "koneksi tidak aman",
+    "akses diblokir",
+    "access to this site has been blocked",
+    "situs ini tidak dapat diakses",
+    "pemblokiran",
+    "ditutup atas perintah",
+}
+
+_OVERLAY_REMOVER: str = """
+    (() => {
+        const selectors = [
+            '.modal', '.popup', '.overlay', '.cookie', '.cookies',
+            '[class*="cookie"]', '[id*="cookie"]', '.gdpr', '.consent',
+            '[class*="consent"]', '[class*="notification"]',
+            '.notification-bar', '.adsbox', '.ad-container',
+            '[class*="ad-"]', '[id*="ad-"]', '.interstitial',
+            '.newsletter-popup', '.email-popup', '.subscribe-popup',
+            '[class*="popup"]', '[id*="popup"]', '.fb-lightbox',
+            '.modal-backdrop', '.modal-overlay',
+        ];
+        selectors.forEach(sel => {
+            document.querySelectorAll(sel).forEach(el => el.remove());
+        });
+        document.body.style.overflow = 'visible';
+        document.body.style.position = 'static';
+    })();
+"""
 
 
 def _capture_screenshot(url: str) -> tuple[bytes | None, str | None]:
     from playwright.sync_api import sync_playwright
     from playwright_stealth import Stealth
-
-    BLOCKED_DOMAINS: set[str] = {
-        "doubleclick.net",
-        "googlesyndication.com",
-        "googletagmanager.com",
-        "google-analytics.com",
-        "facebook.net",
-        "fbcdn.net",
-        "amazon-adsystem.com",
-        "adservice.google.com",
-        "criteo.com",
-        "scorecardresearch.com",
-        "hotjar.com",
-        "newrelic.com",
-    }
-
-    INIT_CSS: str = """
-        (() => {
-            const s = document.createElement('style');
-            s.id = '__clean_css';
-            s.textContent = `
-                [class*="cookie"],[id*="cookie"],[class*="Cookie"],[id*="Cookie"],
-                [class*="popup"],[id*="popup"],[class*="Popup"],[id*="Popup"],
-                [class*="modal"],[id*="modal"],[class*="Modal"],[id*="Modal"],
-                [class*="overlay"],[id*="overlay"],[class*="Overlay"],[id*="Overlay"],
-                [class*="consent"],[id*="consent"],[class*="Consent"],[id*="Consent"],
-                [class*="notification"],[id*="notification"],[class*="Notification"],[id*="Notification"],
-                [class*="gdpr"],[id*="gdpr"],[class*="GDPR"],
-                [class*="ad-"],[id*="ad-"],[class*="banner"],[id*="banner"],
-                [class*="backdrop"],[id*="backdrop"],[class*="Backdrop"],[id*="Backdrop"],
-                [class*="interstitial"],[aria-modal="true"],[role="dialog"],
-                .modal,.popup,.overlay,.cookie,.cookies,.gdpr,.consent,
-                .newsletter,.subscribe,.modal-backdrop,.modal-overlay,
-                .fb-lightbox,.notification-bar,.adsbox,.ad-container
-                { display:none!important;visibility:hidden!important;
-                  pointer-events:none!important;opacity:0!important;z-index:-1!important }
-            `;
-            document.documentElement.appendChild(s);
-        })();
-    """  # noqa: E501
-
-    REMOVE_OVERLAYS: str = """
-        (() => {
-            const SEL = [
-                '[class*="cookie"],[id*="cookie"],[class*="Cookie"],[id*="Cookie"]',
-                '[class*="popup"],[id*="popup"],[class*="Popup"],[id*="Popup"]',
-                '[class*="modal"],[id*="modal"],[class*="Modal"],[id*="Modal"]',
-                '[class*="overlay"],[id*="overlay"],[class*="Overlay"],[id*="Overlay"]',
-                '[class*="consent"],[id*="consent"],[class*="Consent"],[id*="Consent"]',
-                '[class*="notification"],[id*="notification"],[class*="Notification"],[id*="Notification"]',
-                '[class*="gdpr"],[id*="gdpr"],[class*="GDPR"]',
-                '[class*="ad-"],[id*="ad-"],[class*="banner"],[id*="banner"]',
-                '[class*="backdrop"],[id*="backdrop"],[class*="Backdrop"],[id*="Backdrop"]',
-                '[class*="interstitial"],[aria-modal="true"],[role="dialog"]',
-                '.modal,.popup,.overlay,.cookie,.cookies,.gdpr,.consent',
-                '.newsletter,.subscribe,.modal-backdrop,.modal-overlay',
-                '.fb-lightbox,.notification-bar,.adsbox,.ad-container',
-            ].join(',');
-            function deep(root) {
-                root.querySelectorAll(SEL).forEach(e => e.remove());
-                root.querySelectorAll('*').forEach(e => {
-                    if (e.shadowRoot) deep(e.shadowRoot);
-                });
-            }
-            deep(document);
-            const all = document.querySelectorAll('*');
-            const vw = innerWidth, vh = innerHeight;
-            all.forEach(el => {
-                if (el === document.body || el === document.documentElement) return;
-                const s = getComputedStyle(el);
-                if (s.position !== 'fixed' && s.position !== 'sticky') return;
-                const z = parseInt(s.zIndex);
-                if (isNaN(z) || z < 100) return;
-                const r = el.getBoundingClientRect();
-                if (r.width * r.height > vw * vh * 0.3) return;
-                el.remove();
-            });
-            all.forEach(el => {
-                if (el === document.body || el === document.documentElement) return;
-                const s = getComputedStyle(el);
-                if (s.position !== 'fixed' && s.position !== 'absolute') return;
-                const z = parseInt(s.zIndex);
-                if (isNaN(z) || z < 50) return;
-                const r = el.getBoundingClientRect();
-                if (r.width * r.height > vw * vh * 0.5) el.remove();
-            });
-            all.forEach(el => {
-                const s = getComputedStyle(el);
-                if (parseFloat(s.opacity) > 0.3) return;
-                if (s.position !== 'fixed' && s.position !== 'absolute') return;
-                const r = el.getBoundingClientRect();
-                if (r.width * r.height > vw * vh * 0.9) el.remove();
-            });
-            ['body','html'].forEach(tag => {
-                const el = document.querySelector(tag);
-                if (!el) return;
-                el.style.overflow = 'visible';
-                el.style.position = 'static';
-            });
-        })();
-    """
 
     try:
         with sync_playwright() as pw:
@@ -292,48 +281,48 @@ def _capture_screenshot(url: str) -> tuple[bytes | None, str | None]:
                     "AppleWebKit/537.36 (KHTML, like Gecko) "
                     "Chrome/125.0.0.0 Safari/537.36"
                 ),
+                locale="id-ID",
+                timezone_id="Asia/Jakarta",
+                bypass_csp=True,
+                ignore_https_errors=True,
+                extra_http_headers={
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "Accept-Language": "id-ID,id;q=0.9,en-US,en;q=0.8",
+                },
             )
             Stealth().apply_stealth_sync(page)
 
             page.on("dialog", lambda d: d.dismiss())
 
-            page.route(
-                "**/*",
-                lambda route: (
-                    route.abort()
-                    if any(d in route.request.url for d in BLOCKED_DOMAINS)
-                    else route.continue_()
-                ),
-            )
-
-            page.add_init_script(INIT_CSS)
-
-            import time
-
-            t0 = time.time()
-            resp = page.goto(url, timeout=10000, wait_until="domcontentloaded")
+            resp = page.goto(url, timeout=30_000, wait_until="domcontentloaded")
             try:
-                page.wait_for_load_state("load", timeout=5000)
+                page.wait_for_load_state("networkidle", timeout=15_000)
             except Exception:
                 pass
-            t1 = time.time()
+
+            blocked, reason = _is_blocked(page)
+            if blocked:
+                log("SCREENSHOT", f"BLOCKED {url} reason={reason}")
+                browser.close()
+                return None, "blocked"
 
             try:
-                page.evaluate(REMOVE_OVERLAYS)
-                page.keyboard.press("Escape")
-                page.mouse.click(5, 5)
+                page.evaluate(_OVERLAY_REMOVER)
+                page.wait_for_timeout(500)
             except Exception:
                 pass
 
             http_status: str | None = str(resp.status) if resp else None
             buf: bytes = page.screenshot(full_page=False)
-            t2 = time.time()
 
-            title = page.title()
-            buf_kb = len(buf) / 1024
+            if len(buf) < 1024:
+                log("SCREENSHOT", f"BLANK {url} size={len(buf)}B")
+                browser.close()
+                return None, "blank"
+
             log(
                 "SCREENSHOT",
-                f"{url} status={http_status} title={title[:80]!r} goto={t1 - t0:.1f}s ss={t2 - t1:.1f}s size={buf_kb:.0f}KB threshold={NOISE_SIZE_LIMIT / 1024:.0f}KB noise={buf_kb < NOISE_SIZE_LIMIT / 1024}",  # noqa: E501
+                f"{url} status={http_status} size={len(buf) / 1024:.0f}KB",
             )
             browser.close()
         return buf, http_status
@@ -347,6 +336,10 @@ def _http_status_label(status: str | None) -> str:
         return "capture_failed"
     if status == "200":
         return "screenshot_ok"
+    if status == "blocked":
+        return "blocked"
+    if status == "blank":
+        return "blank_screenshot"
     return f"http_error_{status}"
 
 
@@ -519,7 +512,12 @@ def infer_fused(url: str) -> dict[str, Any]:
                 log("WARN", f"Feature extraction failed: {e}")
                 screenshot_status = "extraction_failed"
     else:
-        screenshot_status = "capture_failed"
+        if http_status == "blocked":
+            screenshot_status = "blocked"
+        elif http_status == "blank":
+            screenshot_status = "blank_screenshot"
+        else:
+            screenshot_status = "capture_failed"
 
     if prob_image is not None:
         prob_gambling: float = (

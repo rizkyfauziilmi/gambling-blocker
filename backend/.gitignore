@@ -234,3 +234,7 @@ __marimo__/
 # exclude bin hasil training
 !model/bin/*
 model/bin/image_features.npy
+model/bin/image_ids.npy
+
+*.zip
+*.jpg
