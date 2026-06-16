@@ -286,7 +286,10 @@ def _capture_screenshot(url: str) -> tuple[bytes | None, str | None]:
                 bypass_csp=True,
                 ignore_https_errors=True,
                 extra_http_headers={
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "Accept": (
+                        "text/html,application/xhtml+xml,"
+                        "application/xml;q=0.9,*/*;q=0.8"
+                    ),
                     "Accept-Language": "id-ID,id;q=0.9,en-US,en;q=0.8",
                 },
             )

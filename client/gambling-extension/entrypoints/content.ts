@@ -110,6 +110,13 @@ export default defineContentScript({
         if (data.category === "gambling") {
           browser.runtime
             .sendMessage({
+              type: "gambling_alert",
+              url: cleanUrl,
+              gambling_score: String(data.gambling_score),
+            })
+            .catch(() => {})
+          browser.runtime
+            .sendMessage({
               type: "redirect",
               url: cleanUrl,
               gambling_score: String(data.gambling_score),

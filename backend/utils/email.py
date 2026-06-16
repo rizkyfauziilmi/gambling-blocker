@@ -65,7 +65,7 @@ def send_partner_password(
 <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
 <h2 style="color:#1a73e8;">Gambling Blocker — Accountability Partner</h2>
 <p>Hi,</p>
-<p><strong>{user_email}</strong> has registered you as their accountability partner for Gambling Blocker.</p>
+<p><strong>{user_email or "your account"}</strong> has registered you as their accountability partner for Gambling Blocker.</p>
 <p>The extension is now locked. Only you have the password to access its settings:</p>
 <table style="background:#f8f9fa;padding:16px;border-radius:8px;margin:16px 0;width:100%;">
 <tr><td style="font-weight:bold;padding-right:12px;">Password:</td>
@@ -130,7 +130,34 @@ def send_reset_password(
 </body></html>"""
     return send_email(
         to_email=partner_email,
-        subject="Gambling Blocker — Password Reset",
+        subject="🔑 Gambling Blocker — Password Reset",
+        html_body=html,
+    )
+
+
+def send_gambling_alert(
+    partner_email: str,
+    url_visited: str,
+    *,
+    user_email: str = "",
+    gambling_score: float = 0.0,
+) -> bool:
+    score_pct = f"{gambling_score * 100:.1f}%"
+    html = f"""<html>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+<h2 style="color:#d93025;">🚫 Gambling Site Visit Detected</h2>
+<p>The Gambling Blocker extension on <strong>{user_email or "your account"}</strong> has detected and blocked a visit to a gambling website:</p>
+<table style="background:#fce8e6;padding:16px;border-radius:8px;margin:16px 0;width:100%;">
+<tr><td style="font-weight:bold;padding-right:12px;white-space:nowrap;">URL Blocked:</td><td style="word-break:break-all;font-family:monospace;font-size:13px;">{url_visited}</td></tr>
+<tr><td style="font-weight:bold;padding-right:12px;">Gambling Score:</td><td>{score_pct}</td></tr>
+</table>
+<p style="color:#666;font-size:13px;">The extension is working correctly. This is an informational alert to keep you informed of blocked gambling activity.</p>
+<hr style="border:none;border-top:1px solid #eee;margin:16px 0;">
+<p style="color:#999;font-size:11px;">Automated alert from Gambling Blocker</p>
+</body></html>"""
+    return send_email(
+        to_email=partner_email,
+        subject="🚫 Gambling Blocker — Gambling Site Blocked",
         html_body=html,
     )
 
@@ -145,9 +172,9 @@ def send_heartbeat_stale_alert(
 <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
 <h2 style="color:#e67e22;">⚠️ Extension Heartbeat Lost</h2>
 <p>The Gambling Blocker extension on <strong>{user_email or "your account"}</strong> has not reported in for <strong>{hours_since_last} hours</strong>.</p>
-<p style="background:#fef3e2;padding:16px;border-radius:8px;margin:16px 0;">
-This may mean the extension has been disabled or uninstalled. Protection may no longer be active.
-</p>
+<table style="background:#fef3e2;padding:16px;border-radius:8px;margin:16px 0;width:100%;">
+<tr><td style="padding:0;">This may mean the extension has been disabled or uninstalled. Protection may no longer be active.</td></tr>
+</table>
 <hr style="border:none;border-top:1px solid #eee;margin:16px 0;">
 <p style="color:#999;font-size:11px;">Automated alert from Gambling Blocker</p>
 </body></html>"""

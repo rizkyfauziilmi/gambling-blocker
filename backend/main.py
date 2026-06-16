@@ -18,6 +18,7 @@ from utils.cache import is_available as cache_available
 from utils.cache import scan as cache_scan
 from utils.cache import setex as cache_setex
 from utils.email import (
+    send_gambling_alert,
     send_heartbeat_stale_alert,
     send_partner_password,
     send_reset_password,
@@ -205,6 +206,29 @@ def extension_tamper_alert(body: ExtensionTamperBody) -> dict:
             partner["partner_email"],
             body.event_type,
             details=body.details,
+        )
+    return {"ok": True}
+
+
+class ExtensionGamblingAlertBody(BaseModel):
+    extension_id: str
+    url: str
+    gambling_score: float = 0.0
+
+
+@app.post("/extension/gambling-alert")
+def extension_gambling_alert(body: ExtensionGamblingAlertBody) -> dict:
+    log_msg(
+        "GAMBLING",
+        f"alert from {body.extension_id}"
+        f" | url={body.url} | score={body.gambling_score}",
+    )
+    partner = get_partner(body.extension_id)
+    if partner:
+        send_gambling_alert(
+            partner["partner_email"],
+            body.url,
+            gambling_score=body.gambling_score,
         )
     return {"ok": True}
 

@@ -5,6 +5,12 @@ interface ClassifyMsg {
   url: string
 }
 
+interface GamblingAlertMsg {
+  type: "gambling_alert"
+  url: string
+  gambling_score: string
+}
+
 interface RedirectMsg {
   type: "redirect"
   url: string
@@ -12,10 +18,14 @@ interface RedirectMsg {
   from_list: string
 }
 
-type BgMsg = ClassifyMsg | RedirectMsg
+type BgMsg = ClassifyMsg | GamblingAlertMsg | RedirectMsg
 
 function isClassifyMsg(msg: BgMsg): msg is ClassifyMsg {
   return msg.type === "classify"
+}
+
+function isGamblingAlertMsg(msg: BgMsg): msg is GamblingAlertMsg {
+  return msg.type === "gambling_alert"
 }
 
 function isRedirectMsg(msg: BgMsg): msg is RedirectMsg {
@@ -122,6 +132,25 @@ export default defineBackground(() => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
           return res.json()
         })
+      }
+
+      if (isGamblingAlertMsg(msg)) {
+        hasPassword().then((hasPartner) => {
+          if (!hasPartner) return
+          getExtensionId().then((extId) => {
+            if (!extId) return
+            fetch(`${API_BASE}/extension/gambling-alert`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                extension_id: extId,
+                url: msg.url,
+                gambling_score: parseFloat(msg.gambling_score),
+              }),
+            }).catch(() => {})
+          })
+        })
+        return
       }
 
       if (isRedirectMsg(msg)) {
