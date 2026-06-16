@@ -1,1 +1,4 @@
-{"text_best_threshold": 0.63}
+{
+  "text_best_threshold": 0.6600000000000004,
+  "oof_f1_score": 0.9759627238556254
+}
