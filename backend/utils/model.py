@@ -12,7 +12,6 @@ import joblib
 import numpy as np
 import tensorflow as tf
 from keras import Model
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 
 from .config import SAVE_DIR
@@ -27,7 +26,7 @@ _text_model: Model | None = None
 _vectorizer: Any | None = None
 _text_threshold: float = 0.5
 
-_image_model: RandomForestClassifier | None = None
+_image_model: Model | None = None
 _image_scaler: StandardScaler | None = None
 _image_threshold: float = 0.5
 _image_alpha: float = 0.4
@@ -44,7 +43,7 @@ def load() -> bool:
     text_model_path: Path = SAVE_DIR / "text_classifier.keras"
     vectorizer_path: Path = SAVE_DIR / "text_tfidf_vectorizer.pkl"
     text_threshold_path: Path = SAVE_DIR / "text_best_threshold.json"
-    image_model_path: Path = SAVE_DIR / "image_classifier.pkl"
+    image_model_path: Path = SAVE_DIR / "image_classifier.keras"
     image_scaler_path: Path = SAVE_DIR / "image_scaler.pkl"
     fusion_config_path: Path = SAVE_DIR / "image_fusion_alpha.json"
 
@@ -68,7 +67,7 @@ def load() -> bool:
     with open(text_threshold_path) as f:
         _text_threshold = json.load(f)["text_best_threshold"]
 
-    _image_model = joblib.load(str(image_model_path))
+    _image_model = tf.keras.models.load_model(str(image_model_path))
     _image_scaler = joblib.load(str(image_scaler_path))
     with open(fusion_config_path) as f:
         fc: dict[str, Any] = json.load(f)
@@ -500,7 +499,7 @@ def infer_fused(url: str) -> dict[str, Any]:
             try:
                 feats = _extract_features(img_bytes).reshape(1, -1)
                 feats_scaled = _image_scaler.transform(feats)
-                prob_image = float(_image_model.predict_proba(feats_scaled)[0, 1])
+                prob_image = float(_image_model.predict(feats_scaled, verbose=0)[0, 0])
 
                 storage = get_storage()
                 object_name: str = f"{md5(url.encode()).hexdigest()[:12]}.png"

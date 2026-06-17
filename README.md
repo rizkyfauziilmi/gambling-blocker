@@ -15,7 +15,7 @@ flowchart TB
         direction TB
         FC["Fused Classifier"]
         TXT["Text ML (TF-IDF + Keras)"]
-        IMG["Image ML (Random Forest)"]
+        IMG["Image DL (MLP)"]
         RD[("Redis (cache + rate limiter)")]
         MINIO[("MinIO (screenshots)")]
         PW["Playwright (headless Chromium)"]

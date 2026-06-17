@@ -12,7 +12,7 @@ sequenceDiagram
     participant Redis as Redis Cache
     participant TXT as Text ML (TF-IDF + Keras)
     participant PW as Playwright
-    participant IMG as Image ML (Random Forest)
+    participant IMG as Image DL (MLP)
     participant MINIO as MinIO
 
     User->>CS: Buka website
@@ -61,7 +61,7 @@ sequenceDiagram
 Skor akhir = `fusion_alpha * text_score + (1 - fusion_alpha) * image_score`
 
 - `text_score`: Probabilitas dari *neural network* (TF-IDF → Keras) pada URL yang sudah dibersihkan
-- `image_score`: Probabilitas dari *Random Forest* + *StandardScaler* pada **69 fitur** gambar:
+- `image_score`: Probabilitas dari *Deep Learning (MLP)* + *StandardScaler* pada **69 fitur** gambar:
   - **Patch features (60)**: Mean & std dari 10 acak patch 16×16 pada 3 kanal warna
   - **Edge density (3)**: Rata-rata, std, dan proporsi piksel di atas threshold gradient magnitude (Sobel)
   - **Color variance 4×4 grid (3)**: Std dari rata-rata warna per kanal pada grid 4×4
@@ -244,9 +244,9 @@ sequenceDiagram
    - **Color variance 4×4 grid (3)**: Std dari rata-rata warna 16 cell per kanal
    - **Colorfulness index (1)**: `sqrt(rg.std² + yb.std²) + 0.3×sqrt(rg.mean² + yb.mean²)` (Hasler & Süstrunk)
    - **Brightness distribution (2)**: Rasio piksel gelap (V<0.2) dan terang (V>0.8) di HSV
-4. **Random Forest Prediction**:
+4. **Deep Learning Prediction (MLP)**:
    - Fitur di-scale dengan `StandardScaler` dari `image_scaler.pkl`
-   - Prediksi probabilitas kelas gambling via `image_classifier.pkl`
+   - Prediksi probabilitas kelas gambling via model Deep Learning `image_classifier.keras`
    - Output: `image_score` (float 0–1)
 5. **Upload**: Screenshot diupload ke MinIO, `screenshot_url` adalah presigned URL (expired 1 jam)
 
@@ -261,7 +261,7 @@ flowchart TD
     D -->|"noise (> 100KB)"| G["screenshot_status = noise_screenshot"]
     D -->|"OK"| H["Extract 69 fitur:<br/>patch(60) edge(3) colorVar(3)<br/>colorfulness(1) brightness(2)"]
     H --> I["StandardScaler<br/>(image_scaler.pkl)"]
-    I --> J["Random Forest<br/>(image_classifier.pkl)"]
+    I --> J["Deep Learning MLP<br/>(image_classifier.keras)"]
     J --> K["image_score"]
     D -->|"gagal"| L["screenshot_status = capture_failed<br/>image_score = null"]
     K --> M["Upload ke MinIO"]
