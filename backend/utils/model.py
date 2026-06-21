@@ -28,7 +28,7 @@ _text_threshold: float = 0.5
 
 _image_model: Model | None = None
 _image_scaler: StandardScaler | None = None
-_image_threshold: float = 0.5
+_fusion_threshold: float = 0.5
 _image_alpha: float = 0.4
 
 PATCH_SIZE: tuple[int, int] = (16, 16)
@@ -38,7 +38,7 @@ RESIZE: tuple[int, int] = (64, 64)
 
 def load() -> bool:
     global _text_model, _vectorizer, _text_threshold
-    global _image_model, _image_scaler, _image_threshold, _image_alpha
+    global _image_model, _image_scaler, _fusion_threshold, _image_alpha
 
     text_model_path: Path = SAVE_DIR / "text_classifier.keras"
     vectorizer_path: Path = SAVE_DIR / "text_tfidf_vectorizer.pkl"
@@ -72,11 +72,11 @@ def load() -> bool:
     with open(fusion_config_path) as f:
         fc: dict[str, Any] = json.load(f)
         _image_alpha = fc["alpha"]
-        _image_threshold = fc["threshold"]
+        _fusion_threshold = fc["threshold"]
 
     log(
         "INFO",
-        f"Models loaded from {SAVE_DIR} (text_threshold={_text_threshold:.4f}, image_threshold={_image_threshold:.4f}, fusion_alpha={_image_alpha:.2f})",  # noqa: E501
+        f"Models loaded from {SAVE_DIR} (text_threshold={_text_threshold:.4f}, fusion_threshold={_fusion_threshold:.4f}, fusion_alpha={_image_alpha:.2f})",  # noqa: E501
     )
     return True
 
@@ -473,7 +473,7 @@ def infer_fused(url: str) -> dict[str, Any]:
     ):
         return {
             "url": url,
-            "category": "gambling" if prob_text > _image_threshold else "non-gambling",
+            "category": "gambling" if prob_text > _text_threshold else "non-gambling",
             "gambling_score": round(prob_text, 4),
             "text_score": round(prob_text, 4),
             "image_score": None,
@@ -528,7 +528,7 @@ def infer_fused(url: str) -> dict[str, Any]:
     else:
         prob_gambling = prob_text
 
-    category: str = "gambling" if prob_gambling > _image_threshold else "non-gambling"
+    category: str = "gambling" if prob_gambling > _fusion_threshold else "non-gambling"
 
     return {
         "url": url,
