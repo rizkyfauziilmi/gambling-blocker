@@ -130,7 +130,6 @@ uv run fastapi run
 ```
 URL masuk → rate limiting (10 req/menit per hostname via Redis)
          → cek whitelist/blacklist (SQLite)
-         → [jika bare IP + root path] return "bare-ip"
          → cek cache (Redis)
          → inferensi teks (TF-IDF → Keras)
          → [jika root domain + multipage_enabled] crawling internal links → stratified sampling → geometric mean subpath

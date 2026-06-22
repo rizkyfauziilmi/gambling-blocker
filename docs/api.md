@@ -194,7 +194,7 @@ Melakukan klasifikasi penuh: cek list → cache → inferensi teks → (opsional
 }
 ```
 
-**Screenshot status** (12+ nilai): `screenshot_ok`, `capture_failed`, `blocked`, `blank_screenshot`, `http_error_{code}`, `bypass_list`, `bypass_bare_ip`, `bypass_text_only`, `no_screenshot`, `noise_screenshot`, `extraction_failed`, dll.
+**Screenshot status** (12+ nilai): `screenshot_ok`, `capture_failed`, `blocked`, `blank_screenshot`, `http_error_{code}`, `bypass_list`, `bypass_text_only`, `no_screenshot`, `noise_screenshot`, `extraction_failed`, dll.
 
 ### Lightweight Classification (Cache + List Only)
 
