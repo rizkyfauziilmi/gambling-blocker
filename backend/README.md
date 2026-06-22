@@ -35,7 +35,7 @@ backend/
 │   ├── config.py           # Load env vars via python-dotenv
 │   ├── email.py            # SMTP: send password, tamper alert, stale alert
 │   ├── extensions.py       # SQLite: partner CRUD, heartbeat, tamper, verify
-│   ├── helpers.py          # parse_hostname, is_ip, cache_key, clean_url
+│   ├── helpers.py          # parse_hostname, cache_key, clean_url
 │   ├── lists.py            # SQLite: blacklist/whitelist CRUD
 │   ├── logger.py           # In-memory ring buffer (max 1000)
 │   ├── model.py            # ML inference: text + image + fusion

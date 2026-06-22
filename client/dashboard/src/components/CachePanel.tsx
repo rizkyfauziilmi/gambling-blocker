@@ -57,7 +57,6 @@ export function CachePanel() {
   > = {
     gambling: "destructive",
     "non-gambling": "secondary",
-    "bare-ip": "outline",
   }
 
   const filtered = data?.entries
@@ -213,7 +212,6 @@ export function CachePanel() {
                     }
                   > = {
                     bypass_list: { label: t("by_list"), variant: "default" },
-                    bypass_bare_ip: { label: t("bare_ip"), variant: "default" },
                     bypass_text_only: {
                       label: t("text_only"),
                       variant: "default",

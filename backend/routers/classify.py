@@ -1,5 +1,4 @@
 import json
-from urllib.parse import urlparse
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import AnyHttpUrl
@@ -8,7 +7,7 @@ from utils.cache import get as cache_get
 from utils.cache import incr as cache_incr
 from utils.cache import is_available as cache_available
 from utils.cache import setex as cache_setex
-from utils.helpers import cache_key, is_ip, parse_hostname
+from utils.helpers import cache_key, parse_hostname
 from utils.lists import check_hostname as list_check
 from utils.logger import log as log_msg
 from utils.model import infer_fused
@@ -81,21 +80,6 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict:
             enrich_screenshot_url(result)
             result["from_cache"] = True
             return result
-
-    if is_ip(hostname):
-        path: str = urlparse(url_str).path
-        if not path or path == "/":
-            return {
-                "url": url_str,
-                "category": "bare-ip",
-                "gambling_score": 0.0,
-                "text_score": 0.0,
-                "image_score": None,
-                "fusion_alpha": 0.0,
-                "screenshot_url": None,
-                "screenshot_status": "bypass_bare_ip",
-                "from_cache": False,
-            }
 
     if not model_loaded():
         log_msg("API", "model not loaded, raising 503")

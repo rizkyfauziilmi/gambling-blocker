@@ -151,25 +151,10 @@ flowchart TD
     A["check_hostname(host)"] --> B{"Ditemukan?"}
     B -->|"whitelist"| C["Return: non-gambling<br/>score=0 | from_list=whitelist"]
     B -->|"blacklist"| D["Return: gambling<br/>score=1 | from_list=blacklist"]
-    B -->|"None"| E["Lanjut ke bare IP check"]
+    B -->|"None"| E["Lanjut ke cache"]
 ```
 
-#### E. Bare IP Handling
-
-1. Jika `hostname` adalah IP address (deteksi via `ipaddress.ip_address()`)
-2. Dan URL path kosong atau hanya `"/"`:
-   - Return: `category: "bare-ip"`, `gambling_score: 0.0`, `screenshot_status: "bypass_bare_ip"`
-3. Path yang tidak kosong tetap diproses normal
-
-```mermaid
-flowchart TD
-    A["is_ip(host)"] -->|"Ya"| B{"Path kosong<br/>atau '/'?"}
-    B -->|"Ya"| C["Return: bare-ip<br/>score=0 | bypass_bare_ip"]
-    B -->|"Tidak"| D["Lanjut ke cache"]
-    A -->|"Tidak"| D
-```
-
-#### F. Cache Lookup (Redis)
+#### E. Cache Lookup (Redis)
 
 1. Key: `fused:domain:{hostname}`
 2. Jika cache ada (`cache_get`): return hasil dengan `from_cache: true`, perbarui `screenshot_url` via presigned MinIO URL
@@ -182,7 +167,7 @@ flowchart TD
     B -->|"Tidak"| D["Lanjut ke text inference"]
 ```
 
-#### G. Text Inference
+#### F. Text Inference
 
 1. **URL Cleaning** (`clean_url`):
    - Ekstrak `netloc + path` → URL-decode → lowercase
@@ -203,7 +188,7 @@ flowchart LR
     D --> E["text_score"]
 ```
 
-#### H. Multipage Inference (Root Domain)
+#### G. Multipage Inference (Root Domain)
 
 1. Hanya berjalan jika `multipage_enabled=true` dan path adalah root (`""` atau `"/"`)
 2. Detail implementasi ada di sub-section **Multipage Inference** di atas
@@ -225,7 +210,7 @@ sequenceDiagram
     API->>API: Geometric mean subpath<br/>(root score sebagai fallback)
 ```
 
-#### I. Screenshot & Image Inference
+#### H. Screenshot & Image Inference
 
 1. **Bypass logic**: Jika `bypass_text_enabled=true` DAN (`text_score >= 0.95` ATAU `text_score <= 0.05`) → skip screenshot, `screenshot_status: "bypass_text_only"`, `gambling_score = text_score`
 2. **Screenshot** (Playwright):
@@ -270,7 +255,7 @@ flowchart TD
     G --> M
 ```
 
-#### J. Fusion, Caching, & Response
+#### I. Fusion, Caching, & Response
 
 1. **Fusion score**:
    ```

@@ -89,7 +89,6 @@ const id: Record<string, string> = {
   noise_http: "Gambar Noise (HTTP {code})",
   http_label: "HTTP {code}",
   by_list: "Lolos Daftar",
-  bare_ip: "IP Langsung",
   text_only: "Hanya Teks",
   no_screenshot_status: "Tanpa Tangkapan Layar",
   screenshot_blocked: "Diblokir",

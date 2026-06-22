@@ -46,7 +46,6 @@ type Status =
   | "loading"
   | "safe"
   | "gambling"
-  | "bare-ip"
   | "skipped"
   | "error"
   | "not_classified"
@@ -167,8 +166,6 @@ function App() {
           setStatus("not_classified")
         } else if (data.category === "gambling") {
           setStatus("gambling")
-        } else if (data.category === "bare-ip") {
-          setStatus("bare-ip")
         } else {
           setStatus("safe")
         }
@@ -258,7 +255,6 @@ function App() {
     } else {
       const labels: Record<string, string> = {
         bypass_list: "By List",
-        bypass_bare_ip: "Bare IP",
         bypass_text_only: "Text Only",
         capture_failed: "Capture Failed",
         extraction_failed: "Extraction Failed",
@@ -418,15 +414,7 @@ function App() {
         </div>
       )}
 
-      {/* Bare IP state */}
-      {status === "bare-ip" && (
-        <div className="rounded-xl border border-gray-300 bg-gray-100 p-4 text-center">
-          <p className="text-sm font-medium text-gray-700">
-            {t("popup_bareIp")}
-          </p>
-          <p className="mt-1 text-xs text-gray-500">{t("popup_bareIpDesc")}</p>
-        </div>
-      )}
+
 
       {/* Safe state */}
       {status === "safe" && (

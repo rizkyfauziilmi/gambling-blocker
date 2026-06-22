@@ -15,8 +15,6 @@ const messages: Record<string, Record<string, string>> = {
     popup_notScannable: "Cannot scan this page",
     popup_notScannableDesc: "Only HTTP(S) websites are checked",
     popup_reportFalsePositive: "Report a False Detection",
-    popup_bareIp: "Direct IP \u2014 not scanned",
-    popup_bareIpDesc: "Add a path to enable gambling detection",
     popup_blockedByAdmin: "Blocked by admin",
     popup_blockedByAdminDesc:
       "This site was added to the blacklist by an administrator.",
@@ -89,8 +87,6 @@ const messages: Record<string, Record<string, string>> = {
     popup_notScannable: "Tidak dapat memindai halaman ini",
     popup_notScannableDesc: "Hanya situs HTTP(S) yang diperiksa",
     popup_reportFalsePositive: "Laporkan Salah Deteksi",
-    popup_bareIp: "IP Langsung \u2014 tidak dipindai",
-    popup_bareIpDesc: "Tambahkan path untuk deteksi judi",
     popup_blockedByAdmin: "Diblokir oleh admin",
     popup_blockedByAdminDesc:
       "Situs ini ditambahkan ke daftar hitam oleh administrator.",
