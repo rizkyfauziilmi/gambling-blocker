@@ -402,9 +402,66 @@ sequenceDiagram
     end
 ```
 
-## Multi-Browser Extension Guard
+### Gambling Visit Alert
 
-`isExtensionsUrl()` mendeteksi URL manajemen ekstensi:
+```mermaid
+sequenceDiagram
+    participant CS as Content Script
+    participant BG as Background Script
+    participant API as Backend API
+    participant Partner as Email Partner
+
+    Note over CS: Deteksi situs gambling
+    CS->>BG: runtime.sendMessage({type:"gambling_alert", url, gambling_score})
+    BG->>BG: hasPassword()?
+    alt Partner tidak terdaftar
+        BG->>BG: Abort (tidak ada action)
+    else Partner terdaftar
+        BG->>BG: getExtensionId()
+        BG->>API: POST /extension/gambling-alert
+        API->>API: log_msg("GAMBLING", ...)
+        API->>API: get_partner(extension_id)
+        alt Partner ditemukan
+            API->>Partner: Email gambling alert<br/>(URL + gambling score)
+        end
+        API-->>BG: {ok: true}
+    end
+```
+
+## Multi-Browser Extension Guard & Tamper Alert
+
+### Alur Deteksi Akses & Tamper
+
+```mermaid
+flowchart TD
+    A["User buka halaman<br/>chrome://extensions"] --> B{"Listener triggered:<br/>tabs.onUpdated / tabs.onActivated"}
+    B --> C["handleExtensionsAccess(tabId)"]
+    C --> D{"Session bypass valid?<br/>(< 5 menit)"}
+    D -->|"Ya"| E["Izinkan akses<br/>(return)"]
+    D -->|"Tidak / expired"| F["Hapus bypass expired"]
+    F --> G{"shouldBlockExtensions()"}
+    G --> H{"hasPassword()?<br/>(partner sudah di-set?)"}
+    H -->|"Ya"| I["block"]
+    H -->|"Tidak"| J["getInstalledAt()"]
+    J --> K{"daysSinceInstall >= 7?"}
+    K -->|"Ya"| L["warn"]
+    K -->|"Tidak"| M["grace"]
+
+    I --> N["Buat tab baru:<br/>extensions-blocked.html<br/>Tutup tab extensions"]
+    L --> O["Notifikasi:<br/>proteksi terkompromi"]
+    M --> P["Notifikasi:<br/>sisa X hari untuk setup"]
+
+    N --> Q["Halaman extensions-blocked"]
+    Q --> R["User masukkan password"]
+    R --> S["verifyPassword()<br/>PBKDF2 lokal (600K iterasi)"]
+    S -->|"Benar"| T["Set session bypass (5 menit)<br/>session storage<br/>Buka chrome://extensions"]
+    S -->|"Salah"| U["POST /extension/tamper-alert"]
+    U --> V["Backend: log_tamper()<br/>(INSERT tamper_logs)"]
+    V --> W["get_partner(extension_id)"]
+    W --> X["send_tamper_alert()<br/>Email alert ke partner"]
+```
+
+Deteksi URL manajemen ekstensi via `isExtensionsUrl()`:
 
 | Browser | URL |
 |---------|-----|
