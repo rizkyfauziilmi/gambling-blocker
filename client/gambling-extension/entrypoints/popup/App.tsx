@@ -201,7 +201,7 @@ function App() {
   async function handleReport() {
     setReportState("loading")
     try {
-      const res = await fetch(`${API_BASE}/report/false-positive`, {
+      const res = await fetch(`${API_BASE}/report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

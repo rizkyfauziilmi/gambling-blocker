@@ -248,7 +248,7 @@ Hanya cek whitelist/blacklist dan cache. Tidak menjalankan inferensi.
 
 | Method | Path | Auth |
 |--------|------|------|
-| POST | `/report/false-positive` | ✗ |
+| POST | `/report` | ✗ |
 
 **Rate limit:** 5/jam per IP.
 

@@ -147,7 +147,7 @@ sequenceDiagram
     participant UI as ReportsContent
     participant Admin
 
-    Ext->>BE: POST /report (false positive)
+    Ext->>BE: POST /report
     BE->>DB: Simpan report
     DB-->>BE: OK
     BE-->>Ext: 201 Created

@@ -17,7 +17,7 @@ class ReportBody(BaseModel):
     gambling_score: float
 
 
-@router.post("/report/false-positive")
+@router.post("/report")
 def report_false_positive(body: ReportBody, request: Request) -> dict:
     client_ip: str = request.client.host if request.client else "unknown"
     hostname: str = parse_hostname(body.url)
