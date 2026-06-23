@@ -97,6 +97,7 @@ flowchart LR
         S["Settings"]
         L["Logs"]
     end
+
     subgraph HOOK["React Query Hook"]
         hR["useReports()<br/>poll 10s"]
         hB["useBlacklist()<br/>poll 10s"]
@@ -106,6 +107,7 @@ flowchart LR
         hS["useSettings()<br/>poll 10s"]
         hL["useLogs()<br/>poll 5s"]
     end
+
     subgraph API["Backend (Basic Auth)"]
         aR["GET /reports<br/>DELETE /reports/:id<br/>DELETE /reports/by-hostname/:h"]
         aB["GET /blacklist<br/>POST /blacklist<br/>DELETE /blacklist/:id"]
@@ -114,7 +116,7 @@ flowchart LR
         aC["GET /cache<br/>DELETE /cache/:key<br/>DELETE /cache"]
         aS["GET /settings<br/>PUT /settings"]
         aL["GET /logs?tag=<br/>DELETE /logs"]
-        aE["GET /extension/status?extension_id="]
+
         aSC["GET /admin/next-stale-check"]
         aTS["POST /admin/trigger-stale-check"]
     end
@@ -126,12 +128,13 @@ flowchart LR
     C --> hC --> aC
     S --> hS --> aS
     L --> hL --> aL
-    S -.-> aSC
-    S -.-> aTS
-    H -.-> aTS
+
+    hS -.-> aSC
+    hS -.-> aTS
+    hH -.-> aTS
 ```
 
-> **Catatan:** `POST /admin/trigger-stale-check` dan `GET /admin/next-stale-check` digunakan oleh `TriggerStaleCheckButton` (di Settings & Heartbeats tab). `GET /extension/status?extension_id=` digunakan oleh `PartnerPanel` — komponen untuk halaman options/popup ekstensi, **bukan** tab dashboard.
+> **Catatan:** Dotted line menunjukkan hubungan tidak langsung — `POST /admin/trigger-stale-check` dan `GET /admin/next-stale-check` digunakan oleh `TriggerStaleCheckButton` yang dirender di Settings & Heartbeats tab.
 
 ### Alur Report Handling
 
