@@ -84,6 +84,100 @@ src/
 | **Monitoring** | Stale threshold (1–12 jam), Check interval (5–120 menit), Trigger Stale Check Now |
 | **Preferences** | Bahasa (EN/ID), Tema (Light/Dark/System) |
 
+### Aliran Data Dashboard
+
+```mermaid
+flowchart LR
+    subgraph TAB["Tab"]
+        R["Reports"]
+        B["Blacklist"]
+        W["Whitelist"]
+        H["Heartbeats"]
+        C["Cache"]
+        S["Settings"]
+        L["Logs"]
+    end
+    subgraph HOOK["React Query Hook"]
+        hR["useReports()<br/>poll 10s"]
+        hB["useBlacklist()<br/>poll 10s"]
+        hW["useWhitelist()<br/>poll 10s"]
+        hH["useHeartbeats()<br/>poll 10s"]
+        hC["useCache()<br/>poll 10s"]
+        hS["useSettings()<br/>poll 10s"]
+        hL["useLogs()<br/>poll 5s"]
+    end
+    subgraph API["Backend (Basic Auth)"]
+        aR["GET /reports<br/>DELETE /reports/:id<br/>DELETE /reports/by-hostname/:h"]
+        aB["GET /blacklist<br/>POST /blacklist<br/>DELETE /blacklist/:id"]
+        aW["GET /whitelist<br/>POST /whitelist<br/>DELETE /whitelist/:id"]
+        aH["GET /extension/heartbeats<br/>DELETE /extension/heartbeat/:id<br/>POST /admin/trigger-heartbeat"]
+        aC["GET /cache<br/>DELETE /cache/:key<br/>DELETE /cache"]
+        aS["GET /settings<br/>PUT /settings"]
+        aL["GET /logs?tag=<br/>DELETE /logs"]
+        aE["GET /extension/status?extension_id="]
+        aSC["GET /admin/next-stale-check"]
+        aTS["POST /admin/trigger-stale-check"]
+    end
+
+    R --> hR --> aR
+    B --> hB --> aB
+    W --> hW --> aW
+    H --> hH --> aH
+    C --> hC --> aC
+    S --> hS --> aS
+    L --> hL --> aL
+    S -.-> aSC
+    S -.-> aTS
+    H -.-> aTS
+```
+
+> **Catatan:** `POST /admin/trigger-stale-check` dan `GET /admin/next-stale-check` digunakan oleh `TriggerStaleCheckButton` (di Settings & Heartbeats tab). `GET /extension/status?extension_id=` digunakan oleh `PartnerPanel` — komponen untuk halaman options/popup ekstensi, **bukan** tab dashboard.
+
+### Alur Report Handling
+
+```mermaid
+sequenceDiagram
+    participant Ext as Ekstensi
+    participant BE as Backend API
+    participant DB as Database
+    participant Hooks as React Query
+    participant UI as ReportsContent
+    participant Admin
+
+    Ext->>BE: POST /report (false positive)
+    BE->>DB: Simpan report
+    DB-->>BE: OK
+    BE-->>Ext: 201 Created
+
+    loop Poll 10s
+        Hooks->>BE: GET /reports
+        BE-->>Hooks: [report baru + existing]
+        Hooks-->>UI: Re-render tabel
+    end
+
+    Admin->>UI: Lihat report hostname mencurigakan
+    Admin->>UI: Klik "Whitelist"
+
+    UI->>Hooks: Mutation: POST /whitelist
+    Hooks->>BE: POST /whitelist {hostname}
+    BE->>DB: Simpan ke whitelist
+    DB-->>BE: OK
+    BE-->>Hooks: 201 Created
+    Hooks->>Hooks: invalidateQueries(["whitelist"])
+
+    alt Hapus report setelah di-whitelist
+        Admin->>UI: Klik "Delete" pada report
+        UI->>Hooks: Mutation: DELETE /reports/by-hostname/:h
+        Hooks->>BE: DELETE /reports/by-hostname/:h
+        BE->>DB: Hapus report
+        DB-->>BE: OK
+        BE-->>Hooks: 200 OK
+        Hooks->>Hooks: invalidateQueries(["reports"])
+    end
+
+    Note over Ext,Admin: Kunjungan berikutnya — hostname sudah di whitelist, ekstensi tidak memblokir
+```
+
 ## Data Fetching
 
 Semua data fetching menggunakan **TanStack React Query v5** dengan polling otomatis:
@@ -159,6 +253,30 @@ server: {
 ```
 
 Auth header diteruskan untuk endpoint yang dilindungi Basic Auth.
+
+### Alur Autentikasi & Proxy
+
+```mermaid
+sequenceDiagram
+    participant Browser as Browser Dashboard
+    participant Vite as Vite Dev Server
+    participant BE as Backend API
+
+    Browser->>Vite: GET /reports (tanpa auth)
+    Vite->>Vite: basicAuthPlugin: Cek header Authorization
+    alt Tidak ada / salah
+        Vite-->>Browser: 401 WWW-Authenticate: Basic
+        Browser->>Browser: Prompt login
+        Browser->>Vite: GET /reports (dengan Basic Auth)
+    end
+    Vite->>Vite: basicAuthPlugin: Verify username:password
+    alt Valid
+        Vite->>BE: Proxy: GET /reports<br/>(teruskan Authorization header)
+        BE->>BE: require_auth(): verify Basic Auth
+        BE-->>Vite: Response JSON
+        Vite-->>Browser: Response JSON
+    end
+```
 
 ## Perintah Development
 
