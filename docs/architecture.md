@@ -484,7 +484,50 @@ Dua listener di `background.ts`:
 | Hari 7+ | Warn: notifikasi proteksi terkompromi, akses extensions diizinkan |
 | Setelah partner di-set | Block: redirect ke halaman password |
 
-## Database SQLite (`app.db`)
+## Perancangan Basis Data
+
+### SQLite (`app.db`)
+
+```mermaid
+erDiagram
+    partner_accounts ||--o{ heartbeats : has
+    partner_accounts ||--o{ tamper_logs : has
+    partner_accounts {
+        string extension_id PK
+        string partner_email
+        string password_hash
+        string password_salt
+        datetime created_at
+        datetime stale_alerted_at
+    }
+    heartbeats {
+        int id PK
+        string extension_id FK
+        datetime timestamp
+        string ip_address
+    }
+    tamper_logs {
+        int id PK
+        string extension_id FK
+        string event_type
+        string details
+        datetime timestamp
+    }
+    site_lists {
+        int id PK
+        string hostname UK
+        string list_type
+        datetime created_at
+    }
+    reports {
+        int id PK
+        string url
+        string hostname
+        float gambling_score
+        string reporter_ip
+        datetime created_at
+    }
+```
 
 | Tabel | Isi |
 |-------|-----|
@@ -493,6 +536,36 @@ Dua listener di `background.ts`:
 | `partner_accounts` | Partner (extension_id, email, password_hash, salt, stale_alerted_at) |
 | `heartbeats` | Riwayat heartbeat (extension_id, timestamp, ip_address) |
 | `tamper_logs` | Riwayat tamper (extension_id, event_type, details, timestamp) |
+
+### Redis
+
+| Key Pattern | TTL | Fungsi |
+|-------------|-----|--------|
+| `fused:domain:{hostname}` | 24 jam (default) | Cache hasil klasifikasi |
+| `rate:fused:{hostname}` | 60 detik | Rate limit klasifikasi (10/menit/hostname) |
+| `report:ip:{client_ip}` | 3600 detik | Rate limit report (5/jam/IP) |
+
+Semua operasi Redis bersifat opsional — sistem tetap berjalan tanpa cache jika Redis tidak tersedia.
+
+### MinIO
+
+Menyimpan screenshot PNG hasil inferensi gambar dengan object key `{md5(url)[:12]}.png`. Presigned URL di-generate dengan expiry 1 jam saat cache dibaca. Opsional — `screenshot_url` bernilai null jika MinIO tidak tersedia.
+
+### Konfigurasi Berbasis File
+
+- **`settings.json`**: 7 pengaturan aplikasi (bypass_text_enabled, multipage_enabled, cache_ttl_hours, stale_hours, stale_check_interval_minutes, auto_heartbeat_on_setup, debug_logging_enabled).
+- **`model/bin/*.json`**: Threshold klasifikasi teks (0.7), fusion alpha (0.5), dan threshold gambar (0.64).
+- **`model/bin/*.keras`**: Model TF-IDF + Neural Network untuk klasifikasi teks dan MLP untuk klasifikasi gambar.
+
+### Browser Storage (Sisi Klien)
+
+| Storage | Key | Fungsi |
+|---------|-----|--------|
+| `storage.local` | `extension_id` | UUID unik per instalasi ekstensi |
+| `storage.local` | `installed_at` | Timestamp instalasi untuk grace period |
+| `storage.local` | `partner_password` | Hash + salt PBKDF2 untuk verifikasi offline |
+| `storage.session` | `extensions_bypass` | Status session bypass extensions page |
+| `storage.session` | `extensions_bypass_expires_at` | Expiry session bypass (5 menit) |
 
 ## Komponen Ekstensi
 
