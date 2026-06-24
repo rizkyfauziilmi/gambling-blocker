@@ -25,6 +25,7 @@ NOISE_SIZE_LIMIT: int = 100_000
 _text_model: Model | None = None
 _vectorizer: Any | None = None
 _text_threshold: float = 0.5
+_model_loaded: bool = False
 
 _image_model: Model | None = None
 _image_scaler: StandardScaler | None = None
@@ -39,6 +40,7 @@ RESIZE: tuple[int, int] = (64, 64)
 def load() -> bool:
     global _text_model, _vectorizer, _text_threshold
     global _image_model, _image_scaler, _fusion_threshold, _image_alpha
+    global _model_loaded
 
     text_model_path: Path = SAVE_DIR / "text_classifier.keras"
     vectorizer_path: Path = SAVE_DIR / "text_tfidf_vectorizer.pkl"
@@ -78,6 +80,7 @@ def load() -> bool:
         "INFO",
         f"Models loaded from {SAVE_DIR} (text_threshold={_text_threshold:.4f}, fusion_threshold={_fusion_threshold:.4f}, fusion_alpha={_image_alpha:.2f})",  # noqa: E501
     )
+    _model_loaded = True
     return True
 
 
@@ -448,10 +451,17 @@ def _infer_multipage(url: str, prob_root: float) -> float:
 
 
 def infer_fused(url: str) -> dict[str, Any]:
+    _ensure_loaded()
     assert _vectorizer is not None
     assert _text_model is not None
     assert _image_model is not None
     assert _image_scaler is not None
+
+
+def _ensure_loaded() -> None:
+    global _model_loaded
+    if not _model_loaded:
+        _model_loaded = load()
 
     # Multipage inference untuk akurasi lebih baik (terutama root domain)
     parsed = urlparse(url)
@@ -542,6 +552,3 @@ def infer_fused(url: str) -> dict[str, Any]:
         "screenshot_object_key": screenshot_object_key,
         "screenshot_status": screenshot_status,
     }
-
-
-_text_model_loaded: bool = load()

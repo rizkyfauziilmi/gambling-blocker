@@ -9,9 +9,11 @@ from routers.classify import router as classify_router
 from routers.dashboard import router as dashboard_router
 from routers.extension import router as extension_router
 from routers.report import router as report_router
+from utils.cache import connect as cache_connect
 from utils.email import send_heartbeat_stale_alert
 from utils.extensions import get_stale_extensions, mark_stale_alerted
 from utils.logger import log as log_msg
+from utils.model import load as model_load
 from utils.settings import get as settings_get
 
 _scheduler: Any | None = None
@@ -20,6 +22,8 @@ _scheduler: Any | None = None
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
+    cache_connect()
+    model_load()
     global _scheduler
     try:
         from apscheduler.schedulers.background import BackgroundScheduler

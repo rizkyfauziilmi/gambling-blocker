@@ -11,6 +11,7 @@ from .storage import enrich_screenshot_url
 
 _redis: redis_lib.Redis | None = None
 _redis_available: bool = False
+_connected: bool = False
 _mem_limiter: dict[str, list[float]] = defaultdict(list)
 
 
@@ -37,7 +38,15 @@ def connect() -> None:
 
 
 def is_available() -> bool:
+    _ensure_connected()
     return _redis_available
+
+
+def _ensure_connected() -> None:
+    global _connected
+    if not _connected:
+        connect()
+        _connected = True
 
 
 def _memory_incr(key: str, ttl: int) -> int:
@@ -49,6 +58,7 @@ def _memory_incr(key: str, ttl: int) -> int:
 
 
 def get(key: str) -> str | None:
+    _ensure_connected()
     if not _redis_available or _redis is None:
         return None
     try:
@@ -59,6 +69,7 @@ def get(key: str) -> str | None:
 
 
 def setex(key: str, value: str) -> None:
+    _ensure_connected()
     if not _redis_available or _redis is None:
         return
     try:
@@ -71,6 +82,7 @@ def setex(key: str, value: str) -> None:
 
 
 def delete(key: str) -> None:
+    _ensure_connected()
     if not _redis_available or _redis is None:
         return
     try:
@@ -80,6 +92,7 @@ def delete(key: str) -> None:
 
 
 def scan(count: int = 50) -> list[dict]:
+    _ensure_connected()
     if not _redis_available or _redis is None:
         return []
     try:
@@ -106,6 +119,7 @@ def scan(count: int = 50) -> list[dict]:
 
 
 def flush_cache() -> int:
+    _ensure_connected()
     if not _redis_available or _redis is None:
         return 0
     try:
@@ -121,6 +135,7 @@ def flush_cache() -> int:
 
 
 def incr(key: str, ttl: int = 3600) -> int:
+    _ensure_connected()
     if _redis_available and _redis is not None:
         try:
             count: int = _redis.incr(key)
@@ -130,6 +145,3 @@ def incr(key: str, ttl: int = 3600) -> int:
         except Exception as exc:
             log("WARN", f"Redis incr failed for {key}, fallback to in-memory: {exc}")
     return _memory_incr(key, ttl)
-
-
-connect()
