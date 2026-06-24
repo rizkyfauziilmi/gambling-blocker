@@ -19,6 +19,17 @@ SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Gambling Blocker")
 SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", SMTP_USER)
 
 
+def _smtp_connect() -> smtplib.SMTP | None:
+    if not SMTP_USER or not SMTP_PASSWORD:
+        return None
+    server = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10)
+    server.ehlo()
+    server.starttls(context=ssl.create_default_context())
+    server.ehlo()
+    server.login(SMTP_USER, SMTP_PASSWORD)
+    return server
+
+
 def send_email(
     to_email: str,
     subject: str,
@@ -26,6 +37,7 @@ def send_email(
     *,
     from_name: str = SMTP_FROM_NAME,
     from_email: str = SMTP_FROM_EMAIL,
+    server: smtplib.SMTP | None = None,
 ) -> bool:
     if not SMTP_USER or not SMTP_PASSWORD:
         logger.warning("SMTP not configured — skipping email to %s", to_email)
@@ -37,13 +49,22 @@ def send_email(
     msg["Subject"] = subject
     msg.attach(MIMEText(html_body, "html"))
 
+    own_conn = False
+    if server is None:
+        try:
+            server = _smtp_connect()
+            if server is None:
+                return False
+            own_conn = True
+        except smtplib.SMTPException as exc:
+            logger.error("SMTP connect failed: %s", exc)
+            return False
+        except OSError as exc:
+            logger.error("Network error connecting to SMTP: %s", exc)
+            return False
+
     try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
-            server.ehlo()
-            server.starttls(context=ssl.create_default_context())
-            server.ehlo()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(msg)
+        server.send_message(msg)
         logger.info("Email sent to %s | subject=%s", to_email, subject)
         return True
     except smtplib.SMTPAuthenticationError:
@@ -52,6 +73,12 @@ def send_email(
         logger.error("SMTP error sending to %s: %s", to_email, exc)
     except OSError as exc:
         logger.error("Network error sending to %s: %s", to_email, exc)
+    finally:
+        if own_conn:
+            try:
+                server.quit()
+            except Exception:
+                pass
     return False
 
 
@@ -167,6 +194,7 @@ def send_heartbeat_stale_alert(
     hours_since_last: int,
     *,
     user_email: str = "",
+    server: smtplib.SMTP | None = None,
 ) -> bool:
     html = f"""<html>
 <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
@@ -182,4 +210,5 @@ def send_heartbeat_stale_alert(
         to_email=partner_email,
         subject="⚠️ Gambling Blocker — Heartbeat Lost",
         html_body=html,
+        server=server,
     )

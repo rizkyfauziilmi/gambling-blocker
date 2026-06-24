@@ -64,18 +64,40 @@ def root() -> dict[str, str]:
 def _check_stale_heartbeats() -> None:
     hours = settings_get().get("stale_hours", 2)
     stale = get_stale_extensions(hours)
-    if stale:
-        log_msg(
-            "HEARTBEAT", f"stale check: {len(stale)} extension(s) stale (> {hours}h)"
-        )
-    for ext in stale:
-        partner_email = ext.get("partner_email", "")
-        if partner_email:
-            send_heartbeat_stale_alert(partner_email, hours_since_last=hours)
-            mark_stale_alerted(ext["extension_id"])
-            log_msg(
-                "HEARTBEAT",
-                f"stale alert sent for {ext['extension_id']} \u2192 {partner_email}",
-            )
     if not stale:
         log_msg("HEARTBEAT", f"stale check: 0 stale (threshold={hours}h)")
+        return
+
+    log_msg(
+        "HEARTBEAT", f"stale check: {len(stale)} extension(s) stale (> {hours}h)"
+    )
+
+    from utils.email import _smtp_connect
+
+    try:
+        server = _smtp_connect()
+    except Exception as exc:
+        log_msg("EMAIL", f"SMTP connect failed for batch stale alert: {exc}")
+        return
+
+    if server is None:
+        log_msg("EMAIL", "SMTP not configured — skipping stale alerts")
+        return
+
+    try:
+        for ext in stale:
+            partner_email = ext.get("partner_email", "")
+            if partner_email:
+                send_heartbeat_stale_alert(
+                    partner_email, hours_since_last=hours, server=server
+                )
+                mark_stale_alerted(ext["extension_id"])
+                log_msg(
+                    "HEARTBEAT",
+                    f"stale alert sent for {ext['extension_id']} \u2192 {partner_email}",
+                )
+    finally:
+        try:
+            server.quit()
+        except Exception:
+            pass
