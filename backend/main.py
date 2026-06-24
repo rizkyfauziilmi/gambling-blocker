@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from db.models import init_db
 from routers.classify import router as classify_router
 from routers.dashboard import router as dashboard_router
 from routers.extension import router as extension_router
@@ -18,6 +19,7 @@ _scheduler: Any | None = None
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    init_db()
     global _scheduler
     try:
         from apscheduler.schedulers.background import BackgroundScheduler

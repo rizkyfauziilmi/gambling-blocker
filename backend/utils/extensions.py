@@ -1,55 +1,13 @@
 from __future__ import annotations
 
-# ruff: noqa: E501
 import hashlib
 import secrets
-import sqlite3
 from datetime import datetime, timezone
-from pathlib import Path
 
-DB_PATH: Path = Path(__file__).parent.parent / "app.db"
+from sqlalchemy import func, select, update
 
-
-def _conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-def init_tables() -> None:
-    conn = _conn()
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS partner_accounts (
-            extension_id TEXT PRIMARY KEY,
-            partner_email TEXT NOT NULL,
-            password_hash TEXT NOT NULL,
-            password_salt TEXT NOT NULL,
-            created_at TEXT NOT NULL DEFAULT (datetime('now')),
-            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-            stale_alerted_at TEXT
-        );
-        CREATE TABLE IF NOT EXISTS heartbeats (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            extension_id TEXT NOT NULL,
-            timestamp TEXT NOT NULL,
-            ip_address TEXT,
-            FOREIGN KEY (extension_id) REFERENCES partner_accounts(extension_id)
-        );
-        CREATE TABLE IF NOT EXISTS tamper_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            extension_id TEXT NOT NULL,
-            event_type TEXT NOT NULL,
-            details TEXT,
-            timestamp TEXT NOT NULL DEFAULT (datetime('now')),
-            FOREIGN KEY (extension_id) REFERENCES partner_accounts(extension_id)
-        );
-    """)
-    try:
-        conn.execute("ALTER TABLE partner_accounts ADD COLUMN stale_alerted_at TEXT")
-    except sqlite3.OperationalError:
-        pass
-    conn.commit()
-    conn.close()
+from db import SessionLocal
+from db.models import Heartbeat, PartnerAccount, TamperLog
 
 
 def _hash_password(password: str, salt: str | None = None) -> tuple[str, str]:
@@ -62,127 +20,181 @@ def _hash_password(password: str, salt: str | None = None) -> tuple[str, str]:
 def setup_partner(extension_id: str, partner_email: str) -> dict:
     password = secrets.token_urlsafe(12)
     pw_hash, salt = _hash_password(password)
-    conn = _conn()
     now = datetime.now(timezone.utc).isoformat()
-    conn.execute(
-        """INSERT OR REPLACE INTO partner_accounts
-           (extension_id, partner_email, password_hash, password_salt, created_at, updated_at)
-           VALUES (?, ?, ?, ?, COALESCE((SELECT created_at FROM partner_accounts WHERE extension_id = ?), ?), ?)""",
-        (extension_id, partner_email, pw_hash, salt, extension_id, now, now),
-    )
-    conn.commit()
-    conn.close()
+    with SessionLocal() as session:
+        existing = session.execute(
+            select(PartnerAccount).where(PartnerAccount.extension_id == extension_id)
+        ).scalar_one_or_none()
+
+        if existing:
+            existing.partner_email = partner_email
+            existing.password_hash = pw_hash
+            existing.password_salt = salt
+            existing.updated_at = now
+        else:
+            partner = PartnerAccount(
+                extension_id=extension_id,
+                partner_email=partner_email,
+                password_hash=pw_hash,
+                password_salt=salt,
+                created_at=now,
+                updated_at=now,
+            )
+            session.add(partner)
+        session.commit()
     return {"password": password, "password_hash": pw_hash, "password_salt": salt}
 
 
 def restore_partner(extension_id: str, password_hash: str, password_salt: str) -> None:
-    conn = _conn()
-    conn.execute(
-        "UPDATE partner_accounts SET password_hash = ?, password_salt = ? WHERE extension_id = ?",
-        (password_hash, password_salt, extension_id),
-    )
-    conn.commit()
-    conn.close()
+    with SessionLocal() as session:
+        session.execute(
+            update(PartnerAccount)
+            .where(PartnerAccount.extension_id == extension_id)
+            .values(
+                password_hash=password_hash,
+                password_salt=password_salt,
+                updated_at=datetime.now(timezone.utc).isoformat(),
+            )
+        )
+        session.commit()
 
 
 def delete_partner(extension_id: str) -> None:
-    conn = _conn()
-    conn.execute("DELETE FROM partner_accounts WHERE extension_id = ?", (extension_id,))
-    conn.commit()
-    conn.close()
+    with SessionLocal() as session:
+        partner = session.execute(
+            select(PartnerAccount).where(PartnerAccount.extension_id == extension_id)
+        ).scalar_one_or_none()
+        if partner is None:
+            return
+        session.delete(partner)
+        session.commit()
 
 
 def record_heartbeat(extension_id: str, ip_address: str | None = None) -> None:
-    conn = _conn()
     now = datetime.now(timezone.utc).isoformat()
-    conn.execute(
-        "INSERT INTO heartbeats (extension_id, timestamp, ip_address) VALUES (?, ?, ?)",
-        (extension_id, now, ip_address),
-    )
-    conn.execute(
-        "UPDATE partner_accounts SET stale_alerted_at = NULL WHERE extension_id = ?",
-        (extension_id,),
-    )
-    conn.commit()
-    conn.close()
+    with SessionLocal() as session:
+        heartbeat = Heartbeat(
+            extension_id=extension_id, timestamp=now, ip_address=ip_address
+        )
+        session.add(heartbeat)
+        session.execute(
+            update(PartnerAccount)
+            .where(PartnerAccount.extension_id == extension_id)
+            .values(stale_alerted_at=None)
+        )
+        session.commit()
 
 
 def log_tamper(extension_id: str, event_type: str, details: str = "") -> None:
-    conn = _conn()
     now = datetime.now(timezone.utc).isoformat()
-    conn.execute(
-        "INSERT INTO tamper_logs (extension_id, event_type, details, timestamp) VALUES (?, ?, ?, ?)",
-        (extension_id, event_type, details, now),
-    )
-    conn.commit()
-    conn.close()
+    with SessionLocal() as session:
+        tamper = TamperLog(
+            extension_id=extension_id,
+            event_type=event_type,
+            details=details,
+            timestamp=now,
+        )
+        session.add(tamper)
+        session.commit()
 
 
 def mark_stale_alerted(extension_id: str) -> None:
-    conn = _conn()
     now = datetime.now(timezone.utc).isoformat()
-    conn.execute(
-        "UPDATE partner_accounts SET stale_alerted_at = ? WHERE extension_id = ?",
-        (now, extension_id),
-    )
-    conn.commit()
-    conn.close()
+    with SessionLocal() as session:
+        session.execute(
+            update(PartnerAccount)
+            .where(PartnerAccount.extension_id == extension_id)
+            .values(stale_alerted_at=now)
+        )
+        session.commit()
 
 
 def get_partner(extension_id: str) -> dict | None:
-    conn = _conn()
-    row = conn.execute(
-        "SELECT * FROM partner_accounts WHERE extension_id = ?", (extension_id,)
-    ).fetchone()
-    conn.close()
+    with SessionLocal() as session:
+        row = session.execute(
+            select(PartnerAccount).where(PartnerAccount.extension_id == extension_id)
+        ).scalar_one_or_none()
     if row is None:
         return None
-    return dict(row)
+    return {
+        "extension_id": row.extension_id,
+        "partner_email": row.partner_email,
+        "password_hash": row.password_hash,
+        "password_salt": row.password_salt,
+        "created_at": row.created_at,
+        "updated_at": row.updated_at,
+        "stale_alerted_at": row.stale_alerted_at,
+    }
 
 
 def get_tamper_count(extension_id: str, hours: int = 1) -> int:
-    conn = _conn()
-    row = conn.execute(
-        """SELECT COUNT(*) FROM tamper_logs
-           WHERE extension_id = ? AND event_type = 'extensions_page'
-           AND datetime(timestamp) > datetime('now', ?)""",
-        (extension_id, f"-{hours} hours"),
-    ).fetchone()
-    conn.close()
-    return row[0] if row else 0
+    with SessionLocal() as session:
+        row = session.execute(
+            select(func.count(TamperLog.id)).where(
+                TamperLog.extension_id == extension_id,
+                TamperLog.event_type == "extensions_page",
+                func.datetime(TamperLog.timestamp)
+                > func.datetime("now", f"-{hours} hours"),
+            )
+        ).scalar()
+    return row or 0
 
 
 def get_stale_extensions(hours: int = 24) -> list[dict]:
-    conn = _conn()
-    rows = conn.execute(
-        """SELECT p.*, MAX(h.timestamp) as last_heartbeat
-           FROM partner_accounts p
-           LEFT JOIN heartbeats h ON h.extension_id = p.extension_id
-           GROUP BY p.extension_id
-           HAVING (last_heartbeat IS NULL
-               OR datetime(last_heartbeat) < datetime('now', ?))
-           AND p.stale_alerted_at IS NULL""",
-        (f"-{hours} hours",),
-    ).fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+    with SessionLocal() as session:
+        rows = session.execute(
+            select(
+                PartnerAccount,
+                func.max(Heartbeat.timestamp).label("last_heartbeat"),
+            )
+            .outerjoin(
+                Heartbeat,
+                Heartbeat.extension_id == PartnerAccount.extension_id,
+            )
+            .group_by(PartnerAccount.extension_id)
+            .having(
+                func.max(Heartbeat.timestamp).is_(None)
+                | (
+                    func.datetime(func.max(Heartbeat.timestamp))
+                    < func.datetime("now", f"-{hours} hours")
+                )
+            )
+            .where(PartnerAccount.stale_alerted_at.is_(None))
+        ).all()
+    result = []
+    for r in rows:
+        partner: PartnerAccount = r[0]
+        d = {
+            "extension_id": partner.extension_id,
+            "partner_email": partner.partner_email,
+            "password_hash": partner.password_hash,
+            "password_salt": partner.password_salt,
+            "created_at": partner.created_at,
+            "updated_at": partner.updated_at,
+            "stale_alerted_at": partner.stale_alerted_at,
+            "last_heartbeat": r.last_heartbeat,
+        }
+        result.append(d)
+    return result
 
 
 def get_status(extension_id: str) -> dict:
     partner = get_partner(extension_id)
     if partner is None:
         return {"exists": False}
-    conn = _conn()
-    row = conn.execute(
-        "SELECT MAX(timestamp) FROM heartbeats WHERE extension_id = ?",
-        (extension_id,),
-    ).fetchone()
-    conn.close()
-    last_heartbeat_at: str | None = row[0] if row and row[0] else None
+
+    with SessionLocal() as session:
+        last_heartbeat_at = session.execute(
+            select(func.max(Heartbeat.timestamp)).where(
+                Heartbeat.extension_id == extension_id
+            )
+        ).scalar()
+
     age: int | None = None
     if last_heartbeat_at:
         last = datetime.fromisoformat(last_heartbeat_at)
         age = int((datetime.now(timezone.utc) - last).total_seconds() // 3600)
+
     tamper_count = get_tamper_count(extension_id, 1)
     return {
         "exists": True,
@@ -194,21 +206,33 @@ def get_status(extension_id: str) -> dict:
 
 
 def get_all_heartbeat_status() -> list[dict]:
-    conn = _conn()
-    rows = conn.execute(
-        """SELECT p.extension_id, p.partner_email, p.stale_alerted_at,
-                  MAX(h.timestamp) as last_heartbeat_at,
-                  COUNT(h.id) as total_heartbeats
-           FROM partner_accounts p
-           LEFT JOIN heartbeats h ON h.extension_id = p.extension_id
-           GROUP BY p.extension_id
-           ORDER BY last_heartbeat_at DESC NULLS LAST"""
-    ).fetchall()
-    conn.close()
-    result = []
+    with SessionLocal() as session:
+        rows = session.execute(
+            select(
+                PartnerAccount.extension_id,
+                PartnerAccount.partner_email,
+                PartnerAccount.stale_alerted_at,
+                func.max(Heartbeat.timestamp).label("last_heartbeat_at"),
+                func.count(Heartbeat.id).label("total_heartbeats"),
+            )
+            .outerjoin(
+                Heartbeat,
+                Heartbeat.extension_id == PartnerAccount.extension_id,
+            )
+            .group_by(PartnerAccount.extension_id)
+            .order_by(func.max(Heartbeat.timestamp).desc().nullslast())
+        ).all()
+
     now = datetime.now(timezone.utc)
+    result = []
     for r in rows:
-        d = dict(r)
+        d = {
+            "extension_id": r.extension_id,
+            "partner_email": r.partner_email,
+            "stale_alerted_at": r.stale_alerted_at,
+            "last_heartbeat_at": r.last_heartbeat_at,
+            "total_heartbeats": r.total_heartbeats,
+        }
         if d["last_heartbeat_at"]:
             last = datetime.fromisoformat(d["last_heartbeat_at"])
             d["heartbeat_age_hours"] = int((now - last).total_seconds() // 3600)
@@ -219,10 +243,6 @@ def get_all_heartbeat_status() -> list[dict]:
 
 
 def delete_heartbeats(extension_id: str) -> None:
-    conn = _conn()
-    conn.execute("DELETE FROM heartbeats WHERE extension_id = ?", (extension_id,))
-    conn.commit()
-    conn.close()
-
-
-init_tables()
+    with SessionLocal() as session:
+        session.query(Heartbeat).where(Heartbeat.extension_id == extension_id).delete()
+        session.commit()
