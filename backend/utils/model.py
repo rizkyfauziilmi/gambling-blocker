@@ -273,61 +273,61 @@ def _capture_screenshot(url: str) -> tuple[bytes | None, str | None]:
                     "--disable-popup-blocking",
                 ],
             )
-            page = browser.new_page(
-                viewport={"width": 1280, "height": 720},
-                user_agent=(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/125.0.0.0 Safari/537.36"
-                ),
-                locale="id-ID",
-                timezone_id="Asia/Jakarta",
-                bypass_csp=True,
-                ignore_https_errors=True,
-                extra_http_headers={
-                    "Accept": (
-                        "text/html,application/xhtml+xml,"
-                        "application/xml;q=0.9,*/*;q=0.8"
+            try:
+                page = browser.new_page(
+                    viewport={"width": 1280, "height": 720},
+                    user_agent=(
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/125.0.0.0 Safari/537.36"
                     ),
-                    "Accept-Language": "id-ID,id;q=0.9,en-US,en;q=0.8",
-                },
-            )
-            Stealth().apply_stealth_sync(page)
+                    locale="id-ID",
+                    timezone_id="Asia/Jakarta",
+                    bypass_csp=True,
+                    ignore_https_errors=True,
+                    extra_http_headers={
+                        "Accept": (
+                            "text/html,application/xhtml+xml,"
+                            "application/xml;q=0.9,*/*;q=0.8"
+                        ),
+                        "Accept-Language": "id-ID,id;q=0.9,en-US,en;q=0.8",
+                    },
+                )
+                Stealth().apply_stealth_sync(page)
 
-            page.on("dialog", lambda d: d.dismiss())
+                page.on("dialog", lambda d: d.dismiss())
 
-            resp = page.goto(url, timeout=30_000, wait_until="domcontentloaded")
-            try:
-                page.wait_for_load_state("networkidle", timeout=15_000)
-            except Exception:
-                pass
+                resp = page.goto(url, timeout=30_000, wait_until="domcontentloaded")
+                try:
+                    page.wait_for_load_state("networkidle", timeout=15_000)
+                except Exception:
+                    pass
 
-            blocked, reason = _is_blocked(page)
-            if blocked:
-                log("SCREENSHOT", f"BLOCKED {url} reason={reason}")
+                blocked, reason = _is_blocked(page)
+                if blocked:
+                    log("SCREENSHOT", f"BLOCKED {url} reason={reason}")
+                    return None, "blocked"
+
+                try:
+                    page.evaluate(_OVERLAY_REMOVER)
+                    page.wait_for_timeout(500)
+                except Exception:
+                    pass
+
+                http_status: str | None = str(resp.status) if resp else None
+                buf: bytes = page.screenshot(full_page=False)
+
+                if len(buf) < 1024:
+                    log("SCREENSHOT", f"BLANK {url} size={len(buf)}B")
+                    return None, "blank"
+
+                log(
+                    "SCREENSHOT",
+                    f"{url} status={http_status} size={len(buf) / 1024:.0f}KB",
+                )
+                return buf, http_status
+            finally:
                 browser.close()
-                return None, "blocked"
-
-            try:
-                page.evaluate(_OVERLAY_REMOVER)
-                page.wait_for_timeout(500)
-            except Exception:
-                pass
-
-            http_status: str | None = str(resp.status) if resp else None
-            buf: bytes = page.screenshot(full_page=False)
-
-            if len(buf) < 1024:
-                log("SCREENSHOT", f"BLANK {url} size={len(buf)}B")
-                browser.close()
-                return None, "blank"
-
-            log(
-                "SCREENSHOT",
-                f"{url} status={http_status} size={len(buf) / 1024:.0f}KB",
-            )
-            browser.close()
-        return buf, http_status
     except Exception as e:
         log("WARN", f"Screenshot failed for {url}: {type(e).__name__}: {e}")
         return None, None
