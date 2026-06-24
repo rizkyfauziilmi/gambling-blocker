@@ -414,8 +414,6 @@ function App() {
         </div>
       )}
 
-
-
       {/* Safe state */}
       {status === "safe" && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
