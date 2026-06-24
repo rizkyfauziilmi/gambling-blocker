@@ -1,5 +1,7 @@
 import json
 import os
+import time
+from collections import defaultdict
 
 import redis as redis_lib
 
@@ -9,6 +11,7 @@ from .storage import enrich_screenshot_url
 
 _redis: redis_lib.Redis | None = None
 _redis_available: bool = False
+_mem_limiter: dict[str, list[float]] = defaultdict(list)
 
 
 def connect() -> None:
@@ -37,12 +40,21 @@ def is_available() -> bool:
     return _redis_available
 
 
+def _memory_incr(key: str, ttl: int) -> int:
+    now = time.time()
+    bucket = _mem_limiter[key]
+    _mem_limiter[key] = [t for t in bucket if now - t < ttl]
+    _mem_limiter[key].append(now)
+    return len(_mem_limiter[key])
+
+
 def get(key: str) -> str | None:
     if not _redis_available or _redis is None:
         return None
     try:
-        return _redis.get(key)  # type: ignore[assignment]
-    except Exception:
+        return _redis.get(key)
+    except Exception as exc:
+        log("WARN", f"Redis get failed for {key}: {exc}")
         return None
 
 
@@ -54,8 +66,8 @@ def setex(key: str, value: str) -> None:
         if ttl_hours < 1:
             ttl_hours = 24
         _redis.setex(key, ttl_hours * 3600, value)
-    except Exception:
-        pass
+    except Exception as exc:
+        log("WARN", f"Redis setex failed for {key}: {exc}")
 
 
 def delete(key: str) -> None:
@@ -63,8 +75,8 @@ def delete(key: str) -> None:
         return
     try:
         _redis.delete(key)
-    except Exception:
-        pass
+    except Exception as exc:
+        log("WARN", f"Redis delete failed for {key}: {exc}")
 
 
 def scan(count: int = 50) -> list[dict]:
@@ -88,7 +100,8 @@ def scan(count: int = 50) -> list[dict]:
             enrich_screenshot_url(entry)
             results.append(entry)
         return results
-    except Exception:
+    except Exception as exc:
+        log("WARN", f"Redis scan failed: {exc}")
         return []
 
 
@@ -102,20 +115,21 @@ def flush_cache() -> int:
                 _redis.delete(key)
                 deleted += 1
         return deleted
-    except Exception:
+    except Exception as exc:
+        log("WARN", f"Redis flush failed: {exc}")
         return 0
 
 
 def incr(key: str, ttl: int = 3600) -> int:
-    if not _redis_available or _redis is None:
-        return 0
-    try:
-        count: int = _redis.incr(key)
-        if count == 1:
-            _redis.expire(key, ttl)
-        return count
-    except Exception:
-        return 0
+    if _redis_available and _redis is not None:
+        try:
+            count: int = _redis.incr(key)
+            if count == 1:
+                _redis.expire(key, ttl)
+            return count
+        except Exception as exc:
+            log("WARN", f"Redis incr failed for {key}, fallback to in-memory: {exc}")
+    return _memory_incr(key, ttl)
 
 
 connect()

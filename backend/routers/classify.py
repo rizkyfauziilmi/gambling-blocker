@@ -23,25 +23,24 @@ def classify_url_fused(url: AnyHttpUrl = Query(...)) -> dict:
     hostname: str = parse_hostname(url_str)
 
     # Rate limit: 10req/min per hostname
-    if cache_available():
-        rl_key: str = f"rate:fused:{hostname}"
-        count = cache_incr(rl_key, ttl=60)
-        if count > 10:
-            log_msg("API", f"RATE LIMITED hostname={hostname}")
-            cached = cache_get(f"fused:{cache_key(hostname)}")
-            if cached:
-                result = json.loads(cached)
-                enrich_screenshot_url(result)
-                result["from_cache"] = True
-                return result
-            log_msg("API", "raising 429")
-            raise HTTPException(
-                status_code=429,
-                detail={
-                    "error": "rate_limited",
-                    "message": "Too many requests. Please wait before retrying.",
-                },
-            )
+    rl_key: str = f"rate:fused:{hostname}"
+    count = cache_incr(rl_key, ttl=60)
+    if count > 10:
+        log_msg("API", f"RATE LIMITED hostname={hostname}")
+        cached = cache_get(f"fused:{cache_key(hostname)}")
+        if cached:
+            result = json.loads(cached)
+            enrich_screenshot_url(result)
+            result["from_cache"] = True
+            return result
+        log_msg("API", "raising 429")
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error": "rate_limited",
+                "message": "Too many requests. Please wait before retrying.",
+            },
+        )
 
     listed: str | None = list_check(hostname)
     if listed == "whitelist":
