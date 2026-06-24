@@ -24,71 +24,45 @@ from utils.settings import save as settings_save
 router = APIRouter(dependencies=[Depends(require_auth)], tags=["dashboard"])
 
 
-# ---- Blacklist ----
-
-
 class ListBody(BaseModel):
     hostname: str
 
 
-@router.get("/blacklist")
-def get_blacklist() -> dict:
-    return {"entries": list_get("blacklist")}
+# ---- Blacklist / Whitelist (generic) ----
 
 
-@router.post("/blacklist")
-def add_blacklist(body: ListBody) -> dict:
+@router.get("/lists/{list_type}")
+def get_list(list_type: str) -> dict:
+    if list_type not in ("blacklist", "whitelist"):
+        raise HTTPException(status_code=400, detail="Invalid list_type")
+    return {"entries": list_get(list_type)}
+
+
+@router.post("/lists/{list_type}")
+def add_to_list(list_type: str, body: ListBody) -> dict:
+    if list_type not in ("blacklist", "whitelist"):
+        raise HTTPException(status_code=400, detail="Invalid list_type")
     hostname = parse_hostname(body.hostname)
-    entry = list_add(hostname, "blacklist")
+    entry = list_add(hostname, list_type)
     if entry is None:
-        log_msg("LIST", f"blacklist conflict: {hostname}")
+        log_msg("LIST", f"{list_type} conflict: {hostname}")
         raise HTTPException(
             status_code=409, detail="Hostname already in blacklist/whitelist"
         )
     cache_delete(f"fused:{cache_key(hostname)}")
     reports_delete_by_host(hostname)
-    log_msg("LIST", f"added blacklist: {hostname}")
+    log_msg("LIST", f"added {list_type}: {hostname}")
     return {"entry": entry}
 
 
-@router.delete("/blacklist/{entry_id}")
-def delete_blacklist(entry_id: int) -> dict:
+@router.delete("/lists/{list_type}/{entry_id}")
+def delete_from_list(list_type: str, entry_id: int) -> dict:
+    if list_type not in ("blacklist", "whitelist"):
+        raise HTTPException(status_code=400, detail="Invalid list_type")
     if not list_remove(entry_id):
-        log_msg("LIST", f"delete blacklist failed: id={entry_id} not found")
+        log_msg("LIST", f"delete {list_type} failed: id={entry_id} not found")
         raise HTTPException(status_code=404, detail="Entry not found")
-    log_msg("LIST", f"deleted blacklist id={entry_id}")
-    return {"status": "ok"}
-
-
-# ---- Whitelist ----
-
-
-@router.get("/whitelist")
-def get_whitelist() -> dict:
-    return {"entries": list_get("whitelist")}
-
-
-@router.post("/whitelist")
-def add_whitelist(body: ListBody) -> dict:
-    hostname = parse_hostname(body.hostname)
-    entry = list_add(hostname, "whitelist")
-    if entry is None:
-        log_msg("LIST", f"whitelist conflict: {hostname}")
-        raise HTTPException(
-            status_code=409, detail="Hostname already in whitelist/blacklist"
-        )
-    cache_delete(f"fused:{cache_key(hostname)}")
-    reports_delete_by_host(hostname)
-    log_msg("LIST", f"added whitelist: {hostname}")
-    return {"entry": entry}
-
-
-@router.delete("/whitelist/{entry_id}")
-def delete_whitelist(entry_id: int) -> dict:
-    if not list_remove(entry_id):
-        log_msg("LIST", f"delete whitelist failed: id={entry_id} not found")
-        raise HTTPException(status_code=404, detail="Entry not found")
-    log_msg("LIST", f"deleted whitelist id={entry_id}")
+    log_msg("LIST", f"deleted {list_type} id={entry_id}")
     return {"status": "ok"}
 
 

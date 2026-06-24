@@ -14,14 +14,14 @@ interface ListResponse {
 
 async function fetchList(type: string): Promise<ListResponse> {
   const base = import.meta.env.VITE_API_BASE ?? ""
-  const res = await fetch(`${base}/${type}`)
+  const res = await fetch(`${base}/lists/${type}`)
   if (!res.ok) throw new Error(`Failed to fetch ${type}`)
   return res.json()
 }
 
 async function addToList(type: string, hostname: string) {
   const base = import.meta.env.VITE_API_BASE ?? ""
-  const res = await fetch(`${base}/${type}`, {
+  const res = await fetch(`${base}/lists/${type}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ hostname }),
@@ -35,7 +35,7 @@ async function addToList(type: string, hostname: string) {
 
 async function removeFromList(type: string, id: number) {
   const base = import.meta.env.VITE_API_BASE ?? ""
-  const res = await fetch(`${base}/${type}/${id}`, { method: "DELETE" })
+  const res = await fetch(`${base}/lists/${type}/${id}`, { method: "DELETE" })
   if (!res.ok) throw new Error("Failed to remove")
   return res.json()
 }
@@ -44,7 +44,7 @@ export function useBlacklist() {
   const queryClient = useQueryClient()
 
   const query = useQuery<ListResponse>({
-    queryKey: ["blacklist"],
+    queryKey: ["lists", "blacklist"],
     queryFn: () => fetchList("blacklist"),
   })
 
@@ -52,7 +52,7 @@ export function useBlacklist() {
     mutationFn: (hostname: string) => addToList("blacklist", hostname),
     onSuccess: (data) => {
       toast.success(`${data.entry?.hostname || "Hostname"} blacklisted`)
-      queryClient.invalidateQueries({ queryKey: ["blacklist"] })
+      queryClient.invalidateQueries({ queryKey: ["lists", "blacklist"] })
       queryClient.invalidateQueries({ queryKey: ["reports"] })
       queryClient.invalidateQueries({ queryKey: ["cache"] })
     },
@@ -63,7 +63,7 @@ export function useBlacklist() {
     mutationFn: (id: number) => removeFromList("blacklist", id),
     onSuccess: () => {
       toast.success("Removed from blacklist")
-      queryClient.invalidateQueries({ queryKey: ["blacklist"] })
+      queryClient.invalidateQueries({ queryKey: ["lists", "blacklist"] })
       queryClient.invalidateQueries({ queryKey: ["cache"] })
     },
     onError: () => toast.error("Failed to remove from blacklist"),
@@ -76,7 +76,7 @@ export function useWhitelist() {
   const queryClient = useQueryClient()
 
   const query = useQuery<ListResponse>({
-    queryKey: ["whitelist"],
+    queryKey: ["lists", "whitelist"],
     queryFn: () => fetchList("whitelist"),
   })
 
@@ -84,7 +84,7 @@ export function useWhitelist() {
     mutationFn: (hostname: string) => addToList("whitelist", hostname),
     onSuccess: (data) => {
       toast.success(`${data.entry?.hostname || "Hostname"} whitelisted`)
-      queryClient.invalidateQueries({ queryKey: ["whitelist"] })
+      queryClient.invalidateQueries({ queryKey: ["lists", "whitelist"] })
       queryClient.invalidateQueries({ queryKey: ["reports"] })
       queryClient.invalidateQueries({ queryKey: ["cache"] })
     },
@@ -95,7 +95,7 @@ export function useWhitelist() {
     mutationFn: (id: number) => removeFromList("whitelist", id),
     onSuccess: () => {
       toast.success("Removed from whitelist")
-      queryClient.invalidateQueries({ queryKey: ["whitelist"] })
+      queryClient.invalidateQueries({ queryKey: ["lists", "whitelist"] })
       queryClient.invalidateQueries({ queryKey: ["cache"] })
     },
     onError: () => toast.error("Failed to remove from whitelist"),
