@@ -426,15 +426,16 @@ def _infer_multipage(url: str, prob_root: float) -> float:
         return prob_root
 
     scores: list[float] = []
-    for p in sampled:
-        full = urljoin(url, p)
-        cleaned = clean_url(full)
-        seq = _vectorizer.transform([cleaned])
-        seq.sort_indices()
-        prob = float(_text_model.predict(seq, verbose=0)[0][0])
-        scores.append(prob)
+    full_urls = [urljoin(url, p) for p in sampled]
+    cleaned_urls = [clean_url(u) for u in full_urls]
+    seqs = _vectorizer.transform(cleaned_urls)
+    seqs.sort_indices()
+    preds = _text_model.predict(seqs, verbose=0)
+    for p, prob in zip(sampled, preds):
+        prob_val = float(prob[0])
+        scores.append(prob_val)
         depth = len([s for s in p.strip("/").split("/") if s])
-        log("MULTIPAGE", f"depth={depth} {p} → {prob:.4f}")
+        log("MULTIPAGE", f"depth={depth} {p} → {prob_val:.4f}")
 
     from math import prod
 
