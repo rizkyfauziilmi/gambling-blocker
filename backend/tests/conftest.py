@@ -60,6 +60,17 @@ def mock_smtp(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("utils.email._smtp_connect", lambda: None)
 
 
+@pytest.fixture(autouse=True)
+def mock_storage(monkeypatch: pytest.MonkeyPatch) -> None:
+    from unittest.mock import MagicMock
+
+    storage_mock = MagicMock()
+    storage_mock.is_ready.return_value = False
+    storage_mock.upload_bytes.return_value = False
+    storage_mock.presigned_url.return_value = None
+    monkeypatch.setattr("utils.storage.get_storage", lambda: storage_mock)
+
+
 @pytest.fixture
 def client() -> Generator[TestClient, None, None]:
     from main import app

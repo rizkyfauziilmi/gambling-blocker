@@ -1,9 +1,12 @@
-.PHONY: help jupyter reset
+.PHONY: help jupyter reset test
 
 .DEFAULT_GOAL := help
 
 jupyter: ## Run Jupyter Lab
 	uv run --with jupyter jupyter lab
+
+test: ## Run tests
+	uv run pytest $(ARGS)
 
 redis-up: ## Start Redis via Docker Compose
 	docker compose up -d redis
