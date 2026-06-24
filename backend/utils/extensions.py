@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select, update
 
@@ -128,19 +128,20 @@ def get_partner(extension_id: str) -> dict | None:
 
 
 def get_tamper_count(extension_id: str, hours: int = 1) -> int:
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
     with SessionLocal() as session:
         row = session.execute(
             select(func.count(TamperLog.id)).where(
                 TamperLog.extension_id == extension_id,
                 TamperLog.event_type == "extensions_page",
-                func.datetime(TamperLog.timestamp)
-                > func.datetime("now", f"-{hours} hours"),
+                TamperLog.timestamp > cutoff,
             )
         ).scalar()
     return row or 0
 
 
 def get_stale_extensions(hours: int = 24) -> list[dict]:
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
     with SessionLocal() as session:
         rows = session.execute(
             select(
@@ -154,10 +155,7 @@ def get_stale_extensions(hours: int = 24) -> list[dict]:
             .group_by(PartnerAccount.extension_id)
             .having(
                 func.max(Heartbeat.timestamp).is_(None)
-                | (
-                    func.datetime(func.max(Heartbeat.timestamp))
-                    < func.datetime("now", f"-{hours} hours")
-                )
+                | (func.max(Heartbeat.timestamp) < cutoff)
             )
             .where(PartnerAccount.stale_alerted_at.is_(None))
         ).all()
