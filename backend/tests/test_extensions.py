@@ -1,12 +1,17 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
-import pytest
 from sqlalchemy.orm import Session
 
 from db.models import Heartbeat, PartnerAccount, TamperLog
-from utils.extensions import get_stale_extensions, get_tamper_count, log_tamper, record_heartbeat, setup_partner
+from utils.extensions import (
+    get_stale_extensions,
+    get_tamper_count,
+    log_tamper,
+    record_heartbeat,
+    setup_partner,
+)
 
 
 def test_get_tamper_count_within_window(test_db: Session) -> None:
@@ -17,7 +22,14 @@ def test_get_tamper_count_within_window(test_db: Session) -> None:
 
 def test_get_tamper_count_outside_window(test_db: Session) -> None:
     t = (datetime.now(timezone.utc) - timedelta(hours=3)).isoformat()
-    test_db.add(TamperLog(extension_id="ext-1", event_type="extensions_page", details="old", timestamp=t))
+    test_db.add(
+        TamperLog(
+            extension_id="ext-1",
+            event_type="extensions_page",
+            details="old",
+            timestamp=t,
+        )
+    )
     test_db.commit()
     count = get_tamper_count("ext-1", hours=1)
     assert count == 0

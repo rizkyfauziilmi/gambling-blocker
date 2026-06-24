@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 from sqlalchemy import func, select
@@ -41,16 +41,16 @@ def delete_report(report_id: int) -> bool:
 
 
 def get_report_stats() -> dict[str, int]:
-    today_start = datetime.now(timezone.utc).replace(
-        hour=0, minute=0, second=0, microsecond=0
-    ).isoformat()
+    today_start = (
+        datetime.now(timezone.utc)
+        .replace(hour=0, minute=0, second=0, microsecond=0)
+        .isoformat()
+    )
     with SessionLocal() as session:
         total = session.execute(select(func.count(Report.id))).scalar() or 0
         today = (
             session.execute(
-                select(func.count(Report.id)).where(
-                    Report.created_at >= today_start
-                )
+                select(func.count(Report.id)).where(Report.created_at >= today_start)
             ).scalar()
             or 0
         )

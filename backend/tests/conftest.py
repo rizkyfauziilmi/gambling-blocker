@@ -10,8 +10,6 @@ os.environ["DASHBOARD_PASSWORD"] = "admin123"
 
 import base64
 from collections.abc import Generator
-from typing import Any
-from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient

@@ -457,12 +457,6 @@ def infer_fused(url: str) -> dict[str, Any]:
     assert _image_model is not None
     assert _image_scaler is not None
 
-
-def _ensure_loaded() -> None:
-    global _model_loaded
-    if not _model_loaded:
-        _model_loaded = load()
-
     # Multipage inference untuk akurasi lebih baik (terutama root domain)
     parsed = urlparse(url)
     if parsed.path in ("", "/"):
@@ -552,3 +546,9 @@ def _ensure_loaded() -> None:
         "screenshot_object_key": screenshot_object_key,
         "screenshot_status": screenshot_status,
     }
+
+
+def _ensure_loaded() -> None:
+    global _model_loaded
+    if not _model_loaded:
+        _model_loaded = load()

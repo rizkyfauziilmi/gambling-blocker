@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
-import pytest
 from sqlalchemy.orm import Session
 
 from db.models import Report
-from utils.reports import delete_report, delete_reports_by_hostname, get_grouped_reports, get_report_stats, save_report
+from utils.reports import (
+    delete_report,
+    delete_reports_by_hostname,
+    get_grouped_reports,
+    get_report_stats,
+    save_report,
+)
 
 
 def test_save_report(test_db: Session) -> None:

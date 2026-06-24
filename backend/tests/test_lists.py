@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pytest
 from sqlalchemy.orm import Session
 
 from utils.lists import add_entry, check_hostname, get_entries, remove_entry

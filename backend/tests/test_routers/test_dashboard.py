@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pytest
 from fastapi.testclient import TestClient
 
 from utils.lists import add_entry
@@ -13,7 +12,9 @@ def test_get_list_empty(client: TestClient, auth_headers: dict[str, str]) -> Non
     assert resp.json()["entries"] == []
 
 
-def test_get_list_invalid_type(client: TestClient, auth_headers: dict[str, str]) -> None:
+def test_get_list_invalid_type(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
     resp = client.get("/lists/invalid", headers=auth_headers)
     assert resp.status_code == 400
 
@@ -28,19 +29,27 @@ def test_get_list_with_data(client: TestClient, auth_headers: dict[str, str]) ->
 
 
 def test_add_to_list(client: TestClient, auth_headers: dict[str, str]) -> None:
-    resp = client.post("/lists/blacklist", headers=auth_headers, json={"hostname": "https://bad.com"})
+    resp = client.post(
+        "/lists/blacklist", headers=auth_headers, json={"hostname": "https://bad.com"}
+    )
     assert resp.status_code == 200
     assert resp.json()["entry"]["hostname"] == "bad.com"
 
 
-def test_add_duplicate_to_list(client: TestClient, auth_headers: dict[str, str]) -> None:
+def test_add_duplicate_to_list(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
     client.post("/lists/blacklist", headers=auth_headers, json={"hostname": "bad.com"})
-    resp = client.post("/lists/blacklist", headers=auth_headers, json={"hostname": "bad.com"})
+    resp = client.post(
+        "/lists/blacklist", headers=auth_headers, json={"hostname": "bad.com"}
+    )
     assert resp.status_code == 409
 
 
 def test_delete_from_list(client: TestClient, auth_headers: dict[str, str]) -> None:
-    resp = client.post("/lists/blacklist", headers=auth_headers, json={"hostname": "bad.com"})
+    resp = client.post(
+        "/lists/blacklist", headers=auth_headers, json={"hostname": "bad.com"}
+    )
     entry_id = resp.json()["entry"]["id"]
     resp = client.delete(f"/lists/blacklist/{entry_id}", headers=auth_headers)
     assert resp.status_code == 200
@@ -70,12 +79,16 @@ def test_get_settings(client: TestClient, auth_headers: dict[str, str]) -> None:
 
 
 def test_update_settings(client: TestClient, auth_headers: dict[str, str]) -> None:
-    resp = client.put("/settings", headers=auth_headers, json={"debug_logging_enabled": True})
+    resp = client.put(
+        "/settings", headers=auth_headers, json={"debug_logging_enabled": True}
+    )
     assert resp.status_code == 200
     assert resp.json()["debug_logging_enabled"] is True
 
 
-def test_update_settings_invalid_field(client: TestClient, auth_headers: dict[str, str]) -> None:
+def test_update_settings_invalid_field(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
     resp = client.put("/settings", headers=auth_headers, json={"unknown_field": True})
     assert resp.status_code == 400
 
@@ -95,8 +108,8 @@ def test_get_reports(client: TestClient, auth_headers: dict[str, str]) -> None:
 
 
 def test_delete_report(client: TestClient, auth_headers: dict[str, str]) -> None:
-    from db.models import Report
     from db import SessionLocal
+    from db.models import Report
 
     save_report("https://example.com", 0.5, "1.2.3.4")
     with SessionLocal() as s:

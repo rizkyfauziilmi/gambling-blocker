@@ -72,9 +72,7 @@ def _check_stale_heartbeats() -> None:
         log_msg("HEARTBEAT", f"stale check: 0 stale (threshold={hours}h)")
         return
 
-    log_msg(
-        "HEARTBEAT", f"stale check: {len(stale)} extension(s) stale (> {hours}h)"
-    )
+    log_msg("HEARTBEAT", f"stale check: {len(stale)} extension(s) stale (> {hours}h)")
 
     from utils.email import _smtp_connect
 
@@ -98,7 +96,8 @@ def _check_stale_heartbeats() -> None:
                 mark_stale_alerted(ext["extension_id"])
                 log_msg(
                     "HEARTBEAT",
-                    f"stale alert sent for {ext['extension_id']} \u2192 {partner_email}",
+                    f"stale alert sent for {ext['extension_id']}"
+                    f" \u2192 {partner_email}",
                 )
     finally:
         try:
