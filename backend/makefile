@@ -1,4 +1,7 @@
-.PHONY: help jupyter reset test
+BENCH_CSV ?= model/dataset/dataset_crawl_070526.csv
+BENCH_OUT ?= scripts/output
+
+.PHONY: help jupyter reset test bench bench-text bench-screenshot bench-full
 
 .DEFAULT_GOAL := help
 
@@ -41,6 +44,39 @@ minio-reset: ## Wipe MinIO data and stop
 storage-up: redis-up minio-up ## Start all storage services
 
 storage-down: redis-down minio-down ## Stop all storage services
+
+bench: ## Run benchmark with ARGS (e.g. make bench ARGS="--bypass-text --min-per-category 100")
+	mkdir -p $(BENCH_OUT)
+	uv run python3 scripts/benchmark_response.py \
+		--urls $(BENCH_CSV) \
+		--output $(BENCH_OUT)/$$(date +%Y%m%d_%H%M%S).csv \
+		--reset $(ARGS)
+
+bench-text: ## Benchmark: text-only (bypass_text=true, multipage=false)
+	mkdir -p $(BENCH_OUT)
+	uv run python3 scripts/benchmark_response.py \
+		--urls $(BENCH_CSV) \
+		--bypass-text --no-multipage \
+		--min-per-category 500 \
+		--output $(BENCH_OUT)/text_$$(date +%Y%m%d_%H%M%S).csv \
+		--reset
+
+bench-screenshot: ## Benchmark: text + screenshot (multipage=false)
+	mkdir -p $(BENCH_OUT)
+	uv run python3 scripts/benchmark_response.py \
+		--urls $(BENCH_CSV) \
+		--no-multipage \
+		--min-per-category 500 \
+		--output $(BENCH_OUT)/screenshot_$$(date +%Y%m%d_%H%M%S).csv \
+		--reset
+
+bench-full: ## Benchmark: full pipeline (multipage=true, bypass_text=false)
+	mkdir -p $(BENCH_OUT)
+	uv run python3 scripts/benchmark_response.py \
+		--urls $(BENCH_CSV) \
+		--min-per-category 500 \
+		--output $(BENCH_OUT)/full_$$(date +%Y%m%d_%H%M%S).csv \
+		--reset
 
 reset: ## Reset semua data (Redis, MinIO, SQLite)
 	docker compose down -v
