@@ -1,8 +1,9 @@
 BENCH_API_URL ?= http://127.0.0.1:8000
+BENCH_API_AUTH ?= admin:admin123
 BENCH_CSV ?= model/dataset/dataset_crawl_070526.csv
 BENCH_OUT ?= scripts/output
 
-.PHONY: help jupyter reset test bench bench-text bench-screenshot bench-full
+.PHONY: help jupyter reset test bench bench-text bench-root bench-subpage
 
 .DEFAULT_GOAL := help
 
@@ -48,35 +49,41 @@ storage-down: redis-down minio-down ## Stop all storage services
 
 bench: ## Run benchmark with ARGS (e.g. make bench ARGS="--bypass-text --min-per-category 100")
 	mkdir -p $(BENCH_OUT)
-	BENCH_API_URL=$(BENCH_API_URL) uv run python3 scripts/benchmark_response.py \
+	BENCH_API_URL=$(BENCH_API_URL) BENCH_API_AUTH=$(BENCH_API_AUTH) \
+		uv run python3 scripts/benchmark_response.py \
 		--urls $(BENCH_CSV) \
 		--output $(BENCH_OUT)/$$(date +%Y%m%d_%H%M%S).csv \
 		--reset $(ARGS)
 
-bench-text: ## Benchmark: text-only (bypass_text=true, multipage=false)
+bench-text: ## Scene A: optimal (text-only, root domain)
 	mkdir -p $(BENCH_OUT)
-	BENCH_API_URL=$(BENCH_API_URL) uv run python3 scripts/benchmark_response.py \
+	BENCH_API_URL=$(BENCH_API_URL) BENCH_API_AUTH=$(BENCH_API_AUTH) \
+		uv run python3 scripts/benchmark_response.py \
 		--urls $(BENCH_CSV) \
 		--bypass-text --no-multipage \
+		--strip-path --flush-cache \
 		--min-per-category 500 \
 		--output $(BENCH_OUT)/text_$$(date +%Y%m%d_%H%M%S).csv \
 		--reset
 
-bench-screenshot: ## Benchmark: text + screenshot (multipage=false)
+bench-subpage: ## Scene B: subpage saat ini (bypass_text=false, non-root)
 	mkdir -p $(BENCH_OUT)
-	BENCH_API_URL=$(BENCH_API_URL) uv run python3 scripts/benchmark_response.py \
+	BENCH_API_URL=$(BENCH_API_URL) BENCH_API_AUTH=$(BENCH_API_AUTH) \
+		uv run python3 scripts/benchmark_response.py \
 		--urls $(BENCH_CSV) \
-		--no-multipage \
+		--flush-cache \
 		--min-per-category 500 \
-		--output $(BENCH_OUT)/screenshot_$$(date +%Y%m%d_%H%M%S).csv \
+		--output $(BENCH_OUT)/subpage_$$(date +%Y%m%d_%H%M%S).csv \
 		--reset
 
-bench-full: ## Benchmark: full pipeline (multipage=true, bypass_text=false)
+bench-root: ## Scene C: root domain saat ini (bypass_text=false, root)
 	mkdir -p $(BENCH_OUT)
-	BENCH_API_URL=$(BENCH_API_URL) uv run python3 scripts/benchmark_response.py \
+	BENCH_API_URL=$(BENCH_API_URL) BENCH_API_AUTH=$(BENCH_API_AUTH) \
+		uv run python3 scripts/benchmark_response.py \
 		--urls $(BENCH_CSV) \
+		--strip-path --flush-cache \
 		--min-per-category 500 \
-		--output $(BENCH_OUT)/full_$$(date +%Y%m%d_%H%M%S).csv \
+		--output $(BENCH_OUT)/root_$$(date +%Y%m%d_%H%M%S).csv \
 		--reset
 
 reset: ## Reset semua data (Redis, MinIO, SQLite)

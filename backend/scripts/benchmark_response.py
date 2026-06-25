@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import csv
 import json
 import os
@@ -43,17 +44,44 @@ def write_settings(data: dict) -> None:
     SETTINGS_PATH.write_text(json.dumps(current, indent=2) + "\n")
 
 
-def load_urls(path: str) -> list[dict]:
+def load_urls(path: str, strip_path: bool = False) -> list[dict]:
     rows: list[dict] = []
+    seen: set[str] = set()
     with open(path, newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
             url = (row.get("url") or row.get("Url") or "").strip()
             raw = row.get("category") or row.get("Tag") or row.get("label") or ""
             cat = raw.strip().lower()
-            if url:
+            if not url:
+                continue
+            if strip_path:
+                parsed = urlparse(url)
+                root = f"{parsed.scheme}://{parsed.netloc}"
+                if root in seen:
+                    continue
+                seen.add(root)
+                rows.append({"url": root, "category": cat})
+            else:
                 rows.append({"url": url, "category": cat})
     return rows
+
+
+def flush_cache(api_url: str, auth: str | None) -> None:
+    if not auth:
+        print("  flush-cache skipped (BENCH_API_AUTH not set)", file=sys.stderr)
+        return
+    token = base64.b64encode(auth.encode()).decode()
+    headers = {"Authorization": f"Basic {token}"}
+    try:
+        resp = requests.delete(f"{api_url}/cache", headers=headers, timeout=10)
+        if resp.ok:
+            deleted = resp.json().get("deleted", "?")
+            print(f"  cache flushed ({deleted} entries)")
+        else:
+            print(f"  flush-cache failed: HTTP {resp.status_code}", file=sys.stderr)
+    except requests.RequestException as e:
+        print(f"  flush-cache error: {e}", file=sys.stderr)
 
 
 def probe_url(url: str, timeout: float = 5.0) -> bool:
@@ -68,7 +96,7 @@ def compute_stats(values: list[float]) -> dict:
     if not values:
         return {
             "count": 0, "mean": 0, "median": 0,
-            "min": 0, "max": 0, "p95": 0, "p99": 0,
+            "min": 0, "max": 0,
         }
     sorted_v = sorted(values)
     n = len(sorted_v)
@@ -78,8 +106,6 @@ def compute_stats(values: list[float]) -> dict:
         "median": statistics.median(values),
         "min": sorted_v[0],
         "max": sorted_v[-1],
-        "p95": sorted_v[min(int(n * 0.95), n - 1)],
-        "p99": sorted_v[min(int(n * 0.99), n - 1)],
     }
 
 
@@ -88,6 +114,87 @@ def fmt_table(rows: list[tuple], headers: list[str]) -> str:
         rows, headers=headers,
         floatfmt=".3f", numalign="right", stralign="left",
     )
+
+
+def build_groups(all_results: list[dict]) -> dict:
+    groups = {
+        "overall": [r["response_time_s"] for r in all_results],
+        "cache_hit": [
+            r["response_time_s"] for r in all_results if r["from_cache"]
+        ],
+        "cache_miss": [
+            r["response_time_s"] for r in all_results if not r["from_cache"]
+        ],
+    }
+
+    ss_values: dict[str, list[float]] = defaultdict(list)
+    for r in all_results:
+        ss = r["screenshot_status"]
+        label = STATUS_LABELS.get(ss, ss)
+        ss_values[label].append(r["response_time_s"])
+
+    cat_values: dict[str, list[float]] = defaultdict(list)
+    for r in all_results:
+        cat_values[r["category"]].append(r["response_time_s"])
+
+    return {
+        "groups": groups,
+        "ss_values": dict(ss_values),
+        "cat_values": dict(cat_values),
+    }
+
+
+def save_md_report(path: Path, all_results: list[dict], runs: int) -> None:
+    data = build_groups(all_results)
+    headers = ["group", "count", "mean (s)", "median (s)", "min (s)", "max (s)"]
+    lines: list[str] = [
+        "# Response Time Report",
+        "",
+        f"Runs: {runs}",
+        "",
+    ]
+
+    def add_section(title: str, rows: list[tuple]) -> None:
+        lines.append(f"## {title}")
+        lines.append("")
+        md = tabulate(
+            rows, headers=headers,
+            floatfmt=".3f", numalign="right", stralign="left",
+            tablefmt="pipe",
+        )
+        lines.append(md)
+        lines.append("")
+
+    rows_groups: list[tuple] = []
+    for label in ("cache_hit", "cache_miss", "overall"):
+        s = compute_stats(data["groups"][label])
+        rows_groups.append((
+            label, s["count"], s["mean"], s["median"],
+            s["min"], s["max"],
+        ))
+    add_section("Cache Status", rows_groups)
+
+    rows_ss: list[tuple] = []
+    for label in sorted(data["ss_values"]):
+        s = compute_stats(data["ss_values"][label])
+        rows_ss.append((
+            label, s["count"], s["mean"], s["median"],
+            s["min"], s["max"],
+        ))
+    add_section("Screenshot Status", rows_ss)
+
+    rows_cat: list[tuple] = []
+    for label in sorted(data["cat_values"]):
+        s = compute_stats(data["cat_values"][label])
+        rows_cat.append((
+            label, s["count"], s["mean"], s["median"],
+            s["min"], s["max"],
+        ))
+    add_section("Category", rows_cat)
+
+    md_path = path.with_suffix(".md")
+    md_path.write_text("\n".join(lines) + "\n")
+    print(f"Report saved: {md_path}")
 
 
 def run_benchmark(args: argparse.Namespace) -> None:
@@ -113,7 +220,7 @@ def run_benchmark(args: argparse.Namespace) -> None:
         mp = settings.get("multipage_enabled")
         print(f"[settings] untouched (bypass_text={bt}, multipage={mp})")
 
-    all_urls = load_urls(args.urls)
+    all_urls = load_urls(args.urls, args.strip_path)
     if not all_urls:
         print("error: no URLs loaded", file=sys.stderr)
         sys.exit(1)
@@ -126,6 +233,8 @@ def run_benchmark(args: argparse.Namespace) -> None:
     g = len(cat_pool.get("gambling", []))
     ng = len(cat_pool.get("non-gambling", []))
     print(f"\nTotal URLs in dataset: {len(all_urls)} (gambling={g}, non-gambling={ng})")
+    if args.strip_path:
+        print("  (strip-path: root domain only)")
 
     if args.min_per_category:
         urls = []
@@ -156,12 +265,16 @@ def run_benchmark(args: argparse.Namespace) -> None:
         urls = all_urls
         print(f"Using all URLs: {len(urls)}")
 
+    if args.flush_cache:
+        auth = os.environ.get("BENCH_API_AUTH")
+        flush_cache(api_url, auth)
+
     if args.probe:
         print("\nProbing URLs (HEAD 5s)...")
         for i, u in enumerate(urls):
-            t0 = time.time()
+            t0 = time.monotonic()
             ok = probe_url(u["url"])
-            elapsed = time.time() - t0
+            elapsed = time.monotonic() - t0
             u["reachable"] = ok
             u["probe_time"] = elapsed
             if (i + 1) % 500 == 0:
@@ -186,7 +299,7 @@ def run_benchmark(args: argparse.Namespace) -> None:
                 wait = args.delay - since_last
                 time.sleep(wait)
 
-            t0 = time.time()
+            t0 = time.monotonic()
             resp = None
             data: dict = {}
             try:
@@ -198,7 +311,7 @@ def run_benchmark(args: argparse.Namespace) -> None:
                 data = resp.json() if resp.ok else {}
             except requests.RequestException as e:
                 print(f"  request failed: {u['url'][:60]} ({e})", file=sys.stderr)
-            elapsed = time.time() - t0
+            elapsed = time.monotonic() - t0
             last_request[hostname] = time.time()
 
             result = {
@@ -242,71 +355,39 @@ def run_benchmark(args: argparse.Namespace) -> None:
     print(f"  Response Time Report — {args.runs} run(s)")
     print("=" * 60)
 
-    groups = {
-        "overall": [r["response_time_s"] for r in all_results],
-        "cache_hit": [
-            r["response_time_s"] for r in all_results if r["from_cache"]
-        ],
-        "cache_miss": [
-            r["response_time_s"] for r in all_results if not r["from_cache"]
-        ],
-    }
-
-    ss_values: dict[str, list[float]] = defaultdict(list)
-    for r in all_results:
-        ss = r["screenshot_status"]
-        label = STATUS_LABELS.get(ss, ss)
-        ss_values[label].append(r["response_time_s"])
-
-    cat_values: dict[str, list[float]] = defaultdict(list)
-    for r in all_results:
-        cat_values[r["category"]].append(r["response_time_s"])
-
-    reachable_values: dict[str, list[float]] = defaultdict(list)
-    for r in all_results:
-        key = "reachable" if r["reachable"] else "unreachable"
-        reachable_values[key].append(r["response_time_s"])
-
-    headers = ["group", "count", "mean", "median", "min", "max", "p95", "p99"]
+    data = build_groups(all_results)
+    headers = ["group", "count", "mean (s)", "median (s)", "min (s)", "max (s)"]
 
     def append_row(rows, values):
         s = compute_stats(values)
         rows.append((
             s["count"], s["mean"], s["median"],
-            s["min"], s["max"], s["p95"], s["p99"],
+            s["min"], s["max"],
         ))
 
     print("\nby cache status:")
     rows = []
     for label in ("cache_hit", "cache_miss", "overall"):
-        append_row(rows, groups[label])
+        append_row(rows, data["groups"][label])
         rows[-1] = (label,) + rows[-1]
     print(fmt_table(rows, headers))
 
     print("\nby screenshot_status:")
     rows = []
-    for label in sorted(ss_values):
-        append_row(rows, ss_values[label])
+    for label in sorted(data["ss_values"]):
+        append_row(rows, data["ss_values"][label])
         rows[-1] = (label,) + rows[-1]
     print(fmt_table(rows, headers))
 
     print("\nby category:")
     rows = []
-    for label in sorted(cat_values):
-        append_row(rows, cat_values[label])
+    for label in sorted(data["cat_values"]):
+        append_row(rows, data["cat_values"][label])
         rows[-1] = (label,) + rows[-1]
     print(fmt_table(rows, headers))
 
-    if args.probe:
-        print("\nby reachability:")
-        rows = []
-        for label in ("reachable", "unreachable"):
-            if label in reachable_values:
-                append_row(rows, reachable_values[label])
-                rows[-1] = (label,) + rows[-1]
-        append_row(rows, groups["overall"])
-        rows[-1] = ("overall",) + rows[-1]
-        print(fmt_table(rows, headers))
+    if args.output:
+        save_md_report(Path(args.output), all_results, args.runs)
 
     if args.reset:
         write_settings(settings_before)
@@ -343,10 +424,18 @@ def main() -> None:
         help="Set multipage_enabled=false",
     )
     parser.add_argument(
+        "--strip-path", action="store_true",
+        help="Strip URL path to root domain only",
+    )
+    parser.add_argument(
+        "--flush-cache", action="store_true",
+        help="Flush Redis cache before benchmark",
+    )
+    parser.add_argument(
         "--probe", action="store_true",
         help="Pre-filter reachability via HEAD",
     )
-    parser.add_argument("--output", help="Save raw results to CSV")
+    parser.add_argument("--output", help="Save raw results to CSV + .md report")
     parser.add_argument(
         "--reset", action="store_true",
         help="Restore settings.json after run",
