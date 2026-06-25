@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import random
 import statistics
 import sys
@@ -90,6 +91,12 @@ def fmt_table(rows: list[tuple], headers: list[str]) -> str:
 
 
 def run_benchmark(args: argparse.Namespace) -> None:
+    api_url = os.environ.get("BENCH_API_URL")
+    if not api_url:
+        print("error: BENCH_API_URL environment variable is not set", file=sys.stderr)
+        sys.exit(1)
+    api_url = api_url.rstrip("/")
+
     settings = read_settings()
     settings_before = dict(settings)
 
@@ -184,7 +191,7 @@ def run_benchmark(args: argparse.Namespace) -> None:
             data: dict = {}
             try:
                 resp = requests.get(
-                    f"{args.api}/classify/url-fused",
+                    f"{api_url}/classify/url-fused",
                     params={"url": u["url"]},
                     timeout=120,
                 )
@@ -314,7 +321,6 @@ def main() -> None:
         "--urls", required=True,
         help="CSV file with columns: url[,category]",
     )
-    parser.add_argument("--api", default="http://127.0.0.1:8000", help="API base URL")
     parser.add_argument(
         "--delay", type=float, default=7.0,
         help="Delay (s) between requests to same hostname",

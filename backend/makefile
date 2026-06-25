@@ -1,3 +1,4 @@
+BENCH_API_URL ?= http://127.0.0.1:8000
 BENCH_CSV ?= model/dataset/dataset_crawl_070526.csv
 BENCH_OUT ?= scripts/output
 
@@ -47,14 +48,14 @@ storage-down: redis-down minio-down ## Stop all storage services
 
 bench: ## Run benchmark with ARGS (e.g. make bench ARGS="--bypass-text --min-per-category 100")
 	mkdir -p $(BENCH_OUT)
-	uv run python3 scripts/benchmark_response.py \
+	BENCH_API_URL=$(BENCH_API_URL) uv run python3 scripts/benchmark_response.py \
 		--urls $(BENCH_CSV) \
 		--output $(BENCH_OUT)/$$(date +%Y%m%d_%H%M%S).csv \
 		--reset $(ARGS)
 
 bench-text: ## Benchmark: text-only (bypass_text=true, multipage=false)
 	mkdir -p $(BENCH_OUT)
-	uv run python3 scripts/benchmark_response.py \
+	BENCH_API_URL=$(BENCH_API_URL) uv run python3 scripts/benchmark_response.py \
 		--urls $(BENCH_CSV) \
 		--bypass-text --no-multipage \
 		--min-per-category 500 \
@@ -63,7 +64,7 @@ bench-text: ## Benchmark: text-only (bypass_text=true, multipage=false)
 
 bench-screenshot: ## Benchmark: text + screenshot (multipage=false)
 	mkdir -p $(BENCH_OUT)
-	uv run python3 scripts/benchmark_response.py \
+	BENCH_API_URL=$(BENCH_API_URL) uv run python3 scripts/benchmark_response.py \
 		--urls $(BENCH_CSV) \
 		--no-multipage \
 		--min-per-category 500 \
@@ -72,7 +73,7 @@ bench-screenshot: ## Benchmark: text + screenshot (multipage=false)
 
 bench-full: ## Benchmark: full pipeline (multipage=true, bypass_text=false)
 	mkdir -p $(BENCH_OUT)
-	uv run python3 scripts/benchmark_response.py \
+	BENCH_API_URL=$(BENCH_API_URL) uv run python3 scripts/benchmark_response.py \
 		--urls $(BENCH_CSV) \
 		--min-per-category 500 \
 		--output $(BENCH_OUT)/full_$$(date +%Y%m%d_%H%M%S).csv \
