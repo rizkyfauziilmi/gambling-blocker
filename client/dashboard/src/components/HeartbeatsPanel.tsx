@@ -63,8 +63,8 @@ export function HeartbeatsPanel() {
           addSuffix: true,
         })
       : t("hours_ago", { age: hours })
-    if (hours < 2) return <Badge variant="default">{label}</Badge>
-    if (hours < 24) return <Badge variant="secondary">{label}</Badge>
+    if (hours < 2) return <Badge variant="green">{label}</Badge>
+    if (hours < 24) return <Badge variant="yellow">{label}</Badge>
     return <Badge variant="destructive">{label}</Badge>
   }
 

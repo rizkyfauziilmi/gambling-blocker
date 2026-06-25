@@ -50,9 +50,8 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      "/lists": { target: "http://127.0.0.1:8000", ...authProxy() },
       "/reports": { target: "http://127.0.0.1:8000", ...authProxy() },
-      "/blacklist": { target: "http://127.0.0.1:8000", ...authProxy() },
-      "/whitelist": { target: "http://127.0.0.1:8000", ...authProxy() },
       "/cache": { target: "http://127.0.0.1:8000", ...authProxy() },
       "/report": "http://127.0.0.1:8000",
       "/classify": "http://127.0.0.1:8000",

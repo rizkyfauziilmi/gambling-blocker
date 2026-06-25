@@ -10,7 +10,7 @@ const id: Record<string, string> = {
   tab_heartbeats_title: "Pemantau Heartbeat",
   tab_heartbeats_desc: "Status heartbeat ekstensi partner secara real-time",
   tab_reports_title: "Manajemen Laporan",
-  tab_reports_desc: "Laporan positif palsu yang dikirim pengguna",
+  tab_reports_desc: "Laporan kesalahan deteksi yang dikirim pengguna",
   tab_blacklist_title: "Manajemen Daftar Hitam",
   tab_blacklist_desc: "Kelola domain dan URL yang diblokir",
   tab_whitelist_title: "Manajemen Daftar Putih",

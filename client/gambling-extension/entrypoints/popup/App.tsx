@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { initLanguage, t } from "@/utils/i18n"
 import { getPartnerStatus } from "@/utils/password"
+import { bypassStorage } from "@/utils/storage"
 
 const API_BASE = import.meta.env.WXT_API_BASE
 const EXT_URL = browser.runtime.getURL("")
@@ -25,7 +26,8 @@ function shouldSkip(url: string): boolean {
     const parsed = new URL(url)
     if (
       parsed.protocol === "chrome-extension:" ||
-      parsed.protocol === "moz-extension:"
+      parsed.protocol === "moz-extension:" ||
+      parsed.protocol === "safari-extension:"
     )
       return true
     if (
@@ -119,7 +121,7 @@ function App() {
     ;(async () => {
       await initLanguage()
       getPartnerStatus().then(setPartnerInfo)
-      const session = (await browser.storage.session.get([
+      const session = (await bypassStorage.getSession([
         "extensions_bypass",
         "extensions_bypass_expires_at",
       ])) as {
@@ -191,7 +193,7 @@ function App() {
         }
       }
     }
-    await browser.storage.session.remove([
+    await bypassStorage.clearSession([
       "extensions_bypass",
       "extensions_bypass_expires_at",
     ])

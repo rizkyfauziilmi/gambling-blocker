@@ -304,27 +304,13 @@ Hanya cek whitelist/blacklist dan cache. Tidak menjalankan inferensi.
 
 ---
 
-## Blacklist
+## Blacklist / Whitelist
 
 | Method | Path | Auth | Deskripsi |
 |--------|------|------|-----------|
-| GET | `/blacklist` | Basic Auth | Lihat semua entri |
-| POST | `/blacklist` | Basic Auth | Tambah hostname (juga hapus cache & reports) |
-| DELETE | `/blacklist/{entry_id}` | Basic Auth | Hapus entri |
-
-**POST Request Body:** `{ "hostname": "example.com" }`
-
-**Log tag:** `LIST`
-
----
-
-## Whitelist
-
-| Method | Path | Auth | Deskripsi |
-|--------|------|------|-----------|
-| GET | `/whitelist` | Basic Auth | Lihat semua entri |
-| POST | `/whitelist` | Basic Auth | Tambah hostname (juga hapus cache & reports) |
-| DELETE | `/whitelist/{entry_id}` | Basic Auth | Hapus entri |
+| GET | `/lists/{list_type}` | Basic Auth | Lihat semua entri (`blacklist` / `whitelist`) |
+| POST | `/lists/{list_type}` | Basic Auth | Tambah hostname (juga hapus cache & reports) |
+| DELETE | `/lists/{list_type}/{entry_id}` | Basic Auth | Hapus entri |
 
 **POST Request Body:** `{ "hostname": "example.com" }`
 

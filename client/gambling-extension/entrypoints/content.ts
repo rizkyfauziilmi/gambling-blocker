@@ -127,7 +127,7 @@ export default defineContentScript({
                 from_list: data.from_list || "",
               })
               window.location.href =
-                `chrome-extension://${browser.runtime.id}/blocked.html?` + qp
+                browser.runtime.getURL("/blocked.html") + "?" + qp
             })
         } else {
           cleanup()
