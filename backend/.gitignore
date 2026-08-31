@@ -234,6 +234,8 @@ __marimo__/
 !model/dataset/**/*.csv
 !model/dataset/**/*.json
 
+model/sebelum_clean
+
 # exclude bin hasil training
 !model/bin/*
 model/bin/image_features.npy
