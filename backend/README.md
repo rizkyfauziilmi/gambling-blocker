@@ -9,7 +9,7 @@ Backend API **FastAPI** untuk klasifikasi URL judi menggunakan fused ML model (t
 | Bahasa | Python ≥ 3.13 |
 | Framework | FastAPI 0.136+ |
 | ML Teks | TensorFlow 2.21+ (TF-IDF → Keras Neural Network) |
-| ML Gambar | scikit-learn 1.8+ (Random Forest) |
+| ML Gambar | TensorFlow 2.21+ (Deep Learning MLP) |
 | Cache | Redis 5.3+ |
 | Object Storage | MinIO 7.2+ (screenshot) |
 | Screenshot | Playwright 1.60+ (headless Chromium) |
@@ -35,7 +35,7 @@ backend/
 │   ├── config.py           # Load env vars via python-dotenv
 │   ├── email.py            # SMTP: send password, tamper alert, stale alert
 │   ├── extensions.py       # SQLite: partner CRUD, heartbeat, tamper, verify
-│   ├── helpers.py          # parse_hostname, is_ip, cache_key, clean_url
+│   ├── helpers.py          # parse_hostname, cache_key, clean_url
 │   ├── lists.py            # SQLite: blacklist/whitelist CRUD
 │   ├── logger.py           # In-memory ring buffer (max 1000)
 │   ├── model.py            # ML inference: text + image + fusion
@@ -52,7 +52,7 @@ backend/
 
 | Modul | Fungsi |
 |-------|--------|
-| `model.py` | **Inti ML.** Inferensi teks (TF-IDF → Keras), inferensi gambar (Random Forest), fusion skor, multipage crawling, screenshot Playwright |
+| `model.py` | **Inti ML.** Inferensi teks (TF-IDF → Keras), inferensi gambar (Deep Learning MLP), fusion skor, multipage crawling, screenshot Playwright |
 | `cache.py` | **Redis.** Set/get dengan TTL dari settings, atomic increment untuk rate limiter, scan/flush |
 | `extensions.py` | **SQLite Partner.** `setup_partner()` (PBKDF2 SHA-256, 600K iterasi), `record_heartbeat()`, `log_tamper()`, `get_stale_extensions()`, `mark_stale_alerted()`, `restore_partner()` (rollback reset), `delete_partner()` (rollback setup), `get_all_heartbeat_status()`, `delete_heartbeats()` |
 | `email.py` | **SMTP.** Empat template: password akun partner, tamper alert, reset password, heartbeat stale alert |
@@ -130,12 +130,11 @@ uv run fastapi run
 ```
 URL masuk → rate limiting (10 req/menit per hostname via Redis)
          → cek whitelist/blacklist (SQLite)
-         → [jika bare IP + root path] return "bare-ip"
          → cek cache (Redis)
          → inferensi teks (TF-IDF → Keras)
          → [jika root domain + multipage_enabled] crawling internal links → stratified sampling → geometric mean subpath
          → [jika bypass_text_enabled=false ATAU skor teks tidak konklusif] screenshot (Playwright)
-         → inferensi gambar (Random Forest, 69 fitur)
+         → inferensi gambar (Deep Learning MLP, 69 fitur)
          → fusion: alpha * text + (1-alpha) * image
          → simpan cache (Redis) + screenshot (MinIO)
          → return JSON

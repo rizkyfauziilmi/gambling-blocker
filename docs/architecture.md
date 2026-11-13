@@ -12,7 +12,7 @@ sequenceDiagram
     participant Redis as Redis Cache
     participant TXT as Text ML (TF-IDF + Keras)
     participant PW as Playwright
-    participant IMG as Image ML (Random Forest)
+    participant IMG as Image DL (MLP)
     participant MINIO as MinIO
 
     User->>CS: Buka website
@@ -61,7 +61,7 @@ sequenceDiagram
 Skor akhir = `fusion_alpha * text_score + (1 - fusion_alpha) * image_score`
 
 - `text_score`: Probabilitas dari *neural network* (TF-IDF → Keras) pada URL yang sudah dibersihkan
-- `image_score`: Probabilitas dari *Random Forest* + *StandardScaler* pada **69 fitur** gambar:
+- `image_score`: Probabilitas dari *Deep Learning (MLP)* + *StandardScaler* pada **69 fitur** gambar:
   - **Patch features (60)**: Mean & std dari 10 acak patch 16×16 pada 3 kanal warna
   - **Edge density (3)**: Rata-rata, std, dan proporsi piksel di atas threshold gradient magnitude (Sobel)
   - **Color variance 4×4 grid (3)**: Std dari rata-rata warna per kanal pada grid 4×4
@@ -151,25 +151,10 @@ flowchart TD
     A["check_hostname(host)"] --> B{"Ditemukan?"}
     B -->|"whitelist"| C["Return: non-gambling<br/>score=0 | from_list=whitelist"]
     B -->|"blacklist"| D["Return: gambling<br/>score=1 | from_list=blacklist"]
-    B -->|"None"| E["Lanjut ke bare IP check"]
+    B -->|"None"| E["Lanjut ke cache"]
 ```
 
-#### E. Bare IP Handling
-
-1. Jika `hostname` adalah IP address (deteksi via `ipaddress.ip_address()`)
-2. Dan URL path kosong atau hanya `"/"`:
-   - Return: `category: "bare-ip"`, `gambling_score: 0.0`, `screenshot_status: "bypass_bare_ip"`
-3. Path yang tidak kosong tetap diproses normal
-
-```mermaid
-flowchart TD
-    A["is_ip(host)"] -->|"Ya"| B{"Path kosong<br/>atau '/'?"}
-    B -->|"Ya"| C["Return: bare-ip<br/>score=0 | bypass_bare_ip"]
-    B -->|"Tidak"| D["Lanjut ke cache"]
-    A -->|"Tidak"| D
-```
-
-#### F. Cache Lookup (Redis)
+#### E. Cache Lookup (Redis)
 
 1. Key: `fused:domain:{hostname}`
 2. Jika cache ada (`cache_get`): return hasil dengan `from_cache: true`, perbarui `screenshot_url` via presigned MinIO URL
@@ -182,7 +167,7 @@ flowchart TD
     B -->|"Tidak"| D["Lanjut ke text inference"]
 ```
 
-#### G. Text Inference
+#### F. Text Inference
 
 1. **URL Cleaning** (`clean_url`):
    - Ekstrak `netloc + path` → URL-decode → lowercase
@@ -203,7 +188,7 @@ flowchart LR
     D --> E["text_score"]
 ```
 
-#### H. Multipage Inference (Root Domain)
+#### G. Multipage Inference (Root Domain)
 
 1. Hanya berjalan jika `multipage_enabled=true` dan path adalah root (`""` atau `"/"`)
 2. Detail implementasi ada di sub-section **Multipage Inference** di atas
@@ -225,7 +210,7 @@ sequenceDiagram
     API->>API: Geometric mean subpath<br/>(root score sebagai fallback)
 ```
 
-#### I. Screenshot & Image Inference
+#### H. Screenshot & Image Inference
 
 1. **Bypass logic**: Jika `bypass_text_enabled=true` DAN (`text_score >= 0.95` ATAU `text_score <= 0.05`) → skip screenshot, `screenshot_status: "bypass_text_only"`, `gambling_score = text_score`
 2. **Screenshot** (Playwright):
@@ -244,9 +229,9 @@ sequenceDiagram
    - **Color variance 4×4 grid (3)**: Std dari rata-rata warna 16 cell per kanal
    - **Colorfulness index (1)**: `sqrt(rg.std² + yb.std²) + 0.3×sqrt(rg.mean² + yb.mean²)` (Hasler & Süstrunk)
    - **Brightness distribution (2)**: Rasio piksel gelap (V<0.2) dan terang (V>0.8) di HSV
-4. **Random Forest Prediction**:
+4. **Deep Learning Prediction (MLP)**:
    - Fitur di-scale dengan `StandardScaler` dari `image_scaler.pkl`
-   - Prediksi probabilitas kelas gambling via `image_classifier.pkl`
+   - Prediksi probabilitas kelas gambling via model Deep Learning `image_classifier.keras`
    - Output: `image_score` (float 0–1)
 5. **Upload**: Screenshot diupload ke MinIO, `screenshot_url` adalah presigned URL (expired 1 jam)
 
@@ -261,7 +246,7 @@ flowchart TD
     D -->|"noise (> 100KB)"| G["screenshot_status = noise_screenshot"]
     D -->|"OK"| H["Extract 69 fitur:<br/>patch(60) edge(3) colorVar(3)<br/>colorfulness(1) brightness(2)"]
     H --> I["StandardScaler<br/>(image_scaler.pkl)"]
-    I --> J["Random Forest<br/>(image_classifier.pkl)"]
+    I --> J["Deep Learning MLP<br/>(image_classifier.keras)"]
     J --> K["image_score"]
     D -->|"gagal"| L["screenshot_status = capture_failed<br/>image_score = null"]
     K --> M["Upload ke MinIO"]
@@ -270,7 +255,7 @@ flowchart TD
     G --> M
 ```
 
-#### J. Fusion, Caching, & Response
+#### I. Fusion, Caching, & Response
 
 1. **Fusion score**:
    ```
@@ -417,9 +402,66 @@ sequenceDiagram
     end
 ```
 
-## Multi-Browser Extension Guard
+### Gambling Visit Alert
 
-`isExtensionsUrl()` mendeteksi URL manajemen ekstensi:
+```mermaid
+sequenceDiagram
+    participant CS as Content Script
+    participant BG as Background Script
+    participant API as Backend API
+    participant Partner as Email Partner
+
+    Note over CS: Deteksi situs gambling
+    CS->>BG: runtime.sendMessage({type:"gambling_alert", url, gambling_score})
+    BG->>BG: hasPassword()?
+    alt Partner tidak terdaftar
+        BG->>BG: Abort (tidak ada action)
+    else Partner terdaftar
+        BG->>BG: getExtensionId()
+        BG->>API: POST /extension/gambling-alert
+        API->>API: log_msg("GAMBLING", ...)
+        API->>API: get_partner(extension_id)
+        alt Partner ditemukan
+            API->>Partner: Email gambling alert<br/>(URL + gambling score)
+        end
+        API-->>BG: {ok: true}
+    end
+```
+
+## Multi-Browser Extension Guard & Tamper Alert
+
+### Alur Deteksi Akses & Tamper
+
+```mermaid
+flowchart TD
+    A["User buka halaman<br/>chrome://extensions"] --> B{"Listener triggered:<br/>tabs.onUpdated / tabs.onActivated"}
+    B --> C["handleExtensionsAccess(tabId)"]
+    C --> D{"Session bypass valid?<br/>(< 5 menit)"}
+    D -->|"Ya"| E["Izinkan akses<br/>(return)"]
+    D -->|"Tidak / expired"| F["Hapus bypass expired"]
+    F --> G{"shouldBlockExtensions()"}
+    G --> H{"hasPassword()?<br/>(partner sudah di-set?)"}
+    H -->|"Ya"| I["block"]
+    H -->|"Tidak"| J["getInstalledAt()"]
+    J --> K{"daysSinceInstall >= 7?"}
+    K -->|"Ya"| L["warn"]
+    K -->|"Tidak"| M["grace"]
+
+    I --> N["Buat tab baru:<br/>extensions-blocked.html<br/>Tutup tab extensions"]
+    L --> O["Notifikasi:<br/>proteksi terkompromi"]
+    M --> P["Notifikasi:<br/>sisa X hari untuk setup"]
+
+    N --> Q["Halaman extensions-blocked"]
+    Q --> R["User masukkan password"]
+    R --> S["verifyPassword()<br/>PBKDF2 lokal (600K iterasi)"]
+    S -->|"Benar"| T["Set session bypass (5 menit)<br/>session storage<br/>Buka chrome://extensions"]
+    S -->|"Salah"| U["POST /extension/tamper-alert"]
+    U --> V["Backend: log_tamper()<br/>(INSERT tamper_logs)"]
+    V --> W["get_partner(extension_id)"]
+    W --> X["send_tamper_alert()<br/>Email alert ke partner"]
+```
+
+Deteksi URL manajemen ekstensi via `isExtensionsUrl()`:
 
 | Browser | URL |
 |---------|-----|
@@ -442,7 +484,50 @@ Dua listener di `background.ts`:
 | Hari 7+ | Warn: notifikasi proteksi terkompromi, akses extensions diizinkan |
 | Setelah partner di-set | Block: redirect ke halaman password |
 
-## Database SQLite (`app.db`)
+## Perancangan Basis Data
+
+### SQLite (`app.db`)
+
+```mermaid
+erDiagram
+    partner_accounts ||--o{ heartbeats : has
+    partner_accounts ||--o{ tamper_logs : has
+    partner_accounts {
+        string extension_id PK
+        string partner_email
+        string password_hash
+        string password_salt
+        datetime created_at
+        datetime stale_alerted_at
+    }
+    heartbeats {
+        int id PK
+        string extension_id FK
+        datetime timestamp
+        string ip_address
+    }
+    tamper_logs {
+        int id PK
+        string extension_id FK
+        string event_type
+        string details
+        datetime timestamp
+    }
+    site_lists {
+        int id PK
+        string hostname UK
+        string list_type
+        datetime created_at
+    }
+    reports {
+        int id PK
+        string url
+        string hostname
+        float gambling_score
+        string reporter_ip
+        datetime created_at
+    }
+```
 
 | Tabel | Isi |
 |-------|-----|
@@ -451,6 +536,36 @@ Dua listener di `background.ts`:
 | `partner_accounts` | Partner (extension_id, email, password_hash, salt, stale_alerted_at) |
 | `heartbeats` | Riwayat heartbeat (extension_id, timestamp, ip_address) |
 | `tamper_logs` | Riwayat tamper (extension_id, event_type, details, timestamp) |
+
+### Redis
+
+| Key Pattern | TTL | Fungsi |
+|-------------|-----|--------|
+| `fused:domain:{hostname}` | 24 jam (default) | Cache hasil klasifikasi |
+| `rate:fused:{hostname}` | 60 detik | Rate limit klasifikasi (10/menit/hostname) |
+| `report:ip:{client_ip}` | 3600 detik | Rate limit report (5/jam/IP) |
+
+Semua operasi Redis bersifat opsional — sistem tetap berjalan tanpa cache jika Redis tidak tersedia.
+
+### MinIO
+
+Menyimpan screenshot PNG hasil inferensi gambar dengan object key `{md5(url)[:12]}.png`. Presigned URL di-generate dengan expiry 1 jam saat cache dibaca. Opsional — `screenshot_url` bernilai null jika MinIO tidak tersedia.
+
+### Konfigurasi Berbasis File
+
+- **`settings.json`**: 7 pengaturan aplikasi (bypass_text_enabled, multipage_enabled, cache_ttl_hours, stale_hours, stale_check_interval_minutes, auto_heartbeat_on_setup, debug_logging_enabled).
+- **`model/bin/*.json`**: Threshold klasifikasi teks (0.7), fusion alpha (0.5), dan threshold gambar (0.64).
+- **`model/bin/*.keras`**: Model TF-IDF + Neural Network untuk klasifikasi teks dan MLP untuk klasifikasi gambar.
+
+### Browser Storage (Sisi Klien)
+
+| Storage | Key | Fungsi |
+|---------|-----|--------|
+| `storage.local` | `extension_id` | UUID unik per instalasi ekstensi |
+| `storage.local` | `installed_at` | Timestamp instalasi untuk grace period |
+| `storage.local` | `partner_password` | Hash + salt PBKDF2 untuk verifikasi offline |
+| `storage.session` | `extensions_bypass` | Status session bypass extensions page |
+| `storage.session` | `extensions_bypass_expires_at` | Expiry session bypass (5 menit) |
 
 ## Komponen Ekstensi
 
@@ -463,45 +578,3 @@ Dua listener di `background.ts`:
 | `options/App.tsx` | Halaman pengaturan: setup partner, password gate dengan "Forgot password?", ganti bahasa |
 | `popup/App.tsx` | Popup: status, breakdown, bypass countdown + Lock Now, report |
 
-## Aliran Data Dashboard
-
-```mermaid
-flowchart LR
-    subgraph DASH["Dashboard (React Query)"]
-        R["Reports Tab<br/>(poll 10s)"]
-        B["Blacklist Tab<br/>(poll 10s)"]
-        W["Whitelist Tab<br/>(poll 10s)"]
-        C["Cache Tab<br/>(poll 10s)"]
-        S["Settings Tab<br/>(poll 10s)"]
-        L["Logs Tab<br/>(poll 5s)"]
-        H["Heartbeats Tab<br/>(poll 10s)"]
-    end
-    subgraph API["Backend API (Basic Auth)"]
-        direction TB
-        REP["GET /reports<br/>DELETE /reports/:id<br/>DELETE /reports/by-hostname/:h"]
-        BL["GET /blacklist<br/>POST /blacklist<br/>DELETE /blacklist/:id"]
-        WL["GET /whitelist<br/>POST /whitelist<br/>DELETE /whitelist/:id"]
-        CACHE["GET /cache<br/>DELETE /cache/:key<br/>DELETE /cache"]
-        SET["GET /settings<br/>PUT /settings"]
-        LOG["GET /logs?tag=<br/>DELETE /logs"]
-        STAT["GET /extension/status?extension_id="]
-        HB["GET /extension/heartbeats<br/>DELETE /extension/heartbeat/:id<br/>POST /admin/trigger-heartbeat"]
-        SC["GET /admin/next-stale-check"]
-        STALE["POST /admin/trigger-stale-check"]
-    end
-
-    R --> REP
-    B --> BL
-    W --> WL
-    C --> CACHE
-    S --> SET
-    L --> LOG
-    H --> HB
-    H -.-> STALE
-    S -.-> SC
-    S -.-> STALE
-```
-
-> **Catatan:** `PartnerPanel` (poll 30s via `GET /extension/status?extension_id=`) adalah komponen yang dirancang untuk digunakan di halaman options/popup ekstensi, **bukan** tab dashboard. Komponen ini ada di `src/components/PartnerPanel.tsx` tapi tidak dirender di `App.tsx`.
->
-> Endpoint admin `POST /admin/trigger-stale-check` dan `GET /admin/next-stale-check` digunakan oleh `TriggerStaleCheckButton` di Settings & Heartbeats tab.

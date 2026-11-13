@@ -3,6 +3,9 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+scripts/output/*
+!scripts/output/*.md
+
 # C extensions
 *.so
 
@@ -230,6 +233,8 @@ __marimo__/
 # Tapi tetap track yang ada di folder dataset
 !model/dataset/**/*.csv
 !model/dataset/**/*.json
+
+model/sebelum_clean
 
 # exclude bin hasil training
 !model/bin/*

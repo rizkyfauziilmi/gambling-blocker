@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { initLanguage, t } from "@/utils/i18n"
 import { getPartnerStatus } from "@/utils/password"
+import { bypassStorage } from "@/utils/storage"
 
 const API_BASE = import.meta.env.WXT_API_BASE
 const EXT_URL = browser.runtime.getURL("")
@@ -25,7 +26,8 @@ function shouldSkip(url: string): boolean {
     const parsed = new URL(url)
     if (
       parsed.protocol === "chrome-extension:" ||
-      parsed.protocol === "moz-extension:"
+      parsed.protocol === "moz-extension:" ||
+      parsed.protocol === "safari-extension:"
     )
       return true
     if (
@@ -46,7 +48,6 @@ type Status =
   | "loading"
   | "safe"
   | "gambling"
-  | "bare-ip"
   | "skipped"
   | "error"
   | "not_classified"
@@ -120,7 +121,7 @@ function App() {
     ;(async () => {
       await initLanguage()
       getPartnerStatus().then(setPartnerInfo)
-      const session = (await browser.storage.session.get([
+      const session = (await bypassStorage.getSession([
         "extensions_bypass",
         "extensions_bypass_expires_at",
       ])) as {
@@ -167,8 +168,6 @@ function App() {
           setStatus("not_classified")
         } else if (data.category === "gambling") {
           setStatus("gambling")
-        } else if (data.category === "bare-ip") {
-          setStatus("bare-ip")
         } else {
           setStatus("safe")
         }
@@ -194,7 +193,7 @@ function App() {
         }
       }
     }
-    await browser.storage.session.remove([
+    await bypassStorage.clearSession([
       "extensions_bypass",
       "extensions_bypass_expires_at",
     ])
@@ -204,7 +203,7 @@ function App() {
   async function handleReport() {
     setReportState("loading")
     try {
-      const res = await fetch(`${API_BASE}/report/false-positive`, {
+      const res = await fetch(`${API_BASE}/report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -258,7 +257,6 @@ function App() {
     } else {
       const labels: Record<string, string> = {
         bypass_list: "By List",
-        bypass_bare_ip: "Bare IP",
         bypass_text_only: "Text Only",
         capture_failed: "Capture Failed",
         extraction_failed: "Extraction Failed",
@@ -415,16 +413,6 @@ function App() {
           <p className="mt-1 text-xs text-gray-500">
             {t("popup_notClassifiedDesc")}
           </p>
-        </div>
-      )}
-
-      {/* Bare IP state */}
-      {status === "bare-ip" && (
-        <div className="rounded-xl border border-gray-300 bg-gray-100 p-4 text-center">
-          <p className="text-sm font-medium text-gray-700">
-            {t("popup_bareIp")}
-          </p>
-          <p className="mt-1 text-xs text-gray-500">{t("popup_bareIpDesc")}</p>
         </div>
       )}
 

@@ -1,3 +1,5 @@
+import { bypassStorage } from "@/utils/storage"
+
 const API_BASE = import.meta.env.WXT_API_BASE
 
 interface ClassifyMsg {
@@ -69,7 +71,7 @@ async function shouldBlockExtensions(): Promise<"block" | "warn" | "grace"> {
 async function handleExtensionsAccess(tabId: number) {
   const action = await shouldBlockExtensions()
 
-  const bypassed = (await browser.storage.session.get([
+  const bypassed = (await bypassStorage.getSession([
     "extensions_bypass",
     "extensions_bypass_expires_at",
   ])) as { extensions_bypass?: boolean; extensions_bypass_expires_at?: number }
@@ -80,7 +82,7 @@ async function handleExtensionsAccess(tabId: number) {
     return
   }
   if (bypassed.extensions_bypass) {
-    await browser.storage.session.remove([
+    await bypassStorage.clearSession([
       "extensions_bypass",
       "extensions_bypass_expires_at",
     ])

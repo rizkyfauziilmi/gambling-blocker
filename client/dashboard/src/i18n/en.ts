@@ -89,7 +89,6 @@ const en: Record<string, string> = {
   noise_http: "Noise (HTTP {code})",
   http_label: "HTTP {code}",
   by_list: "By List",
-  bare_ip: "Bare IP",
   text_only: "Text Only",
   no_screenshot_status: "No Screenshot",
   screenshot_blocked: "Blocked",

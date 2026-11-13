@@ -38,12 +38,6 @@
     "popup_reportFalsePositive": {
         "message": "Laporkan Salah Deteksi"
     },
-    "popup_bareIp": {
-        "message": "IP Langsung — tidak dipindai"
-    },
-    "popup_bareIpDesc": {
-        "message": "Tambahkan path untuk deteksi judi"
-    },
     "popup_blockedByAdmin": {
         "message": "Diblokir oleh admin"
     },

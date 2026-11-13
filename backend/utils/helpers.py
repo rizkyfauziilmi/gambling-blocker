@@ -1,4 +1,3 @@
-import ipaddress
 import re
 from urllib.parse import unquote, urlparse
 
@@ -17,14 +16,6 @@ def parse_hostname(raw: str) -> str:
     if "." not in hostname:
         raise HTTPException(status_code=400, detail="Invalid hostname format")
     return hostname
-
-
-def is_ip(hostname: str) -> bool:
-    try:
-        ipaddress.ip_address(hostname)
-        return True
-    except ValueError:
-        return False
 
 
 def cache_key(hostname: str) -> str:

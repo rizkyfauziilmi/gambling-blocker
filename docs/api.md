@@ -194,7 +194,7 @@ Melakukan klasifikasi penuh: cek list → cache → inferensi teks → (opsional
 }
 ```
 
-**Screenshot status** (12+ nilai): `screenshot_ok`, `capture_failed`, `blocked`, `blank_screenshot`, `http_error_{code}`, `bypass_list`, `bypass_bare_ip`, `bypass_text_only`, `no_screenshot`, `noise_screenshot`, `extraction_failed`, dll.
+**Screenshot status** (12+ nilai): `screenshot_ok`, `capture_failed`, `blocked`, `blank_screenshot`, `http_error_{code}`, `bypass_list`, `bypass_text_only`, `no_screenshot`, `noise_screenshot`, `extraction_failed`, dll.
 
 ### Lightweight Classification (Cache + List Only)
 
@@ -248,7 +248,7 @@ Hanya cek whitelist/blacklist dan cache. Tidak menjalankan inferensi.
 
 | Method | Path | Auth |
 |--------|------|------|
-| POST | `/report/false-positive` | ✗ |
+| POST | `/report` | ✗ |
 
 **Rate limit:** 5/jam per IP.
 
@@ -304,27 +304,13 @@ Hanya cek whitelist/blacklist dan cache. Tidak menjalankan inferensi.
 
 ---
 
-## Blacklist
+## Blacklist / Whitelist
 
 | Method | Path | Auth | Deskripsi |
 |--------|------|------|-----------|
-| GET | `/blacklist` | Basic Auth | Lihat semua entri |
-| POST | `/blacklist` | Basic Auth | Tambah hostname (juga hapus cache & reports) |
-| DELETE | `/blacklist/{entry_id}` | Basic Auth | Hapus entri |
-
-**POST Request Body:** `{ "hostname": "example.com" }`
-
-**Log tag:** `LIST`
-
----
-
-## Whitelist
-
-| Method | Path | Auth | Deskripsi |
-|--------|------|------|-----------|
-| GET | `/whitelist` | Basic Auth | Lihat semua entri |
-| POST | `/whitelist` | Basic Auth | Tambah hostname (juga hapus cache & reports) |
-| DELETE | `/whitelist/{entry_id}` | Basic Auth | Hapus entri |
+| GET | `/lists/{list_type}` | Basic Auth | Lihat semua entri (`blacklist` / `whitelist`) |
+| POST | `/lists/{list_type}` | Basic Auth | Tambah hostname (juga hapus cache & reports) |
+| DELETE | `/lists/{list_type}/{entry_id}` | Basic Auth | Hapus entri |
 
 **POST Request Body:** `{ "hostname": "example.com" }`
 

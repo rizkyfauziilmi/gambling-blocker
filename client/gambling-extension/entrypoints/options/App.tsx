@@ -15,6 +15,7 @@ import {
   hasPassword,
   verifyPassword,
 } from "@/utils/password"
+import { bypassStorage } from "@/utils/storage"
 
 const API_BASE = import.meta.env.WXT_API_BASE
 const LANGUAGES = [
@@ -50,7 +51,7 @@ function App() {
       const status = await getPartnerStatus()
       setPartnerStatus(status)
       if (status.hasPartner) {
-        const session = (await browser.storage.session.get([
+        const session = (await bypassStorage.getSession([
           "extensions_bypass",
           "extensions_bypass_expires_at",
         ])) as {
@@ -64,7 +65,7 @@ function App() {
           setPage("settings")
         } else {
           if (session.extensions_bypass) {
-            await browser.storage.session.remove([
+            await bypassStorage.clearSession([
               "extensions_bypass",
               "extensions_bypass_expires_at",
             ])
@@ -112,7 +113,7 @@ function App() {
       const ok = await verifyPassword(password)
       if (ok) {
         setPasswordState("success")
-        await browser.storage.session.set({
+        await bypassStorage.setSession({
           extensions_bypass: true,
           extensions_bypass_expires_at: Date.now() + 5 * 60 * 1000,
         })

@@ -3,8 +3,6 @@ import { initLanguage, t } from "@/utils/i18n"
 function shouldSkip(url: string): boolean {
   try {
     const p = new URL(url)
-    if (p.protocol === "chrome-extension:" || p.protocol === "moz-extension:")
-      return true
     if (
       p.hostname === "127.0.0.1" ||
       p.hostname === "localhost" ||
@@ -129,7 +127,7 @@ export default defineContentScript({
                 from_list: data.from_list || "",
               })
               window.location.href =
-                `chrome-extension://${browser.runtime.id}/blocked.html?` + qp
+                browser.runtime.getURL("/blocked.html") + "?" + qp
             })
         } else {
           cleanup()

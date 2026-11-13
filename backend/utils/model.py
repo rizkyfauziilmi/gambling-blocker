@@ -12,7 +12,6 @@ import joblib
 import numpy as np
 import tensorflow as tf
 from keras import Model
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 
 from .config import SAVE_DIR
@@ -26,10 +25,11 @@ NOISE_SIZE_LIMIT: int = 100_000
 _text_model: Model | None = None
 _vectorizer: Any | None = None
 _text_threshold: float = 0.5
+_model_loaded: bool = False
 
-_image_model: RandomForestClassifier | None = None
+_image_model: Model | None = None
 _image_scaler: StandardScaler | None = None
-_image_threshold: float = 0.5
+_fusion_threshold: float = 0.5
 _image_alpha: float = 0.4
 
 PATCH_SIZE: tuple[int, int] = (16, 16)
@@ -39,12 +39,13 @@ RESIZE: tuple[int, int] = (64, 64)
 
 def load() -> bool:
     global _text_model, _vectorizer, _text_threshold
-    global _image_model, _image_scaler, _image_threshold, _image_alpha
+    global _image_model, _image_scaler, _fusion_threshold, _image_alpha
+    global _model_loaded
 
     text_model_path: Path = SAVE_DIR / "text_classifier.keras"
     vectorizer_path: Path = SAVE_DIR / "text_tfidf_vectorizer.pkl"
     text_threshold_path: Path = SAVE_DIR / "text_best_threshold.json"
-    image_model_path: Path = SAVE_DIR / "image_classifier.pkl"
+    image_model_path: Path = SAVE_DIR / "image_classifier.keras"
     image_scaler_path: Path = SAVE_DIR / "image_scaler.pkl"
     fusion_config_path: Path = SAVE_DIR / "image_fusion_alpha.json"
 
@@ -68,17 +69,18 @@ def load() -> bool:
     with open(text_threshold_path) as f:
         _text_threshold = json.load(f)["text_best_threshold"]
 
-    _image_model = joblib.load(str(image_model_path))
+    _image_model = tf.keras.models.load_model(str(image_model_path))
     _image_scaler = joblib.load(str(image_scaler_path))
     with open(fusion_config_path) as f:
         fc: dict[str, Any] = json.load(f)
         _image_alpha = fc["alpha"]
-        _image_threshold = fc["threshold"]
+        _fusion_threshold = fc["threshold"]
 
     log(
         "INFO",
-        f"Models loaded from {SAVE_DIR} (text_threshold={_text_threshold:.4f}, image_threshold={_image_threshold:.4f}, fusion_alpha={_image_alpha:.2f})",  # noqa: E501
+        f"Models loaded from {SAVE_DIR} (text_threshold={_text_threshold:.4f}, fusion_threshold={_fusion_threshold:.4f}, fusion_alpha={_image_alpha:.2f})",  # noqa: E501
     )
+    _model_loaded = True
     return True
 
 
@@ -274,61 +276,61 @@ def _capture_screenshot(url: str) -> tuple[bytes | None, str | None]:
                     "--disable-popup-blocking",
                 ],
             )
-            page = browser.new_page(
-                viewport={"width": 1280, "height": 720},
-                user_agent=(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/125.0.0.0 Safari/537.36"
-                ),
-                locale="id-ID",
-                timezone_id="Asia/Jakarta",
-                bypass_csp=True,
-                ignore_https_errors=True,
-                extra_http_headers={
-                    "Accept": (
-                        "text/html,application/xhtml+xml,"
-                        "application/xml;q=0.9,*/*;q=0.8"
+            try:
+                page = browser.new_page(
+                    viewport={"width": 1280, "height": 720},
+                    user_agent=(
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/125.0.0.0 Safari/537.36"
                     ),
-                    "Accept-Language": "id-ID,id;q=0.9,en-US,en;q=0.8",
-                },
-            )
-            Stealth().apply_stealth_sync(page)
+                    locale="id-ID",
+                    timezone_id="Asia/Jakarta",
+                    bypass_csp=True,
+                    ignore_https_errors=True,
+                    extra_http_headers={
+                        "Accept": (
+                            "text/html,application/xhtml+xml,"
+                            "application/xml;q=0.9,*/*;q=0.8"
+                        ),
+                        "Accept-Language": "id-ID,id;q=0.9,en-US,en;q=0.8",
+                    },
+                )
+                Stealth().apply_stealth_sync(page)
 
-            page.on("dialog", lambda d: d.dismiss())
+                page.on("dialog", lambda d: d.dismiss())
 
-            resp = page.goto(url, timeout=30_000, wait_until="domcontentloaded")
-            try:
-                page.wait_for_load_state("networkidle", timeout=15_000)
-            except Exception:
-                pass
+                resp = page.goto(url, timeout=30_000, wait_until="domcontentloaded")
+                try:
+                    page.wait_for_load_state("networkidle", timeout=15_000)
+                except Exception:
+                    pass
 
-            blocked, reason = _is_blocked(page)
-            if blocked:
-                log("SCREENSHOT", f"BLOCKED {url} reason={reason}")
+                blocked, reason = _is_blocked(page)
+                if blocked:
+                    log("SCREENSHOT", f"BLOCKED {url} reason={reason}")
+                    return None, "blocked"
+
+                try:
+                    page.evaluate(_OVERLAY_REMOVER)
+                    page.wait_for_timeout(500)
+                except Exception:
+                    pass
+
+                http_status: str | None = str(resp.status) if resp else None
+                buf: bytes = page.screenshot(full_page=False)
+
+                if len(buf) < 1024:
+                    log("SCREENSHOT", f"BLANK {url} size={len(buf)}B")
+                    return None, "blank"
+
+                log(
+                    "SCREENSHOT",
+                    f"{url} status={http_status} size={len(buf) / 1024:.0f}KB",
+                )
+                return buf, http_status
+            finally:
                 browser.close()
-                return None, "blocked"
-
-            try:
-                page.evaluate(_OVERLAY_REMOVER)
-                page.wait_for_timeout(500)
-            except Exception:
-                pass
-
-            http_status: str | None = str(resp.status) if resp else None
-            buf: bytes = page.screenshot(full_page=False)
-
-            if len(buf) < 1024:
-                log("SCREENSHOT", f"BLANK {url} size={len(buf)}B")
-                browser.close()
-                return None, "blank"
-
-            log(
-                "SCREENSHOT",
-                f"{url} status={http_status} size={len(buf) / 1024:.0f}KB",
-            )
-            browser.close()
-        return buf, http_status
     except Exception as e:
         log("WARN", f"Screenshot failed for {url}: {type(e).__name__}: {e}")
         return None, None
@@ -427,15 +429,16 @@ def _infer_multipage(url: str, prob_root: float) -> float:
         return prob_root
 
     scores: list[float] = []
-    for p in sampled:
-        full = urljoin(url, p)
-        cleaned = clean_url(full)
-        seq = _vectorizer.transform([cleaned])
-        seq.sort_indices()
-        prob = float(_text_model.predict(seq, verbose=0)[0][0])
-        scores.append(prob)
+    full_urls = [urljoin(url, p) for p in sampled]
+    cleaned_urls = [clean_url(u) for u in full_urls]
+    seqs = _vectorizer.transform(cleaned_urls)
+    seqs.sort_indices()
+    preds = _text_model.predict(seqs, verbose=0)
+    for p, prob in zip(sampled, preds):
+        prob_val = float(prob[0])
+        scores.append(prob_val)
         depth = len([s for s in p.strip("/").split("/") if s])
-        log("MULTIPAGE", f"depth={depth} {p} → {prob:.4f}")
+        log("MULTIPAGE", f"depth={depth} {p} → {prob_val:.4f}")
 
     from math import prod
 
@@ -448,6 +451,7 @@ def _infer_multipage(url: str, prob_root: float) -> float:
 
 
 def infer_fused(url: str) -> dict[str, Any]:
+    _ensure_loaded()
     assert _vectorizer is not None
     assert _text_model is not None
     assert _image_model is not None
@@ -474,7 +478,7 @@ def infer_fused(url: str) -> dict[str, Any]:
     ):
         return {
             "url": url,
-            "category": "gambling" if prob_text > _image_threshold else "non-gambling",
+            "category": "gambling" if prob_text > _text_threshold else "non-gambling",
             "gambling_score": round(prob_text, 4),
             "text_score": round(prob_text, 4),
             "image_score": None,
@@ -500,7 +504,7 @@ def infer_fused(url: str) -> dict[str, Any]:
             try:
                 feats = _extract_features(img_bytes).reshape(1, -1)
                 feats_scaled = _image_scaler.transform(feats)
-                prob_image = float(_image_model.predict_proba(feats_scaled)[0, 1])
+                prob_image = float(_image_model.predict(feats_scaled, verbose=0)[0, 0])
 
                 storage = get_storage()
                 object_name: str = f"{md5(url.encode()).hexdigest()[:12]}.png"
@@ -529,7 +533,7 @@ def infer_fused(url: str) -> dict[str, Any]:
     else:
         prob_gambling = prob_text
 
-    category: str = "gambling" if prob_gambling > _image_threshold else "non-gambling"
+    category: str = "gambling" if prob_gambling > _fusion_threshold else "non-gambling"
 
     return {
         "url": url,
@@ -544,4 +548,7 @@ def infer_fused(url: str) -> dict[str, Any]:
     }
 
 
-_text_model_loaded: bool = load()
+def _ensure_loaded() -> None:
+    global _model_loaded
+    if not _model_loaded:
+        _model_loaded = load()

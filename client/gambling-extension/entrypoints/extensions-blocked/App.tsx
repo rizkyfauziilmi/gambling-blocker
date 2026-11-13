@@ -9,6 +9,8 @@ import {
 } from "lucide-react"
 import { initLanguage, t } from "@/utils/i18n"
 import { getOrCreateExtensionId, verifyPassword } from "@/utils/password"
+import { bypassStorage } from "@/utils/storage"
+import { getExtensionsUrl } from "@/utils/browser"
 
 const API_BASE = import.meta.env.WXT_API_BASE
 
@@ -58,12 +60,12 @@ function App() {
     const ok = await verifyPassword(password)
     if (ok) {
       setState("success")
-      await browser.storage.session.set({
+      await bypassStorage.setSession({
         extensions_bypass: true,
         extensions_bypass_expires_at: Date.now() + 5 * 60 * 1000,
       })
       setTimeout(async () => {
-        await browser.tabs.create({ url: "chrome://extensions" })
+        await browser.tabs.create({ url: getExtensionsUrl() })
         window.close()
       }, 1500)
       return
