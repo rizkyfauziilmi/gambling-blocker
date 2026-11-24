@@ -2,6 +2,8 @@
 
 A **Machine Learning**-based real-time gambling website detection and blocking system with an **accountability partner** mechanism to prevent users from disabling protection.
 
+![Gambling Blocker preview](docs/screenshot.png)
+
 ## Architecture
 
 ```mermaid
@@ -42,11 +44,11 @@ flowchart TB
 
 ## Components
 
-| Component | Directory | Stack |
-|-----------|-----------|-------|
-| **Backend** | `backend/` | Python 3.13, FastAPI, TensorFlow, scikit-learn, Redis, MinIO, Playwright |
-| **Extension** | `client/gambling-extension/` | WXT, React 19, TypeScript, Tailwind v4 |
-| **Dashboard** | `client/dashboard/` | Vite 8, React 19, TypeScript, shadcn/ui, TanStack Query |
+| Component     | Directory                    | Stack                                                                    |
+| ------------- | ---------------------------- | ------------------------------------------------------------------------ |
+| **Backend**   | `backend/`                   | Python 3.13, FastAPI, TensorFlow, scikit-learn, Redis, MinIO, Playwright |
+| **Extension** | `client/gambling-extension/` | WXT, React 19, TypeScript, Tailwind v4                                   |
+| **Dashboard** | `client/dashboard/`          | Vite 8, React 19, TypeScript, shadcn/ui, TanStack Query                  |
 
 ## Quick Start
 
@@ -78,12 +80,12 @@ pnpm dev                      # http://localhost:5173
 
 ## Documentation
 
-| File | Content |
-|------|---------|
-| [docs/architecture.md](docs/architecture.md) | System architecture and workflows |
-| [docs/setup.md](docs/setup.md) | Complete installation guide |
-| [docs/api.md](docs/api.md) | API endpoint documentation |
-| [backend/README.md](backend/README.md) | Backend documentation *(Bahasa Indonesia)* |
-| [client/gambling-extension/README.md](client/gambling-extension/README.md) | Extension documentation *(Bahasa Indonesia)* |
-| [client/dashboard/README.md](client/dashboard/README.md) | Dashboard documentation *(Bahasa Indonesia)* |
-| [README.md](README.md) | Versi Bahasa Indonesia |
+| File                                                                       | Content                                      |
+| -------------------------------------------------------------------------- | -------------------------------------------- |
+| [docs/architecture.md](docs/architecture.md)                               | System architecture and workflows            |
+| [docs/setup.md](docs/setup.md)                                             | Complete installation guide                  |
+| [docs/api.md](docs/api.md)                                                 | API endpoint documentation                   |
+| [backend/README.md](backend/README.md)                                     | Backend documentation _(Bahasa Indonesia)_   |
+| [client/gambling-extension/README.md](client/gambling-extension/README.md) | Extension documentation _(Bahasa Indonesia)_ |
+| [client/dashboard/README.md](client/dashboard/README.md)                   | Dashboard documentation _(Bahasa Indonesia)_ |
+| [README.md](README.md)                                                     | Versi Bahasa Indonesia                       |

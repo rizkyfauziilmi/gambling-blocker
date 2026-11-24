@@ -1,6 +1,8 @@
 # Gambling Blocker
 
-Sistem deteksi dan pemblokiran situs judi *real-time* berbasis **Machine Learning** dengan sistem *accountability partner* untuk mencegah pengguna mematikan proteksi.
+Sistem deteksi dan pemblokiran situs judi _real-time_ berbasis **Machine Learning** dengan sistem _accountability partner_ untuk mencegah pengguna mematikan proteksi.
+
+![Tampilan Gambling Blocker](docs/screenshot.png)
 
 ## Arsitektur
 
@@ -42,11 +44,11 @@ flowchart TB
 
 ## Komponen
 
-| Komponen | Direktori | Stack |
-|----------|-----------|-------|
-| **Backend** | `backend/` | Python 3.13, FastAPI, TensorFlow, scikit-learn, Redis, MinIO, Playwright |
-| **Extension** | `client/gambling-extension/` | WXT, React 19, TypeScript, Tailwind v4 |
-| **Dashboard** | `client/dashboard/` | Vite 8, React 19, TypeScript, shadcn/ui, TanStack Query |
+| Komponen      | Direktori                    | Stack                                                                    |
+| ------------- | ---------------------------- | ------------------------------------------------------------------------ |
+| **Backend**   | `backend/`                   | Python 3.13, FastAPI, TensorFlow, scikit-learn, Redis, MinIO, Playwright |
+| **Extension** | `client/gambling-extension/` | WXT, React 19, TypeScript, Tailwind v4                                   |
+| **Dashboard** | `client/dashboard/`          | Vite 8, React 19, TypeScript, shadcn/ui, TanStack Query                  |
 
 ## Mulai Cepat
 
@@ -78,12 +80,12 @@ pnpm dev                      # http://localhost:5173
 
 ## Dokumentasi
 
-| File | Isi |
-|------|-----|
-| [docs/architecture.md](docs/architecture.md) | Arsitektur sistem dan alur kerja |
-| [docs/setup.md](docs/setup.md) | Panduan instalasi lengkap |
-| [docs/api.md](docs/api.md) | Dokumentasi API endpoint |
-| [backend/README.md](backend/README.md) | Dokumentasi backend |
-| [client/gambling-extension/README.md](client/gambling-extension/README.md) | Dokumentasi ekstensi browser |
-| [client/dashboard/README.md](client/dashboard/README.md) | Dokumentasi dashboard |
-| [README.en.md](README.en.md) | English version |
+| File                                                                       | Isi                              |
+| -------------------------------------------------------------------------- | -------------------------------- |
+| [docs/architecture.md](docs/architecture.md)                               | Arsitektur sistem dan alur kerja |
+| [docs/setup.md](docs/setup.md)                                             | Panduan instalasi lengkap        |
+| [docs/api.md](docs/api.md)                                                 | Dokumentasi API endpoint         |
+| [backend/README.md](backend/README.md)                                     | Dokumentasi backend              |
+| [client/gambling-extension/README.md](client/gambling-extension/README.md) | Dokumentasi ekstensi browser     |
+| [client/dashboard/README.md](client/dashboard/README.md)                   | Dokumentasi dashboard            |
+| [README.en.md](README.en.md)                                               | English version                  |
